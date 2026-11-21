@@ -39,7 +39,7 @@
     </div>
   </div>
   <div class="srodek instytucja">
-    <p class="urzad">{{ urzad }}</p>
+    <p class="urzad"><img class="logo-urzedu" alt="" src="{% if logo_png %}data:image/png;base64,{{ logo_png }}{% else %}{% static 'oceny/godlo.svg' %}{% endif %}"> {{ urzad }}</p>
     {% if user.is_authenticated %}
     {% with strona=request.resolver_match.url_name %}
     <nav class="menu" aria-label="Menu główne">

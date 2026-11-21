@@ -20,7 +20,7 @@ from asystent_ocen.druk import DaneArkusza, Osoba, PoprzedniaOcena, generuj_arku
 from asystent_ocen.ics import kalendarz_ics, wydarzenia_procesu
 from asystent_ocen.przebieg import Rola
 
-from .models import Ocena, Pracownik
+from .models import OznaczenieUrzedu, Ocena, Pracownik
 
 TYP_DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 _ZNANE_MIEJSCA_KONWERTERA = ("/Applications/LibreOffice.app/Contents/MacOS/soffice", "/usr/bin/soffice")
@@ -51,7 +51,7 @@ def dane_arkusza(ocena: Ocena) -> DaneArkusza:
     proces = ocena.proces()
     oceniany = ocena.oceniany
     return DaneArkusza(
-        nazwa_urzedu=settings.ASYSTENT_URZAD,
+        nazwa_urzedu=OznaczenieUrzedu.aktualne().nazwa,
         oceniany=_osoba(oceniany),
         oceniajacy=_osoba(ocena.oceniajacy),
         proces=proces,

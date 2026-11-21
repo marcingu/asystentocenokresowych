@@ -406,3 +406,13 @@ class UrzadzenieTotp(models.Model):
     def __str__(self) -> str:
         return f"{self.uzytkownik} ({'potwierdzona' if self.potwierdzone else 'niepotwierdzona'})"
 
+
+
+class OznaczenieUrzedu(models.Model):
+    """Nazwa i przetworzone logo (PNG) do nagłówka; jeden rekord instancji."""
+    nazwa = models.CharField(max_length=160)
+    logo_png = models.TextField(blank=True)
+
+    @classmethod
+    def aktualne(cls):
+        return cls.objects.filter(pk=1).first() or cls(pk=1, nazwa=settings.ASYSTENT_URZAD)

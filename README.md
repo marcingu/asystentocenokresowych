@@ -41,7 +41,7 @@ Pokaz włącza - wyłącznie na danych fikcyjnych - trzy funkcje modelu językow
 - **Radar Dobrostanu i Doceniania**: na karcie oceny pracownik i jego przełożony widzą te same karty obserwacji - fakty z systemu kadrowego i EZD RP, np. urlop zaległy z terminem z Kodeksu pracy, godziny nadliczbowe, sprawy przejęte po nieobecnych, terminowość. Karty liczy zwykły kod według progów urzędu (`asystent_ocen/radar.toml`): bez punktów, rankingu i wniosków o zdrowiu albo emocjach. Radar działa po spełnieniu tych samych warunków Kodeksu pracy co karta z EZD RP. W pokazie liczby są przykładowe - prototyp nie ma połączenia z systemem kadrowym.
 - **Pytania do kart obserwacji** (po instalacji wyłączone): model układa do każdej karty jedno pytanie otwarte dla przełożonego. Dostaje same karty, bez danych osobowych; pytanie o zdrowie, emocje albo sprawy prywatne jest odrzucane. To funkcja wysokiego ryzyka - włącza ją decyzja urzędu.
 
-Testy: 749 testów rdzenia i 407 testów aplikacji.
+Testy: 749 testów rdzenia i 411 testów aplikacji.
 
 ## Założenia
 
@@ -50,7 +50,7 @@ Testy: 749 testów rdzenia i 407 testów aplikacji.
 - **O funkcji wysokiego ryzyka decyduje urząd.** Najpierw wykonuje analizy i czynności z listy w `zgodnosc.toml`: ocenę skutków dla praw podstawowych, ocenę skutków dla ochrony danych, powierzenie nadzoru, poinformowanie pracowników i rejestrację w bazie danych UE. Potem zapisuje decyzję - organ, datę i dokument każdej pozycji - w pliku wskazanym zmienną `ASYSTENT_DECYZJE_AI` (wzór: `decyzje-ai-wzor.toml`). Bez kompletnej decyzji system funkcji nie uruchomi, a usunięcie wpisu wyłącza ją od razu. System nie ocenia treści analiz - odpowiada za nie urząd. Lista to minimum, nie pełny katalog obowiązków z AI Act i RODO.
 - **Dane zostają w urzędzie.** Model językowy działa lokalnie, a strony nie pobierają niczego z internetu (wymusza to polityka treści w nagłówkach odpowiedzi).
 - **Tylko licencje permisywne.** Django (BSD-3-Clause), python-docx (MIT), model PLLuM-12B-chat (Apache-2.0).
-- **Wygląd wzorowany na gov.pl.** Kolory, krój pisma i układ nagłówka nawiązują do stron Prezesa Rady Ministrów w portalu gov.pl. Prototyp nie używa godła ani znaku gov.pl i nie pobiera czcionek z sieci - stopka mówi wprost, że to nie jest serwis urzędowy. Urzędem w pokazie jest Kancelaria Prezesa Rady Ministrów; osoby i dane są fikcyjne.
+- **Wygląd wzorowany na gov.pl.** Kolory, krój pisma i układ nagłówka nawiązują do stron Prezesa Rady Ministrów w portalu gov.pl. Domyślne [godło ze strony KPRM](https://www.gov.pl/img/icons/godlo-12.svg) jest serwowane lokalnie. Administrator zmienia nazwę i logo w zakładce „Oznaczenie urzędu”. Prototyp nie pobiera czcionek z sieci - stopka mówi wprost, że to nie jest serwis urzędowy. Urzędem w pokazie jest Kancelaria Prezesa Rady Ministrów; osoby i dane są fikcyjne.
 - **Dostępność cyfrowa jest wymaganiem.** Interfejs i wydruki mają spełniać WCAG 2.1 na poziomach A i AA, czyli załącznik do ustawy o dostępności cyfrowej. Automatyczny audyt 71 stron pokazu nie wykazuje naruszeń, a strony działają przy szerokości 320 px. Testu z czytnikiem ekranu jeszcze nie było - stan kontroli i znane braki opisuje `dokumentacja/dostepnosc.md`.
 
 ## Testy

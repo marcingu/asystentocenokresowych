@@ -6,7 +6,7 @@ a układ i kolory stron mają przypominać strony Prezesa Rady Ministrów w port
 Wartości odczytane 21.11.2026 ze strony https://www.gov.pl/web/premier (style obliczone przez przeglądarkę):
 tekst rgb(27, 27, 27) na białym tle, odnośniki i przyciski rgb(0, 82, 165), górna krawędź stopki rgb(213, 35, 63),
 krój „Open Sans”, jasny nagłówek, bieżąca pozycja menu pogrubiona i podkreślona.
-Godła i znaku gov.pl prototyp nie używa - to nie jest serwis urzędowy. Czcionek nie pobiera z sieci.
+Prototyp z godłem nie jest serwisem urzędowym. Czcionek nie pobiera z sieci.
 """
 
 import re

@@ -1,6 +1,6 @@
 /* Cyfrowy asystent ocen okresowych - arkusz stylów. Bez czcionek i zasobów zewnętrznych.
    Kolory i układ wzorowane na serwisie gov.pl (strony Prezesa Rady Ministrów): białe tło, tekst #1b1b1b,
-   niebieski #0052a5, czerwona linia #d5233f. Godła i znaku gov.pl tu nie ma - to nie jest serwis urzędowy. */
+   niebieski #0052a5, czerwona linia #d5233f. Prototyp nie jest serwisem urzędowym. */
 :root {
   --granat: #0052a5;
   --granat-ciemny: #003b7a;
@@ -238,3 +238,5 @@ summary { cursor: pointer; color: var(--granat); font-weight: 600; }
 .obserwacja-docenienie { border-left-color: var(--zielony); }
 .obserwacja strong { color: var(--granat-ciemny); }
 .obserwacja small { color: var(--szary); overflow-wrap: anywhere; }
+
+.logo-urzedu { height: 2.6rem; max-width: 5rem; object-fit: contain; vertical-align: middle; margin-right: .4rem; }

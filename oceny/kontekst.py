@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 
 from . import uprawnienia
+from .models import OznaczenieUrzedu
 from .czas import dzis
 from .kontekst_ezd import integracja_wlaczona
 
@@ -21,8 +22,9 @@ def konta_demo():
 
 def wspolny(request):
     uzytkownik = request.user
+    oznaczenie = OznaczenieUrzedu.aktualne()
     return {
-        "urzad": settings.ASYSTENT_URZAD,
+        "urzad": oznaczenie.nazwa, "logo_png": oznaczenie.logo_png,
         "tryb_demo": settings.ASYSTENT_TRYB_DEMO,
         "konta_demo": konta_demo(),
         "dzis": dzis(),

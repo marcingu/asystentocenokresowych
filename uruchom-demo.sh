@@ -5,7 +5,7 @@
 #   --od-nowa   usuwa bazę pokazową (demo.sqlite3) i buduje ją od początku z dzisiejszą datą
 #   port        port serwera, domyślnie 8000
 #
-# Skrypt tworzy środowisko Pythona (.venv), instaluje dwie zależności, zakłada bazę pokazową
+# Skrypt tworzy środowisko Pythona (.venv), instaluje zależności, zakłada bazę pokazową
 # i uruchamia serwer dostępny tylko z tego komputera (127.0.0.1). Niczego poza bazą pokazową nie usuwa.
 set -eu
 cd "$(dirname "$0")"
@@ -25,8 +25,8 @@ if [ ! -x .venv/bin/python ]; then
   echo "Tworzę środowisko Pythona (.venv)..."
   "$PYTHON" -m venv .venv
 fi
-if ! .venv/bin/python -c "import django, docx" 2>/dev/null; then
-  echo "Instaluję zależności (Django, python-docx)..."
+if ! .venv/bin/python -c "import django, docx, PIL" 2>/dev/null; then
+  echo "Instaluję zależności (Django, python-docx, Pillow)..."
   .venv/bin/python -m pip install --quiet -r requirements.txt
 fi
 

@@ -25,7 +25,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from . import bezpieczenstwo, dziennik, totp
 from .kontekst import konta_demo
-from .models import UrzadzenieTotp, ZdarzenieBezpieczenstwa
+from .models import OznaczenieUrzedu, UrzadzenieTotp, ZdarzenieBezpieczenstwa
 
 BACKEND = "django.contrib.auth.backends.ModelBackend"
 OCZEKUJE_NA_KOD = "oczekuje_na_kod"          # klucz sesji: hasło poprawne, brakuje kodu jednorazowego
@@ -187,7 +187,7 @@ def konto_dwuetapowe(request):
             uzytkownik=uzytkownik, defaults={"sekret": totp.nowy_sekret()}
         )
         kontekst["klucz"] = totp.sekret_w_grupach(nowa.sekret)
-        kontekst["adres"] = totp.adres_otpauth(nowa.sekret, uzytkownik.get_username(), f"Asystent ocen - {settings.ASYSTENT_URZAD}")
+        kontekst["adres"] = totp.adres_otpauth(nowa.sekret, uzytkownik.get_username(), f"Asystent ocen - {OznaczenieUrzedu.aktualne().nazwa}")
     return render(request, "oceny/konto_dwuetapowe.html", kontekst)
 
 

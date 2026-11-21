@@ -2,4 +2,5 @@
   <a href="{% url 'administracja' %}"{% if zakladka == 'konta' %} aria-current="page"{% endif %}>Konta użytkowników</a>
   <a href="{% url 'administracja_dziennik' %}"{% if zakladka == 'bezpieczenstwo' %} aria-current="page"{% endif %}>Dziennik zdarzeń bezpieczeństwa</a>
   <a href="{% url 'administracja_dziennik' %}?dziennik=proces"{% if zakladka == 'proces' %} aria-current="page"{% endif %}>Czynności w procesie oceny</a>
+  <a href="{% url 'administracja_urzad' %}"{% if zakladka == 'urzad' %} aria-current="page"{% endif %}>Oznaczenie urzędu</a>
 </nav>
