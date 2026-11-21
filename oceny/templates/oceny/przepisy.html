@@ -27,13 +27,13 @@
         <td>{{ funkcja.opis }}<small>{{ funkcja.kod }}</small></td>
         <td>{{ funkcja.klasyfikacja }}</td>
         <td>{{ funkcja.podstawa }}</td>
-        <td>{% if funkcja.wlaczona and funkcja.decyzja_pokazowa %}<span class="stan stan-pilne">włączona w pokazie</span>{% elif funkcja.wlaczona and funkcja.decyzja_wlaczenia %}<span class="stan stan-pilne">włączona decyzją urzędu</span>{% elif funkcja.wlaczona %}<span class="stan stan-w_terminie">włączona</span>{% else %}<span class="stan stan-bez_terminu">wyłączona</span>{% endif %}</td>
-        {% if edycja %}<td>{% if funkcja.kod in przelaczalne %}
+        <td>{% if funkcja.wlaczona and funkcja.decyzja_pokazowa %}<span class="stan stan-pilne">włączona</span>{% elif funkcja.wlaczona and funkcja.decyzja_wlaczenia %}<span class="stan stan-pilne">włączona decyzją urzędu</span>{% elif funkcja.wlaczona %}<span class="stan stan-w_terminie">włączona</span>{% else %}<span class="stan stan-bez_terminu">wyłączona</span>{% endif %}</td>
+        {% if edycja %}<td>
           <form method="post">{% csrf_token %}
             <input type="hidden" name="akcja" value="opcja"><input type="hidden" name="wersja" value="{{ wersja }}">
             <input type="hidden" name="kod" value="{{ funkcja.kod }}">
             <button type="submit" class="przycisk przycisk-drugi" name="stan" value="{% if funkcja.wlaczona %}wylacz{% else %}wlacz{% endif %}">{% if funkcja.wlaczona %}Wyłącz{% else %}Włącz{% endif %}<span class="ukryte">: {{ funkcja.opis }}</span></button>
-          </form>{% else %}Niedostępna w tej konfiguracji{% endif %}</td>{% endif %}
+          </form></td>{% endif %}
       </tr>
       {% endfor %}
     </tbody>

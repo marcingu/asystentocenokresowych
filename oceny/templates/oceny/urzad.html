@@ -6,6 +6,8 @@
 <p>Nazwa pojawia się w nagłówku i na arkuszu oceny. Logo jest wyświetlane obok nazwy w nagłówku.</p>
 <form method="post" enctype="multipart/form-data" class="formularz karta">{% csrf_token %}
   {% if formularz.errors %}<p role="alert">Popraw wskazane pola.</p>{% endif %}
+  <p>Aktualne logo:</p>
+  {% include "oceny/_logo.html" with opis="Aktualne logo urzędu" logo_png=logo_png only %}
   {{ formularz.as_div }}
   <button type="submit" class="przycisk">Zapisz oznaczenie</button>
 </form>

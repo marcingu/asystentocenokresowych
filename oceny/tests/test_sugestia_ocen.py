@@ -142,10 +142,10 @@ class BezDecyzjiUrzeduTest(Podstawa):
         self.assertEqual(self.model.wiadomosci, [])
         self.assertFalse(self.wpisy().exists())
 
-    def test_strona_przepisow_pokazuje_funkcje_jako_wylaczona(self):
+    def test_strona_przepisow_pomija_funkcje_niedostepna(self):
         odpowiedz = klient(self.z.kadry).get(reverse("przepisy"))
 
-        self.assertContains(odpowiedz, "PROPOZYCJA_OCENY")
+        self.assertNotContains(odpowiedz, "PROPOZYCJA_OCENY")
         self.assertNotContains(odpowiedz, "włączona decyzją urzędu")
         self.assertNotContains(odpowiedz, "Plik decyzji urzędu")
 
@@ -492,7 +492,8 @@ class PokazNaDanychFikcyjnychTest(Podstawa):
 
         # pokaz włącza trzy funkcje wysokiego ryzyka: sugestię ocen cząstkowych, propozycję kierunków do IPRZ
         # i pytania do kart obserwacji radaru
-        self.assertContains(odpowiedz, "włączona w pokazie", count=3)
+        self.assertNotContains(odpowiedz, "włączona w pokazie")
+        self.assertContains(odpowiedz, ">włączona</span>", count=7)
         self.assertNotContains(odpowiedz, "włączona decyzją urzędu")
         self.assertContains(odpowiedz, "nie wykonano")
         self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])

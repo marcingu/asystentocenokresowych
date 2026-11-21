@@ -87,8 +87,9 @@ def przepisy(request):
             messages.success(request, "Zapisano zmianę konfiguracji." if zmiana else "Konfiguracja nie zmieniła się.")
             return redirect("przepisy")
     wymogi, _ = rejestr_ai.stan(stan)
+    dostepne = {f.kod for f in baza.funkcje_ai if f.wlaczona}
     return render(request, "oceny/przepisy.html", {
         "edycja": edycja, "wersja": stan.wersja, "plik": "przepisy.toml", "tresc": tekst,
-        "funkcje_ai": wymogi.funkcje_ai, "przelaczalne": {f.kod for f in baza.funkcje_ai if f.wlaczona},
+        "funkcje_ai": [f for f in wymogi.funkcje_ai if f.kod in dostepne],
         "blad_decyzji_ai": blad_decyzji, "warunki_wlaczenia": baza.warunki_wlaczenia,
     }, status=status)

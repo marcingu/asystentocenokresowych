@@ -34,3 +34,13 @@ class UstawieniaTest(Podstawa):
         plik = SimpleUploadedFile("logo.png", b"to nie jest obraz", content_type="image/png")
         self.assertContains(self.przegladarka.post(ADRES, {"nazwa": "Inny urząd", "logo": plik}), "Popraw")
         self.assertNotContains(self.client.get("/logowanie/"), "Inny urząd")
+
+    def test_formularz_otwiera_sie_z_aktualna_nazwa_i_logo(self):
+        from django.conf import settings
+        for nazwa in (settings.ASYSTENT_URZAD, "Urząd po zmianie"):
+            if nazwa != settings.ASYSTENT_URZAD:
+                self.przegladarka.post(ADRES, {"nazwa": nazwa})
+            strona = self.przegladarka.get(ADRES)
+            self.assertContains(strona, f'value="{nazwa}"')
+            self.assertContains(strona, 'alt="Aktualne logo urzędu"')
+            self.assertFalse(strona.context["formularz"].is_bound)

@@ -51,7 +51,7 @@ class FormularzUrzedu(forms.Form):
 def ustawienia(request):
     _wymagaj_administratora(request)
     urzad = OznaczenieUrzedu.aktualne()
-    formularz = FormularzUrzedu(request.POST if request.method == "POST" else None, request.FILES, initial={"nazwa": urzad.nazwa})
+    formularz = FormularzUrzedu(request.POST if request.method == "POST" else None, request.FILES if request.method == "POST" else None, initial={"nazwa": urzad.nazwa})
     if request.method == "POST" and formularz.is_valid():
         dane = formularz.cleaned_data
         with transaction.atomic():

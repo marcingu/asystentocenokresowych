@@ -1,0 +1,1 @@
+{% load static %}<img class="logo-urzedu" alt="{{ opis|default:'' }}" src="{% if logo_png %}data:image/png;base64,{{ logo_png }}{% else %}{% static 'oceny/godlo.svg' %}{% endif %}">
