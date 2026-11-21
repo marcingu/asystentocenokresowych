@@ -210,8 +210,6 @@ class ArkuszStylow:
 # Jasny tekst stoi tylko na wskazanych ciemnych tłach: selektor tekstu -> selektory, które ustawiają jego tło.
 JASNY_TEKST = {
     ".demo-konta button small": (".demo-konta button", ".demo-konta button:hover"),
-    ".naglowek a": (".naglowek",),
-    ".uzytkownik small": (".naglowek",),
 }
 
 

@@ -25,24 +25,33 @@
 </aside>
 {% endif %}
 <header class="naglowek">
-  <div class="naglowek-marka">
-    <a href="{% url 'zadania' %}" class="marka">Asystent ocen okresowych</a>
-    <span class="urzad">{{ urzad }}</span>
+  <div class="pasek">
+    <div class="srodek pasek-uklad">
+      <a href="{% url 'zadania' %}" class="marka">Asystent ocen okresowych</a>
+      <span class="marka-opis">Oceny okresowe w służbie cywilnej</span>
+      {% if user.is_authenticated %}
+      <div class="uzytkownik">
+        <span>{% if ja %}{{ ja.imie_i_nazwisko }}<small>{{ ja.stanowisko }}</small>{% else %}{{ user.get_username }}{% endif %}</span>
+        <form method="post" action="{% url 'wylogowanie' %}">{% csrf_token %}<button type="submit" class="przycisk przycisk-drugi przycisk-maly">Wyloguj</button></form>
+      </div>
+      {% endif %}
+    </div>
   </div>
-  {% if user.is_authenticated %}
-  <nav aria-label="Menu główne">
-    <a href="{% url 'zadania' %}">Moje zadania</a>
-    {% if ja.podlega_ocenie %}<a href="{% url 'symulacja' %}">Symulacja oceny</a>{% endif %}
-    {% if jestem_kadry %}<a href="{% url 'kadry' %}">Kadry</a>{% endif %}
-    {% if widze_statystyki %}<a href="{% url 'statystyki' %}">Statystyki</a>{% endif %}
-    <a href="{% url 'asystent' %}">Asystent AI</a>
-    <a href="{% url 'przepisy' %}">Przepisy</a>
-  </nav>
-  <div class="uzytkownik">
-    <span>{% if ja %}{{ ja.imie_i_nazwisko }}<small>{{ ja.stanowisko }}</small>{% else %}{{ user.get_username }}{% endif %}</span>
-    <form method="post" action="{% url 'wylogowanie' %}">{% csrf_token %}<button type="submit" class="przycisk-link">Wyloguj</button></form>
+  <div class="srodek instytucja">
+    <p class="urzad">{{ urzad }}</p>
+    {% if user.is_authenticated %}
+    {% with strona=request.resolver_match.url_name %}
+    <nav class="menu" aria-label="Menu główne">
+      <a href="{% url 'zadania' %}"{% if strona == 'zadania' %} aria-current="page"{% endif %}>Moje zadania</a>
+      {% if ja.podlega_ocenie %}<a href="{% url 'symulacja' %}"{% if strona == 'symulacja' %} aria-current="page"{% endif %}>Symulacja oceny</a>{% endif %}
+      {% if jestem_kadry %}<a href="{% url 'kadry' %}"{% if strona == 'kadry' %} aria-current="page"{% endif %}>Kadry</a>{% endif %}
+      {% if widze_statystyki %}<a href="{% url 'statystyki' %}"{% if strona == 'statystyki' %} aria-current="page"{% endif %}>Statystyki</a>{% endif %}
+      <a href="{% url 'asystent' %}"{% if strona == 'asystent' %} aria-current="page"{% endif %}>Asystent AI</a>
+      <a href="{% url 'przepisy' %}"{% if strona == 'przepisy' %} aria-current="page"{% endif %}>Przepisy</a>
+    </nav>
+    {% endwith %}
+    {% endif %}
   </div>
-  {% endif %}
 </header>
 <main id="tresc">
   {% if data_symulowana %}<p class="komunikat komunikat-info">Data w systemie jest ustawiona ręcznie: {{ dzis|date:"d.m.Y" }}.</p>{% endif %}
@@ -52,8 +61,11 @@
   {% block tresc %}{% endblock %}
 </main>
 <footer class="stopka">
-  <p>Cyfrowy asystent ocen okresowych w służbie cywilnej. Terminy, wyniki i komunikaty wynikają z przepisów zapisanych
-    w konfiguracji systemu - <a href="{% url 'przepisy' %}">zobacz przepisy</a>. Dziś: {{ dzis|date:"d.m.Y" }}.</p>
+  <div class="srodek">
+    <p>Cyfrowy asystent ocen okresowych w służbie cywilnej. Terminy, wyniki i komunikaty wynikają z przepisów zapisanych
+      w konfiguracji systemu - <a href="{% url 'przepisy' %}">zobacz przepisy</a>. Dziś: {{ dzis|date:"d.m.Y" }}.</p>
+    <p>Prototyp przygotowany na HackNation 2026 - nie jest serwisem urzędowym.{% if tryb_demo %} Osoby i dane w pokazie są fikcyjne.{% endif %}</p>
+  </div>
 </footer>
 <script src="{% static 'oceny/asystent.js' %}" defer></script>
 </body>

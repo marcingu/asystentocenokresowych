@@ -32,8 +32,8 @@ fi
 
 export ASYSTENT_TRYB_DEMO=1
 export ASYSTENT_BAZA="$PWD/demo.sqlite3"
-export ASYSTENT_URZAD="${ASYSTENT_URZAD:-Urząd Wojewódzki w Przykładowie}"
-export ASYSTENT_MIEJSCOWOSC="${ASYSTENT_MIEJSCOWOSC:-Przykładów}"
+export ASYSTENT_URZAD="${ASYSTENT_URZAD:-Kancelaria Prezesa Rady Ministrów}"
+export ASYSTENT_MIEJSCOWOSC="${ASYSTENT_MIEJSCOWOSC:-Warszawa}"
 # Tylko w pokazie, na danych fikcyjnych: sugestia ocen cząstkowych przez model (funkcja wysokiego ryzyka według
 # AI Act) włączona plikiem decyzji. Pokaz bez tej funkcji: ASYSTENT_DECYZJE_AI= ./uruchom-demo.sh
 export ASYSTENT_DECYZJE_AI="${ASYSTENT_DECYZJE_AI-$PWD/decyzje-ai-pokaz.toml}"

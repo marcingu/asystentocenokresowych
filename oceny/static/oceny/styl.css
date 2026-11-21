@@ -1,39 +1,43 @@
-/* Cyfrowy asystent ocen okresowych - arkusz stylów. Bez czcionek i zasobów zewnętrznych. */
+/* Cyfrowy asystent ocen okresowych - arkusz stylów. Bez czcionek i zasobów zewnętrznych.
+   Kolory i układ wzorowane na serwisie gov.pl (strony Prezesa Rady Ministrów): białe tło, tekst #1b1b1b,
+   niebieski #0052a5, czerwona linia #d5233f. Godła i znaku gov.pl tu nie ma - to nie jest serwis urzędowy. */
 :root {
-  --granat: #0b3c75;
-  --granat-ciemny: #072a52;
+  --granat: #0052a5;
+  --granat-ciemny: #003b7a;
   --czerwony: #b3122b;
-  --tlo: #f3f5f8;
+  --akcent: #d5233f;
+  --tlo: #ffffff;
   --karta: #ffffff;
-  --tekst: #1b1f24;
-  --szary: #5a6472;
-  --linia: #d5dbe3;
+  --szare-tlo: #f1f1f1;
+  --tekst: #1b1b1b;
+  --szary: #595959;
+  --linia: #d6d6d6;
   --zielony: #1d6b3a;
   --zielony-tlo: #e3f3e8;
   --zolty-tlo: #fff1cc;
   --zolty: #7a5200;
   --czerwony-tlo: #fde5e8;
-  --niebieski-tlo: #e5eefa;
-  --ramka-pola: #6f7985;
+  --niebieski-tlo: #e6eef6;
+  --ramka-pola: #6e6e6e;
   --fokus-jasny: #ffdd00;
-  --fokus-ciemny: #1b1f24;
+  --fokus-ciemny: #1b1b1b;
 }
 * { box-sizing: border-box; }
 html { font-size: 100%; }
 body {
   margin: 0; background: var(--tlo); color: var(--tekst);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.5;
+  font-family: "Open Sans", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.5;
 }
 a { color: var(--granat); }
 /* Fokus w dwóch kolorach: jasny obrys widać na ciemnych tłach, ciemną obwódkę - na jasnych (WCAG 1.4.11 i 2.4.7). */
 :focus-visible { outline: 3px solid var(--fokus-jasny); outline-offset: 0; box-shadow: 0 0 0 6px var(--fokus-ciemny); }
 /* Podpowiedź w polu: kolor z arkusza, bo domyślny zależy od przeglądarki i bywa za jasny (WCAG 1.4.3). */
 ::placeholder { color: var(--szary); opacity: 1; }
-h1 { font-size: 1.7rem; margin: 0 0 .4rem; }
-h2 { font-size: 1.2rem; margin: 0 0 .8rem; color: var(--granat-ciemny); }
+h1 { font-size: 1.9rem; line-height: 1.25; margin: 0 0 .5rem; }
+h2 { font-size: 1.3rem; line-height: 1.3; margin: 0 0 .8rem; color: var(--tekst); }
 h3 { font-size: 1rem; margin: 1rem 0 .4rem; }
 small { display: block; color: var(--szary); font-size: .85rem; font-weight: 400; }
-code { background: #e9edf2; padding: .1rem .3rem; border-radius: 3px; }
+code { background: var(--szare-tlo); padding: .1rem .3rem; border-radius: 3px; }
 .ukryte { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .pomin { position: absolute; left: -999px; top: 0; background: #fff; padding: .5rem 1rem; z-index: 10; }
 .pomin:focus { left: .5rem; top: .5rem; }
@@ -44,27 +48,33 @@ code { background: #e9edf2; padding: .1rem .3rem; border-radius: 3px; }
 .demo-konta button { background: #454545; color: #fff; border: 1px solid #6a6a6a; border-radius: 4px; padding: .25rem .6rem; cursor: pointer; font: inherit; font-size: .85rem; text-align: left; }
 .demo-konta button small { color: #cfcfcf; font-size: .72rem; }
 .demo-konta button:hover { background: #505050; }
-.demo-konta button.aktywne { background: #fff; color: #1b1f24; border-color: #fff; }
+.demo-konta button.aktywne { background: #fff; color: #1b1b1b; border-color: #fff; }
 .demo-konta button.aktywne small { color: #444; }
 
-/* nagłówek */
-.naglowek { background: var(--granat); color: #fff; padding: .75rem 1.25rem; display: flex; flex-wrap: wrap; gap: .75rem 2rem; align-items: center; border-bottom: 4px solid var(--czerwony); }
-.naglowek a { color: #fff; }
-.marka { font-weight: 700; font-size: 1.15rem; text-decoration: none; }
-.urzad { display: block; font-size: .85rem; opacity: .9; }
-.naglowek nav { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; flex: 1; }
-.naglowek nav a { text-decoration: none; padding: .25rem 0; border-bottom: 2px solid transparent; }
-.naglowek nav a:hover { border-bottom-color: #fff; }
+/* nagłówek: jasny pasek z nazwą systemu, pod nim nazwa urzędu i menu */
+.srodek { max-width: 1240px; margin: 0 auto; padding-left: 1.25rem; padding-right: 1.25rem; }
+.naglowek { background: #ffffff; color: var(--tekst); border-bottom: 1px solid var(--linia); }
+.pasek { border-bottom: 2px solid var(--szare-tlo); }
+.pasek-uklad { display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; align-items: center; padding-top: .7rem; padding-bottom: .7rem; }
+.marka { font-weight: 700; font-size: 1.45rem; line-height: 1.2; color: var(--tekst); text-decoration: none; }
+.marka-opis { flex: 1; border-left: 2px solid var(--akcent); padding: .35rem 0 .35rem 1.25rem; font-size: .9rem; }
 .uzytkownik { display: flex; gap: 1rem; align-items: center; font-size: .9rem; }
-.uzytkownik small { color: #d6e2f3; }
+.uzytkownik small { color: var(--szary); }
+.instytucja { display: flex; flex-wrap: wrap; gap: .2rem 2.5rem; align-items: flex-end; justify-content: space-between; padding-top: 1rem; }
+.urzad { margin: 0 0 .9rem; max-width: 17rem; font-size: 1.3rem; font-weight: 600; line-height: 1.25; padding-bottom: .4rem; border-bottom: 3px solid var(--akcent); }
+.menu { display: flex; flex-wrap: wrap; gap: 0 1.6rem; }
+.menu a { color: var(--tekst); text-decoration: none; padding: .55rem 0; border-bottom: 3px solid transparent; }
+.menu a:hover { border-bottom-color: var(--linia); }
+.menu a[aria-current="page"] { font-weight: 700; border-bottom-color: var(--granat); }
 .przycisk-link { background: none; border: 0; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; padding: 0; }
 
-main { max-width: 1240px; margin: 0 auto; padding: 1.25rem; }
-.stopka { max-width: 1240px; margin: 0 auto; padding: 0 1.25rem 2rem; color: var(--szary); font-size: .85rem; }
+main { max-width: 1240px; margin: 0 auto; padding: 1.5rem 1.25rem; }
+.stopka { border-top: 3px solid var(--akcent); margin-top: 2rem; padding: 1.2rem 0 2rem; color: var(--szary); font-size: .9rem; }
+.stopka p { margin: 0 0 .4rem; }
 .okruszki { margin: 0 0 .5rem; font-size: .9rem; color: var(--szary); }
 
 /* karty i układ */
-.karta { background: var(--karta); border: 1px solid var(--linia); border-radius: 6px; padding: 1.1rem 1.25rem; margin-bottom: 1rem; }
+.karta { background: var(--karta); border: 1px solid var(--linia); border-radius: 2px; padding: 1.1rem 1.25rem; margin-bottom: 1rem; }
 .waska { max-width: 440px; margin: 2rem auto; }
 .uklad { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 1rem; align-items: start; }
 .uklad-rowny { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -73,7 +83,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 1.25rem; }
 .do-zrobienia ul { margin: 0; padding-left: 1.1rem; }
 .pusto { color: var(--szary); font-style: italic; }
 .podpowiedz { color: var(--szary); font-size: .9rem; margin: .4rem 0; }
-.tekst { white-space: pre-line; background: #f8f9fb; border-left: 3px solid var(--linia); padding: .6rem .8rem; margin: .3rem 0 .8rem; }
+.tekst { white-space: pre-line; background: #f7f7f7; border-left: 3px solid var(--linia); padding: .6rem .8rem; margin: .3rem 0 .8rem; }
 .pouczenie { font-size: .9rem; background: var(--niebieski-tlo); padding: .7rem .9rem; border-radius: 4px; }
 
 /* komunikaty */
@@ -90,7 +100,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 1.25rem; }
 .metryczka dt { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--szary); }
 .metryczka dd { margin: 0; font-weight: 600; }
 .os-etapow { list-style: none; display: flex; flex-wrap: wrap; gap: .3rem; padding: 0; margin: 0 0 1rem; counter-reset: krok; }
-.krok { flex: 1 1 160px; padding: .5rem .7rem; border-radius: 4px; font-size: .85rem; background: #e6eaf0; color: var(--szary); counter-increment: krok; }
+.krok { flex: 1 1 160px; padding: .5rem .7rem; border-radius: 2px; font-size: .85rem; background: #ebebeb; color: var(--szary); counter-increment: krok; }
 .krok::before { content: counter(krok) ". "; font-weight: 700; }
 .krok-zrobiony { background: var(--zielony-tlo); color: var(--zielony); }
 .krok-biezacy { background: var(--granat); color: #fff; font-weight: 600; }
@@ -101,7 +111,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 1.25rem; }
 .stan-po_terminie { background: var(--czerwony); color: #fff; }
 .stan-pilne { background: var(--zolty-tlo); color: var(--zolty); border: 1px solid #c98a00; }
 .stan-w_terminie, .stan-wykonane { background: var(--zielony-tlo); color: var(--zielony); }
-.stan-bez_terminu, .stan-informacja { background: #e6eaf0; color: #39424e; }
+.stan-bez_terminu, .stan-informacja { background: #ebebeb; color: #3b3b3b; }
 .wynik { font-weight: 600; }
 .wynik-pozytywna { color: var(--zielony); }
 .wynik-negatywna { color: var(--czerwony); }
@@ -117,7 +127,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 1.25rem; }
 .tabela { width: 100%; border-collapse: collapse; background: var(--karta); margin-bottom: 1rem; }
 .tabela caption { text-align: left; font-weight: 600; padding: .4rem 0; }
 .tabela th, .tabela td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--linia); vertical-align: top; }
-.tabela thead th { background: #e9edf2; font-size: .85rem; }
+.tabela thead th { background: var(--szare-tlo); font-size: .85rem; }
 .tabela-ocen td, .tabela-ocen thead th:not(:first-child) { text-align: center; }
 .tabela-ocen thead th small { font-size: .7rem; }
 .tabela-ocen tbody th { font-weight: 600; }
@@ -138,18 +148,18 @@ meter { width: 100%; min-width: 120px; height: 1rem; }
 .pole-wyboru { display: flex; gap: .5rem; align-items: center; }
 .pole-wyboru input { width: 1.2rem; height: 1.2rem; accent-color: var(--granat); }
 .wiersz-pol { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .6rem; }
-.filtry { background: var(--karta); border: 1px solid var(--linia); border-radius: 6px; padding: .6rem 1rem 1rem; margin: 1rem 0 .4rem; }
+.filtry { background: var(--karta); border: 1px solid var(--linia); border-radius: 2px; padding: .6rem 1rem 1rem; margin: 1rem 0 .4rem; }
 .filtry .wiersz-pol > div { display: grid; grid-template-columns: minmax(0, 1fr); gap: .35rem; align-content: start; }
 .filtry input[type="search"] { font: inherit; padding: .45rem .6rem; border: 1px solid var(--ramka-pola); border-radius: 4px; width: 100%; }
 .wymagane { color: var(--czerwony); font-weight: 400; font-size: .85rem; }
 .przyciski { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
-.przycisk { display: inline-block; background: var(--granat); color: #fff; border: 2px solid var(--granat); border-radius: 4px; padding: .5rem 1rem; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; justify-self: start; }
-.przycisk:hover { background: var(--granat-ciemny); }
+.przycisk { display: inline-block; background: var(--granat); color: #fff; border: 2px solid var(--granat); border-radius: 4px; padding: .5rem 1.1rem; font: inherit; font-weight: 700; cursor: pointer; text-decoration: none; justify-self: start; }
+.przycisk:hover { background: var(--granat-ciemny); border-color: var(--granat-ciemny); }
 .przycisk-drugi { background: #fff; color: var(--granat); }
-.przycisk-drugi:hover { background: var(--niebieski-tlo); }
+.przycisk-drugi:hover { background: var(--niebieski-tlo); border-color: var(--granat); }
 .przycisk-maly { padding: .25rem .6rem; font-size: .85rem; }
 .potwierdzenie { background: var(--niebieski-tlo); border-radius: 4px; padding: .8rem 1rem; margin-top: 1rem; }
-.potwierdzenie-drugie { background: #f1f3f6; }
+.potwierdzenie-drugie { background: var(--szare-tlo); }
 .potwierdzenie p { margin: 0 0 .6rem; }
 details { margin-top: .6rem; }
 summary { cursor: pointer; color: var(--granat); font-weight: 600; }
@@ -164,7 +174,7 @@ summary { cursor: pointer; color: var(--granat); font-weight: 600; }
 .termin-po_terminie { border-color: var(--czerwony); }
 .termin-pilne { border-color: #c98a00; }
 .termin-w_terminie { border-color: var(--granat); }
-.termin-wykonane { border-color: var(--zielony); color: #39424e; }
+.termin-wykonane { border-color: var(--zielony); color: #3b3b3b; }
 .uwaga { color: var(--zolty); }
 .skutek-rozwiazanie_stosunku_pracy { border-color: var(--czerwony); }
 .skutek-stopien_obligatoryjny { border-color: var(--zielony); }
@@ -183,7 +193,7 @@ summary { cursor: pointer; color: var(--granat); font-weight: 600; }
 
 /* statystyki */
 .kafle { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .7rem; margin: 1rem 0; }
-.kafel { background: var(--karta); border: 1px solid var(--linia); border-radius: 6px; padding: .8rem 1rem; }
+.kafel { background: var(--karta); border: 1px solid var(--linia); border-radius: 2px; padding: .8rem 1rem; }
 .kafel strong { display: block; font-size: 1.9rem; color: var(--granat); line-height: 1.1; }
 .kafel span { color: var(--szary); font-size: .9rem; }
 .kafel-alarm { border-color: var(--czerwony); }
@@ -191,7 +201,7 @@ summary { cursor: pointer; color: var(--granat); font-weight: 600; }
 
 /* karta kontekstu z EZD RP i asystent AI */
 .fakty { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .6rem; margin: .6rem 0; padding: 0; list-style: none; }
-.fakt { border: 1px solid var(--linia); border-radius: 4px; padding: .6rem .8rem; background: #f8f9fb; }
+.fakt { border: 1px solid var(--linia); border-radius: 2px; padding: .6rem .8rem; background: #f7f7f7; }
 .fakt strong { display: block; font-size: 1.3rem; color: var(--granat); }
 /* Miejsce na komunikat o pracy modelu jest w stronie od początku i puste - tekst wpisuje skrypt (WCAG 4.1.3). */
 .czekanie { color: var(--granat); font-weight: 600; margin: 0; }
