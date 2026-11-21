@@ -30,8 +30,15 @@ UWZGLEDNIENIA_SPRZECIWU = (Sprzeciw.ZMIANA, Sprzeciw.PONOWNE_SPORZADZENIE)
 CZYNNOSC_NOTATKA = "notatka"
 CZYNNOSC_PROJEKT_AI = "projekt uzasadnienia ułożony przez model językowy"
 CZYNNOSC_SUGESTIA_AI = "sugestia ocen cząstkowych przygotowana przez model językowy"
+CZYNNOSC_ROZMOWA_AI = "pytania do rozmowy oceniającej przygotowane przez model językowy"
+CZYNNOSC_IPRZ_AI = "propozycja kierunków do IPRZ przygotowana przez model językowy"
 # Ślady użycia modelu językowego przy pracy nad oceną - oceniany widzi je po sporządzeniu oceny.
-CZYNNOSCI_AI = (CZYNNOSC_PROJEKT_AI, CZYNNOSC_SUGESTIA_AI)
+CZYNNOSCI_AI = (CZYNNOSC_PROJEKT_AI, CZYNNOSC_SUGESTIA_AI, CZYNNOSC_ROZMOWA_AI, CZYNNOSC_IPRZ_AI)
+# Czynności, w których pracowała funkcja wysokiego ryzyka - z jej kodem w rejestrze funkcji AI.
+CZYNNOSCI_AI_WYSOKIEGO_RYZYKA = {
+    CZYNNOSC_SUGESTIA_AI: "PROPOZYCJA_OCENY",
+    CZYNNOSC_IPRZ_AI: "PROPOZYCJA_KIERUNKOW_IPRZ",
+}
 
 
 # --- narzędzia wspólne ---
@@ -379,6 +386,14 @@ def projekt_uzasadnienia(ocena: Ocena, uzytkownik, *, redaktor, data: date | Non
     return wynik
 
 
+def _notatki_dla_modelu(proces) -> list[str]:
+    """To, co oceniający sam zapisał: obserwacje, dodatkowe osiągnięcia i wynik egzaminu - od najstarszej."""
+    return [
+        f"Dodatkowe osiągnięcie: {notatka.tresc}" if notatka.rodzaj == OSIAGNIECIE else notatka.tresc
+        for notatka in sorted(proces.notatki, key=lambda notatka: notatka.data)
+    ]
+
+
 def sugestia_ocen(ocena: Ocena, uzytkownik, *, doradca, data: date | None = None) -> dict:
     """Sugestia ocen cząstkowych przygotowana przez model językowy - funkcja wysokiego ryzyka (zał. III pkt 4
     lit. b AI Act), którą włącza tylko decyzja urzędu.
@@ -396,18 +411,49 @@ def sugestia_ocen(ocena: Ocena, uzytkownik, *, doradca, data: date | None = None
     if biezaca.etap != Etap.OCENIANIE.name:
         raise BladEtapu("Sugestię ocen cząstkowych można przygotować tylko na etapie dokonywania oceny.")
     proces = biezaca.proces()
-    notatki = [
-        f"Dodatkowe osiągnięcie: {notatka.tresc}" if notatka.rodzaj == OSIAGNIECIE else notatka.tresc
-        for notatka in sorted(proces.notatki, key=lambda notatka: notatka.data)
-    ]
     oceniany = biezaca.oceniany
-    wynik = doradca(notatki, nazwy_kryteriow(proces), [oceniany.imie_i_nazwisko, oceniany.imie, oceniany.nazwisko])
+    wynik = doradca(
+        _notatki_dla_modelu(proces), nazwy_kryteriow(proces), [oceniany.imie_i_nazwisko, oceniany.imie, oceniany.nazwisko]
+    )
     sugestia = wynik.get("sugestia")
     if sugestia is not None and not sugestia.odmowa:
         _zapisz_zdarzenie(
             biezaca, uzytkownik, CZYNNOSC_SUGESTIA_AI, data,
             "podpowiedź dla oceniającego - nie jest zapisywana; oceny wpisuje oceniający",
         )
+    return wynik
+
+
+def przygotowanie_rozmowy(ocena: Ocena, uzytkownik, *, doradca, data: date | None = None) -> dict:
+    """Wirtualny HR partner: pytania do rozmowy oceniającej (§ 10 rozp.) i - po decyzji urzędu - propozycja
+    kierunków do IPRZ, która jest funkcją wysokiego ryzyka.
+
+    `doradca(notatki, osoby)` zwraca słownik z kluczem „rozmowa” (wynik rdzenia) albo „blad” (komunikat) -
+    w aplikacji jest nim `copilot.przygotowanie_rozmowy`. Model dostaje wyłącznie to, co oceniający sam zapisał
+    w notatkach. Nie dostaje danych z EZD RP, ocen cząstkowych ani szkicu oceny. Podpowiedź nie jest zapisywana:
+    pytania wybiera i zadaje oceniający, wnioski do IPRZ też wpisuje sam. W dzienniku zostaje ślad użycia
+    każdej z funkcji, bez treści. Model pracuje kilkanaście sekund, dlatego wywołanie nie jest objęte transakcją.
+    """
+    data = data or dzis()
+    biezaca = Ocena.objects.select_related("oceniany").get(pk=ocena.pk)
+    _wymagaj_roli(uzytkownik, biezaca, Rola.OCENIAJACY)
+    if biezaca.etap != Etap.OCENIANIE.name:
+        raise BladEtapu("Rozmowę oceniającą można przygotować tylko na etapie dokonywania oceny.")
+    oceniany = biezaca.oceniany
+    wynik = doradca(
+        _notatki_dla_modelu(biezaca.proces()), [oceniany.imie_i_nazwisko, oceniany.imie, oceniany.nazwisko]
+    )
+    rozmowa = wynik.get("rozmowa")
+    if rozmowa is not None and not rozmowa.odmowa:
+        _zapisz_zdarzenie(
+            biezaca, uzytkownik, CZYNNOSC_ROZMOWA_AI, data,
+            "podpowiedź dla oceniającego - nie jest zapisywana; pytania wybiera i zadaje oceniający",
+        )
+        if rozmowa.z_kierunkami:
+            _zapisz_zdarzenie(
+                biezaca, uzytkownik, CZYNNOSC_IPRZ_AI, data,
+                "podpowiedź dla oceniającego - nie jest zapisywana; wnioski do IPRZ wpisuje oceniający",
+            )
     return wynik
 
 

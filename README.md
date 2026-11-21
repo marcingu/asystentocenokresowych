@@ -14,7 +14,7 @@ Wymagany Python 3.11 lub nowszy. Wydruk PDF wymaga LibreOffice na serwerze; bez 
 
 Opcje: `./uruchom-demo.sh --od-nowa` buduje bazę pokazową od początku, `./uruchom-demo.sh 8080` zmienia port.
 
-Pokaz włącza - wyłącznie na danych fikcyjnych - sugestię ocen cząstkowych przez model językowy. To funkcja wysokiego ryzyka według AI Act, po instalacji wyłączona (patrz „Założenia”). Wpis pokazowy nie zawiera analiz, które urząd wykonuje przed włączeniem, i poza trybem demonstracyjnym niczego nie włącza. Pokaz bez tej funkcji: `ASYSTENT_DECYZJE_AI= ./uruchom-demo.sh`.
+Pokaz włącza - wyłącznie na danych fikcyjnych - dwie funkcje modelu językowego: sugestię ocen cząstkowych i propozycję kierunków do IPRZ. To funkcje wysokiego ryzyka według AI Act, po instalacji wyłączone (patrz „Założenia”). Wpisy pokazowe nie zawierają analiz, które urząd wykonuje przed włączeniem, i poza trybem demonstracyjnym niczego nie włączają. Pokaz bez tych funkcji: `ASYSTENT_DECYZJE_AI= ./uruchom-demo.sh`.
 
 ## Co działa (stan na 21.11.2026)
 
@@ -29,16 +29,18 @@ Pokaz włącza - wyłącznie na danych fikcyjnych - sugestię ocen cząstkowych 
 - **Wydruk arkusza** zgodnego ze wzorem z rozporządzenia (PDF do podpisu, DOCX) i terminy do kalendarza (iCalendar).
 - **Asystent AI** na lokalnym modelu PLLuM: odpowiada na pytania o procedurę, wskazuje przepisy i ostrzega, gdy odpowiedź modelu powołuje przepis albo liczbę spoza źródeł.
 - **Projekt uzasadnienia z notatek**: na karcie oceny model układa notatki przełożonego w tekst uzasadnienia. Dostaje wyłącznie notatki - bez ocen cząstkowych i danych z EZD RP. Projekt jest oznaczony jako tekst AI, nie zapisuje się sam, a do formularza przenosi go oceniający.
+- **Wirtualny HR partner - przygotowanie rozmowy oceniającej**: karta oceny przypomina, co omawia się w rozmowie (§ 10 rozporządzenia), a model układa z notatek przełożonego od 3 do 5 pytań otwartych. Pytania o zdrowie i sprawy prywatne są odrzucane. Podpowiedź nie jest zapisywana - pytania wybiera i zadaje oceniający.
+- **Propozycja kierunków do IPRZ** (po instalacji wyłączona): razem z pytaniami model proponuje najwyżej 3 kierunki rozwoju i przy każdym wskazuje notatkę, z której go wyprowadził. Wymaga co najmniej 3 notatek. Do wniosków dotyczących IPRZ kierunki trafiają dopiero po decyzji oceniającego, który może je zmienić.
 - **Sugestia ocen cząstkowych** (po instalacji wyłączona): model podpowiada oceniającemu ocenę w każdym kryterium na podstawie jego notatek, a podpowiedzi nie da się przenieść do formularza. Wymaga co najmniej 3 notatek. W próbach model zbyt łatwo sugerował oceny skrajne, więc system oznacza je ostrzeżeniem.
-- **Informacja o AI przy treściach modelu**: przy odpowiedziach asystenta i projekcie uzasadnienia stoi klasyfikacja funkcji według rejestru urzędu, a przy sugestii ocen - ostrzeżenie o funkcji wysokiego ryzyka z decyzją urzędu i listą analiz. Po sporządzeniu oceny oceniany widzi przy niej, z jakich funkcji modelu korzystał oceniający.
+- **Informacja o AI przy treściach modelu**: przy odpowiedziach asystenta i projekcie uzasadnienia stoi klasyfikacja funkcji według rejestru urzędu, a przy sugestii ocen i propozycji kierunków do IPRZ - ostrzeżenie o funkcji wysokiego ryzyka z decyzją urzędu i listą analiz. Po sporządzeniu oceny oceniany widzi przy niej, z jakich funkcji modelu korzystał oceniający.
 - **Kontekst z EZD RP**: karta faktów o sprawach ocenianego za okres oceny (liczba spraw, terminowość, akceptacje pism), jawna dla obu stron, bez punktów i rankingów. Włącza ją komórka kadr po spełnieniu warunków Kodeksu pracy. W pokazie karta działa na danych przykładowych; klient Integrator API jest w rdzeniu, przetestowany na atrapie i jeszcze niepodłączony do karty.
 
-Testy: 700 testów rdzenia i 257 testów aplikacji.
+Testy: 725 testów rdzenia i 272 testy aplikacji.
 
 ## Założenia
 
 - **Prawo w konfiguracji, nie w kodzie.** Parametry przepisów są w `asystent_ocen/przepisy.toml`, wymogi zgodności w `asystent_ocen/zgodnosc.toml`. Zmiana przepisu to zmiana pliku. Aplikacja pokazuje ten plik na stronie „Przepisy”.
-- **Ocenę wystawia człowiek.** Po instalacji dozwolone są tylko funkcje AI spoza wysokiego ryzyka: odpowiedzi na pytania o procedurę, ułożenie notatek oceniającego w projekt uzasadnienia i korekta językowa (ta ostatnia jest w rdzeniu, bez przycisku w aplikacji). Sugestia ocen cząstkowych jest w rejestrze (`zgodnosc.toml`) funkcją wysokiego ryzyka i jest wyłączona. Funkcji zakazanych nie włącza nic. Model nie dostaje danych z EZD RP.
+- **Ocenę wystawia człowiek.** Po instalacji dozwolone są tylko funkcje AI spoza wysokiego ryzyka: odpowiedzi na pytania o procedurę, ułożenie notatek oceniającego w projekt uzasadnienia, pytania do rozmowy oceniającej i korekta językowa (ta ostatnia jest w rdzeniu, bez przycisku w aplikacji). Sugestia ocen cząstkowych i propozycja kierunków do IPRZ są w rejestrze (`zgodnosc.toml`) funkcjami wysokiego ryzyka i są wyłączone. Funkcji zakazanych nie włącza nic. Model nie dostaje danych z EZD RP.
 - **O funkcji wysokiego ryzyka decyduje urząd.** Najpierw wykonuje analizy i czynności z listy w `zgodnosc.toml`: ocenę skutków dla praw podstawowych, ocenę skutków dla ochrony danych, powierzenie nadzoru, poinformowanie pracowników i rejestrację w bazie danych UE. Potem zapisuje decyzję - organ, datę i dokument każdej pozycji - w pliku wskazanym zmienną `ASYSTENT_DECYZJE_AI` (wzór: `decyzje-ai-wzor.toml`). Bez kompletnej decyzji system funkcji nie uruchomi, a usunięcie wpisu wyłącza ją od razu. System nie ocenia treści analiz - odpowiada za nie urząd. Lista to minimum, nie pełny katalog obowiązków z AI Act i RODO.
 - **Dane zostają w urzędzie.** Model językowy działa lokalnie, a strony nie pobierają niczego z internetu (wymusza to polityka treści w nagłówkach odpowiedzi).
 - **Tylko licencje permisywne.** Django (BSD-3-Clause), python-docx (MIT), model PLLuM-12B-chat (Apache-2.0).

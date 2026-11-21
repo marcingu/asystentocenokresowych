@@ -171,6 +171,19 @@ def _sugestia_ocen(request, wybrana: Ocena):
     return render(request, "oceny/ocena.html", kontekst)
 
 
+def _przygotowanie_rozmowy(request, wybrana: Ocena):
+    """Wirtualny HR partner: pytania do rozmowy oceniającej i - po decyzji urzędu - kierunki do IPRZ.
+    Podpowiedź istnieje tylko na tej stronie: nie jest zapisywana i nie zmienia formularza."""
+    from . import copilot  # import przy użyciu - moduł AI nie jest potrzebny do pracy reszty systemu
+
+    # Najpierw szkic: dane wpisane w formularzu nie przepadają, gdy strona wraca z pytaniami.
+    uslugi.zapisz_szkic(wybrana, request.user, formularze.czesc_II(request.POST, wybrana.proces()))
+    wynik = uslugi.przygotowanie_rozmowy(wybrana, request.user, doradca=copilot.przygotowanie_rozmowy)
+    kontekst = kontekst_karty(wybrana, request.user, dzis())
+    kontekst["rozmowa_ai"] = copilot.rozmowa_do_pokazania(wynik, kontekst["copilot"]["liczba_notatek"])
+    return render(request, "oceny/ocena.html", kontekst)
+
+
 def _sporzadz_ocene(request, wybrana: Ocena):
     szkic = formularze.czesc_II(request.POST, wybrana.proces())
     # Najpierw szkic: po błędzie walidacji wpisane dane zostają w formularzu.
@@ -241,6 +254,7 @@ CZYNNOSCI = {
     "szkic": _szkic,
     "projekt-uzasadnienia": _projekt_uzasadnienia,
     "sugestia-ocen": _sugestia_ocen,
+    "przygotowanie-rozmowy": _przygotowanie_rozmowy,
     "sporzadz-ocene": _sporzadz_ocene,
     "potwierdz-zapoznanie": _potwierdz_zapoznanie,
     "fikcja-zapoznania": _fikcja_zapoznania,

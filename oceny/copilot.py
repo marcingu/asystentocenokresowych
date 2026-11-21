@@ -6,6 +6,9 @@ oceniającego w projekt uzasadnienia, o którego losie decyduje oceniający.
 
 Sugestia ocen cząstkowych to funkcja wysokiego ryzyka (zał. III pkt 4 lit. b AI Act): działa tylko wtedy, gdy
 urząd włączył ją własną decyzją (`rejestr_ai`), a oceny i tak wpisuje oceniający.
+
+Wirtualny HR partner przygotowuje rozmowę oceniającą: układa z notatek pytania do rozmowy, a po decyzji urzędu
+proponuje też kierunki do IPRZ (funkcja wysokiego ryzyka). Pytania zadaje i wnioski wpisuje oceniający.
 """
 
 from __future__ import annotations
@@ -24,6 +27,11 @@ from asystent_ocen.asystent_ai import (
     popraw_jezyk,
     zasugeruj_oceny,
     zredaguj_notatki,
+)
+from asystent_ocen.przygotowanie_rozmowy import (
+    FUNKCJA_KIERUNKOW_IPRZ,
+    FUNKCJA_PYTAN_DO_ROZMOWY,
+    przygotuj_rozmowe,
 )
 from asystent_ocen.zgodnosc import (
     POZA_ZALACZNIKIEM_III,
@@ -51,6 +59,10 @@ FUNKCJA_WYLACZONA = "Ta funkcja asystenta jest wyłączona w rejestrze funkcji A
 SUGESTIA_NIEWLACZONA = (
     "Sugestia ocen cząstkowych to funkcja wysokiego ryzyka. Nie włączyła jej decyzja urzędu, więc system jej "
     "nie uruchamia."
+)
+BRAK_NOTATEK_DO_ROZMOWY = (
+    "Nie ma jeszcze notatek z okresu oceny, więc model nie ma z czego ułożyć pytań. Dodaj notatki w panelu "
+    "„Moje notatki z okresu oceny” albo przygotuj pytania samodzielnie."
 )
 BRAK_NOTATEK_DO_SUGESTII = (
     "Nie ma jeszcze notatek z okresu oceny, więc model nie ma na czym oprzeć sugestii. Dodaj notatki w panelu "
@@ -113,6 +125,15 @@ def redakcja_notatek_dostepna() -> bool:
 def sugestie_ocen_dostepne() -> bool:
     """Funkcja wysokiego ryzyka: dostępna tylko wtedy, gdy włączyła ją decyzja urzędu."""
     return funkcja_wlaczona(FUNKCJA_PROPOZYCJI_OCENY)
+
+
+def pytania_do_rozmowy_dostepne() -> bool:
+    return funkcja_wlaczona(FUNKCJA_PYTAN_DO_ROZMOWY)
+
+
+def kierunki_iprz_dostepne() -> bool:
+    """Funkcja wysokiego ryzyka: dostępna tylko wtedy, gdy włączyła ją decyzja urzędu."""
+    return funkcja_wlaczona(FUNKCJA_KIERUNKOW_IPRZ)
 
 
 def odpowiedz(pytanie: str) -> dict:
@@ -189,4 +210,39 @@ def sugestia_do_pokazania(wynik: dict, liczba_notatek: int) -> dict:
             for pozycja in sugestia.sugestie
         ],
         "ostrzezenia": list(sugestia.ostrzezenia),
+    }
+
+
+def przygotowanie_rozmowy(notatki: list[str], osoby: list[str]) -> dict:
+    """Pytania do rozmowy oceniającej i - gdy urząd włączył tę funkcję - propozycja kierunków do IPRZ.
+
+    Zwraca słownik z kluczem „rozmowa” (wynik rdzenia, także odmowa przy braku notatek) albo „blad” (komunikat).
+    Rejestr jest czytany przy każdym wywołaniu, więc wycofanie decyzji urzędu działa od razu.
+    """
+    try:
+        wynik = przygotuj_rozmowe(notatki, model=model(), wymogi=rejestr_ai.wymogi(), osoby=osoby)
+    except BladZgodnosci:
+        return {"blad": FUNKCJA_WYLACZONA}
+    except BladModelu:
+        return {"blad": MODEL_NIEDOSTEPNY}
+    return {"rozmowa": wynik}
+
+
+def rozmowa_do_pokazania(wynik: dict, liczba_notatek: int) -> dict:
+    """Wynik usługi `przygotowanie_rozmowy` w postaci dla karty oceny: „blad”, „odmowa” albo pytania, kierunki
+    do IPRZ i ostrzeżenia."""
+    if "blad" in wynik:
+        return {"blad": wynik["blad"]}
+    rozmowa = wynik["rozmowa"]
+    if rozmowa.odmowa:
+        return {"odmowa": BRAK_NOTATEK_DO_ROZMOWY}
+    return {
+        "pytania": list(rozmowa.pytania),
+        "z_kierunkami": rozmowa.z_kierunkami,
+        "kierunki": [{"kierunek": pozycja.kierunek, "podstawa": pozycja.podstawa} for pozycja in rozmowa.kierunki_iprz],
+        # Funkcja kierunków jest włączona, ale notatek jest za mało, żeby model cokolwiek proponował.
+        "za_malo_notatek": not rozmowa.z_kierunkami and kierunki_iprz_dostepne(),
+        "min_notatek": MIN_NOTATEK_DO_SUGESTII,
+        "liczba_notatek": liczba_notatek,
+        "ostrzezenia": list(rozmowa.ostrzezenia),
     }

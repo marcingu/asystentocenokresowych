@@ -1,16 +1,26 @@
-{# Informacja przy funkcji modelu językowego i przy treści, którą wygenerował: klasyfikacja według AI Act z rejestru urzędu, a dla funkcji wysokiego ryzyka - ostrzeżenie, decyzja urzędu i analizy, które ją poprzedziły. Zmienna: nota (copilot.nota_ai). #}
+{# Informacja przy funkcji modelu językowego i przy treści, którą wygenerował: klasyfikacja według AI Act z rejestru urzędu, a dla funkcji wysokiego ryzyka - ostrzeżenie, decyzja urzędu i analizy, które ją poprzedziły. Zmienne: nota (copilot.nota_ai), tytul (nagłówek ostrzeżenia, opcjonalny), zwiniete (lista analiz pod rozwijanym nagłówkiem, opcjonalne). #}
 {% if nota.wysokie_ryzyko %}
 <div class="komunikat komunikat-warning">
-  <p><strong>Ostrzeżenie: funkcja wysokiego ryzyka według AI Act.</strong> {{ nota.podstawa }}</p>
+  <p><strong>{{ tytul|default:"Ostrzeżenie: funkcja wysokiego ryzyka według AI Act." }}</strong> {{ nota.podstawa }}</p>
   {% if nota.pokaz %}
   <p><strong>Pokaz na danych fikcyjnych.</strong> Funkcję włączono bez analiz i czynności, które urząd wykonuje, zanim użyje jej
-    na danych pracowników:</p>
+    na danych pracowników{% if zwiniete %}.{% else %}:{% endif %}</p>
+  {% if zwiniete %}
+  <details><summary>Analizy i czynności urzędu przed włączeniem ({{ nota.wymagane|length }})</summary>
+    <ul>{% for warunek in nota.wymagane %}<li>{{ warunek.nazwa }} ({{ warunek.podstawa }})</li>{% endfor %}</ul></details>
+  {% else %}
   <ul>{% for warunek in nota.wymagane %}<li>{{ warunek.nazwa }} ({{ warunek.podstawa }})</li>{% endfor %}</ul>
+  {% endif %}
   <p>O włączeniu funkcji decyduje urząd - własną decyzją, po wykonaniu tych analiz.</p>
   {% else %}
   <p>O włączeniu zdecydował urząd: {{ nota.organ }}, decyzja z {{ nota.data|date:"d.m.Y" }}. {{ nota.decyzja }}</p>
+  {% if zwiniete %}
+  <details><summary>Analizy i czynności wykonane przez urząd przed włączeniem ({{ nota.dokumenty|length }})</summary>
+    <ul>{% for dokument in nota.dokumenty %}<li>{{ dokument.nazwa }} ({{ dokument.podstawa }}): {{ dokument.dokument }}</li>{% endfor %}</ul></details>
+  {% else %}
   <p>Analizy i czynności wykonane przez urząd przed włączeniem:</p>
   <ul>{% for dokument in nota.dokumenty %}<li>{{ dokument.nazwa }} ({{ dokument.podstawa }}): {{ dokument.dokument }}</li>{% endfor %}</ul>
+  {% endif %}
   {% endif %}
 </div>
 {% elif nota %}

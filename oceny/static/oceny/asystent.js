@@ -64,13 +64,18 @@
       var zrodlo = document.getElementById(przycisk.getAttribute("data-wstaw-z"));
       var cel = document.getElementById(przycisk.getAttribute("data-wstaw-do"));
       if (!zrodlo || !cel) { return; }
+      // Źródłem jest pole tekstowe albo lista: z listy bierzemy pozycje oznaczone data-tresc, po jednej w wierszu.
+      var tekst = typeof zrodlo.value === "string" ? zrodlo.value : Array.prototype.map.call(
+        zrodlo.querySelectorAll("[data-tresc]"), function (pozycja) { return "- " + pozycja.textContent.trim(); }
+      ).join("\n");
       var dotychczas = cel.value.replace(/\s+$/, "");
-      cel.value = dotychczas ? dotychczas + "\n\n" + zrodlo.value : zrodlo.value;
+      cel.value = dotychczas ? dotychczas + "\n\n" + tekst : tekst;
       cel.focus();
     });
   });
 
   // Po powrocie strony z odpowiedzią modelu (albo komunikatem asystenta) pokazujemy od razu to miejsce.
-  var wynik = document.getElementById("projekt-ai") || document.getElementById("sugestia-ai");
+  var wynik = document.getElementById("projekt-ai") || document.getElementById("sugestia-ai") ||
+    document.getElementById("rozmowa-ai");
   if (wynik && wynik.scrollIntoView) { wynik.scrollIntoView({ block: "center" }); }
 })();

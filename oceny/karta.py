@@ -22,7 +22,7 @@ from .formularze import nazwy_kryteriow
 from .kontekst_ezd import karta_kontekstu
 from .models import Ocena, WniosekOTermin
 from .uprawnienia import role_uzytkownika
-from .uslugi import CZYNNOSC_NOTATKA, CZYNNOSC_SUGESTIA_AI, CZYNNOSCI_AI
+from .uslugi import CZYNNOSC_NOTATKA, CZYNNOSCI_AI, CZYNNOSCI_AI_WYSOKIEGO_RYZYKA
 from .zadania import opis_dni_do_terminu, opisy_skutkow, zadania_oceny
 
 
@@ -233,8 +233,8 @@ def uzycie_ai(ocena: Ocena) -> dict | None:
     """Zestawienie użycia modelu językowego przy pracy nad oceną - informacja dla stron po sporządzeniu oceny
     (art. 26 ust. 11 AI Act: osobę, wobec której wykorzystano system wysokiego ryzyka, informuje się o tym).
 
-    None, gdy modelu nie użyto. Przy sugestii ocen cząstkowych dołącza informację o decyzji urzędu według
-    obecnego stanu rejestru funkcji AI.
+    None, gdy modelu nie użyto. Przy funkcji wysokiego ryzyka (sugestia ocen cząstkowych, propozycja kierunków
+    do IPRZ) dołącza informację o decyzji urzędu według obecnego stanu rejestru funkcji AI.
     """
     wpisy: dict[str, dict] = {}
     for zdarzenie in ocena.zdarzenia.all():
@@ -244,18 +244,18 @@ def uzycie_ai(ocena: Ocena) -> dict | None:
             "czynnosc": zdarzenie.czynnosc,
             "liczba": 0,
             "ostatnio": zdarzenie.data,
-            "wysokie_ryzyko": zdarzenie.czynnosc == CZYNNOSC_SUGESTIA_AI,
+            "wysokie_ryzyko": zdarzenie.czynnosc in CZYNNOSCI_AI_WYSOKIEGO_RYZYKA,
         })
         wpis["liczba"] += 1
         wpis["ostatnio"] = max(wpis["ostatnio"], zdarzenie.data)
     if not wpisy:
         return None
-    nota = None
-    if CZYNNOSC_SUGESTIA_AI in wpisy:
-        from . import copilot  # import przy użyciu - moduł AI nie jest potrzebny do pracy reszty systemu
+    for czynnosc, kod in CZYNNOSCI_AI_WYSOKIEGO_RYZYKA.items():
+        if czynnosc in wpisy:
+            from . import copilot  # import przy użyciu - moduł AI nie jest potrzebny do pracy reszty systemu
 
-        nota = copilot.nota_ai(copilot.FUNKCJA_PROPOZYCJI_OCENY)
-    return {"wpisy": list(wpisy.values()), "nota": nota}
+            wpisy[czynnosc]["nota"] = copilot.nota_ai(kod)
+    return {"wpisy": list(wpisy.values())}
 
 
 def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
@@ -330,6 +330,11 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
             # informacja przy treściach wygenerowanych przez model: klasyfikacja funkcji i decyzja urzędu
             "nota_sugestii": copilot.nota_ai(copilot.FUNKCJA_PROPOZYCJI_OCENY),
             "nota_projektu": copilot.nota_ai(copilot.FUNKCJA_REDAKCJI),
+            # wirtualny HR partner: pytania do rozmowy oceniającej, a po decyzji urzędu także kierunki do IPRZ
+            "rozmowa_dostepna": copilot.pytania_do_rozmowy_dostepne(),
+            "kierunki_dostepne": copilot.kierunki_iprz_dostepne(),
+            "nota_rozmowy": copilot.nota_ai(copilot.FUNKCJA_PYTAN_DO_ROZMOWY),
+            "nota_kierunkow": copilot.nota_ai(copilot.FUNKCJA_KIERUNKOW_IPRZ),
         }
     if oceniajacy:
         # Notatki widzi wyłącznie oceniający (decyzja zespołu z 21.11.2026): obserwacje, dodatkowe osiągnięcia

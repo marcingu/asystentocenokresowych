@@ -490,7 +490,8 @@ class PokazNaDanychFikcyjnychTest(Podstawa):
     def test_strona_przepisow_oznacza_wlaczenie_jako_pokazowe(self):
         odpowiedz = klient(self.z.szef).get(reverse("przepisy"))
 
-        self.assertContains(odpowiedz, "włączona w pokazie", count=1)
+        # pokaz włącza dwie funkcje wysokiego ryzyka: sugestię ocen cząstkowych i propozycję kierunków do IPRZ
+        self.assertContains(odpowiedz, "włączona w pokazie", count=2)
         self.assertNotContains(odpowiedz, "włączona decyzją urzędu")
         self.assertContains(odpowiedz, "nie wykonano")
         self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])

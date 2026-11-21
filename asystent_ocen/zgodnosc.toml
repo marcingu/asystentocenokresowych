@@ -74,10 +74,24 @@ podstawa = "Art. 6 ust. 3 lit. d AI Act - zadanie przygotowawcze w kontekście o
 wlaczona = true
 
 [[funkcje_ai]]
+kod = "PYTANIA_DO_ROZMOWY_OCENIAJACEJ"
+opis = "Pytania do rozmowy oceniającej ułożone z notatek napisanych przez oceniającego. Model nie dostaje ocen cząstkowych, wyniku oceny ani danych z EZD RP, nie ocenia pracownika i nie proponuje ocen; pytania wybiera i zadaje oceniający."
+klasyfikacja = "wyjatek_art_6_ust_3"
+podstawa = "Art. 6 ust. 3 lit. d AI Act - zadanie przygotowawcze w kontekście oceny dokonywanej przez człowieka (rozmowa oceniająca, § 10 rozp.). Funkcja układa pytania z tekstu napisanego przez oceniającego i nie ocenia czynników osobowych, więc nie profiluje (art. 4 pkt 4 RODO). Kwalifikacja robocza - do potwierdzenia przez prawnika urzędu."
+wlaczona = true
+
+[[funkcje_ai]]
 kod = "PROPOZYCJA_OCENY"
 opis = "Sugestia ocen cząstkowych dla oceniającego na podstawie jego własnych notatek: obserwacji, dodatkowych osiągnięć pracownika i wyniku egzaminu. Model nie dostaje danych z EZD RP ani szkicu oceny. Sugestii nie da się przenieść do formularza - oceny wpisuje i za ocenę odpowiada oceniający."
 klasyfikacja = "wysokie_ryzyko"
 podstawa = "Zał. III pkt 4 lit. b AI Act (ocena wydajności i zachowania; decyzje o awansie lub rozwiązaniu stosunku pracy). Ocena efektów pracy to profilowanie (art. 4 pkt 4 RODO), więc wyjątki z art. 6 ust. 3 nie mają zastosowania (art. 6 ust. 3 akapit trzeci)."
+wlaczona = false
+
+[[funkcje_ai]]
+kod = "PROPOZYCJA_KIERUNKOW_IPRZ"
+opis = "Propozycja kierunków rozwoju do indywidualnego programu rozwoju zawodowego na podstawie notatek oceniającego. Model nie dostaje danych z EZD RP ani szkicu oceny. Propozycję przyjmuje, zmienia albo odrzuca oceniający - wnioski do IPRZ wpisuje sam."
+klasyfikacja = "wysokie_ryzyko"
+podstawa = "Zał. III pkt 4 lit. b AI Act (ocena wydajności i zachowania). Model wskazuje potrzeby rozwojowe konkretnej osoby, czyli ocenia czynniki osobowe - to profilowanie (art. 4 pkt 4 RODO), więc wyjątki z art. 6 ust. 3 nie mają zastosowania (art. 6 ust. 3 akapit trzeci). Kwalifikacja ostrożnościowa - do potwierdzenia przez prawnika urzędu."
 wlaczona = false
 
 [[funkcje_ai]]

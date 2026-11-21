@@ -119,6 +119,74 @@
 {% endif %}
 
 {% if formularz_oceny %}
+<section class="karta" aria-labelledby="n-rozmowa">
+  <h2 id="n-rozmowa">Przygotowanie rozmowy oceniającej</h2>
+  <p>Przed sporządzeniem oceny na piśmie przeprowadzasz z ocenianym rozmowę oceniającą i omawiasz w niej (§ 10 rozp.):</p>
+  <ol>
+    <li>główne obowiązki wykonywane w okresie oceny i sposób ich realizacji, z uwzględnieniem spełniania kryteriów oceny,</li>
+    <li>sposób realizowania celów - jeżeli zostały wyznaczone,</li>
+    <li>kierunki dalszego rozwoju zawodowego oraz potrzeby w zakresie podnoszenia kwalifikacji i doskonalenia umiejętności.</li>
+  </ol>
+  <p class="podpowiedz">Rozmowa ma być dialogiem oceniającego z ocenianym, a nie monologiem oceniającego (Poradnik KPRM, pkt 6.2.4).
+    Jej celem jest też zmotywowanie pracownika i zaplanowanie jego rozwoju zawodowego.</p>
+  {% if copilot.rozmowa_dostepna %}
+  <div class="copilot">
+    <p class="podpowiedz"><span class="etykieta-ai">AI</span> Wirtualny HR partner ułoży z Twoich notatek z okresu oceny
+      (liczba notatek: {{ copilot.liczba_notatek }}) od 3 do 5 pytań do rozmowy{% if copilot.kierunki_dostepne %} i zaproponuje
+      kierunki rozwoju do indywidualnego programu rozwoju zawodowego (IPRZ){% endif %}. Lokalny model językowy dostaje wyłącznie
+      notatki - bez ocen cząstkowych, szkicu oceny i danych z EZD RP. Pytania wybierasz i zadajesz Ty.</p>
+    {% if copilot.kierunki_dostepne %}
+    {% include "oceny/_nota_ai.html" with nota=copilot.nota_kierunkow tytul="Ostrzeżenie. Funkcja wysokiego ryzyka według AI Act: propozycja kierunków do IPRZ." zwiniete=True %}
+    {% endif %}
+    <button type="submit" form="formularz-oceny" formaction="{% url 'czynnosc' ocena.pk 'przygotowanie-rozmowy' %}" class="przycisk przycisk-drugi" data-czekanie="czekanie-rozmowa">Przygotuj pytania do rozmowy z moich notatek</button>
+    <p class="czekanie" id="czekanie-rozmowa" role="status" data-komunikat="Model pracuje lokalnie - pytania będą gotowe za kilkanaście sekund..."></p>
+  </div>
+  {% endif %}
+  {% if rozmowa_ai.blad %}
+  <p class="komunikat komunikat-error" id="rozmowa-ai" role="alert">{{ rozmowa_ai.blad }}</p>
+  {% elif rozmowa_ai.odmowa %}
+  <p class="komunikat komunikat-info" id="rozmowa-ai" role="status">{{ rozmowa_ai.odmowa }}</p>
+  {% elif rozmowa_ai %}
+  <div class="projekt-ai" id="rozmowa-ai" role="status">
+    <p><span class="etykieta-ai">AI</span> <strong>Pytania przygotowane przez model językowy</strong> ({{ copilot.model }}) - propozycja do wyboru, nie scenariusz rozmowy.</p>
+    {% include "oceny/_nota_ai.html" with nota=copilot.nota_rozmowy %}
+    {% if rozmowa_ai.pytania %}
+    <ol class="lista-ai">{% for pytanie in rozmowa_ai.pytania %}<li>{{ pytanie }}</li>{% endfor %}</ol>
+    {% else %}
+    <p>Model nie podał pytań nadających się do rozmowy - przygotuj je samodzielnie.</p>
+    {% endif %}
+    {% if rozmowa_ai.z_kierunkami %}
+    <h3>Proponowane kierunki do IPRZ</h3>
+    <p class="komunikat komunikat-warning"><strong>Ostrzeżenie: treść wygenerowana przez model językowy.
+      Funkcja wysokiego ryzyka według AI Act.</strong> Propozycja może być błędna albo krzywdząca dla ocenianego - sprawdź ją
+      z notatkami i omów z ocenianym.
+      {% if copilot.nota_kierunkow.pokaz %}Pokaz na danych fikcyjnych: funkcję włączono bez analiz, które urząd wykonuje przed jej włączeniem.
+      {% else %}O użyciu tej funkcji zdecydował urząd: {{ copilot.nota_kierunkow.organ }}, decyzja z {{ copilot.nota_kierunkow.data|date:"d.m.Y" }}.{% endif %}</p>
+    {% if rozmowa_ai.kierunki %}
+    <ul class="lista-ai" id="kierunki-iprz">
+      {% for pozycja in rozmowa_ai.kierunki %}
+      <li><span data-tresc>{{ pozycja.kierunek }}</span>{% if pozycja.podstawa %}<small>Z notatki: {{ pozycja.podstawa }}</small>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    <button type="button" class="przycisk przycisk-drugi" data-wstaw-z="kierunki-iprz" data-wstaw-do="wnioski_iprz">Wstaw do wniosków dotyczących IPRZ</button>
+    {% else %}
+    <p>Notatki nie dają modelowi podstaw do zaproponowania kierunków rozwoju - ustal je w rozmowie z ocenianym.</p>
+    {% endif %}
+    {% elif rozmowa_ai.za_malo_notatek %}
+    <p class="komunikat komunikat-info">Propozycja kierunków do IPRZ wymaga co najmniej {{ rozmowa_ai.min_notatek }} notatek z okresu oceny
+      (są: {{ rozmowa_ai.liczba_notatek }}). Jedna albo dwie notatki nie pokazują pracy z całego okresu oceny.</p>
+    {% endif %}
+    {% for ostrzezenie in rozmowa_ai.ostrzezenia %}
+    <p class="komunikat komunikat-warning"><strong>Kontrola podpowiedzi:</strong> {{ ostrzezenie }}</p>
+    {% endfor %}
+    <p class="podpowiedz">Podpowiedź powstała wyłącznie z Twoich notatek i nie jest nigdzie zapisana - wydrukuj stronę albo przepisz pytania,
+      jeżeli chcesz je mieć przy rozmowie. Model nie zna rozmów, obserwacji ani faktów, których nie ma w notatkach.{% if rozmowa_ai.z_kierunkami %}
+      Kierunki trafią do wniosków dotyczących IPRZ dopiero po Twojej decyzji i nadal możesz je zmienić - wnioski ustalasz Ty, po rozmowie
+      z ocenianym.{% endif %} Użycie tej funkcji zostaje w historii czynności, a oceniany zobaczy je po sporządzeniu oceny.</p>
+  </div>
+  {% endif %}
+</section>
+
 <section class="karta" aria-labelledby="n-czesc2">
   <h2 id="n-czesc2">Część II - rozmowa oceniająca i ocena</h2>
   {% with f=formularz_oceny %}
@@ -327,15 +395,14 @@
   <ul>
     {% for wpis in uzycie_ai.wpisy %}
     <li>{{ wpis.czynnosc }}{% if wpis.wysokie_ryzyko %} - <strong>funkcja wysokiego ryzyka według AI Act</strong>{% endif %}
-      (liczba użyć: {{ wpis.liczba }}, ostatnio {{ wpis.ostatnio|date:"d.m.Y" }})</li>
+      (liczba użyć: {{ wpis.liczba }}, ostatnio {{ wpis.ostatnio|date:"d.m.Y" }}){% if wpis.nota.pokaz %}. Pokaz na danych fikcyjnych:
+      funkcję wysokiego ryzyka włączono bez analiz, które urząd wykonuje przed jej włączeniem{% elif wpis.nota.organ %}. O użyciu
+      tej funkcji zdecydował urząd: {{ wpis.nota.organ }}, decyzja z {{ wpis.nota.data|date:"d.m.Y" }}{% endif %}</li>
     {% endfor %}
   </ul>
   <p>Model pracował wyłącznie na notatkach oceniającego. System nie zapisuje jego podpowiedzi; projekt uzasadnienia
-    oceniający mógł przenieść do oceny i zmienić, a podpowiedzi ocen cząstkowych przenieść się nie da.
+    i propozycję kierunków do IPRZ oceniający mógł przenieść do oceny i zmienić, a podpowiedzi ocen cząstkowych przenieść się nie da.
     Oceny cząstkowe i treść oceny ustalił oceniający i to on za nie odpowiada.
-    {% if uzycie_ai.nota.wysokie_ryzyko %}{% if uzycie_ai.nota.pokaz %}Pokaz na danych fikcyjnych: funkcję wysokiego ryzyka włączono bez analiz,
-    które urząd wykonuje przed jej włączeniem.{% elif uzycie_ai.nota.organ %}O użyciu funkcji wysokiego ryzyka zdecydował urząd:
-    {{ uzycie_ai.nota.organ }}, decyzja z {{ uzycie_ai.nota.data|date:"d.m.Y" }}.{% endif %}{% endif %}
     Od oceny przysługuje sprzeciw w terminie 7 dni od dnia zapoznania się z nią (art. 83 ust. 1 ustawy o służbie cywilnej).</p>
   {% endif %}
 

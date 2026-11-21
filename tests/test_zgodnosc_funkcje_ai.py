@@ -41,7 +41,12 @@ REJESTR = KATALOG / "asystent_ocen" / "zgodnosc.toml"
 DECYZJE_POKAZU = KATALOG / "decyzje-ai-pokaz.toml"
 WZOR_DECYZJI = KATALOG / "decyzje-ai-wzor.toml"
 SUGESTIA = "PROPOZYCJA_OCENY"
-NISKIE_RYZYKO = {"PYTANIA_O_PROCEDURE", "KOREKTA_JEZYKOWA_UZASADNIENIA", "REDAKCJA_NOTATEK_OCENIAJACEGO"}
+NISKIE_RYZYKO = {
+    "PYTANIA_O_PROCEDURE", "KOREKTA_JEZYKOWA_UZASADNIENIA", "REDAKCJA_NOTATEK_OCENIAJACEGO",
+    "PYTANIA_DO_ROZMOWY_OCENIAJACEJ",
+}
+# Funkcje wysokiego ryzyka, które włącza pokaz na danych fikcyjnych (decyzje-ai-pokaz.toml).
+W_POKAZIE = {SUGESTIA, "PROPOZYCJA_KIERUNKOW_IPRZ"}
 ORGAN = "Dyrektor Generalny Urzędu"
 DATA_DECYZJI = date(2027, 12, 6)
 # Analizy i czynności wymagane przed włączeniem funkcji wysokiego ryzyka - w kolejności z rejestru.
@@ -58,7 +63,9 @@ KLASYFIKACJE = {
     "PYTANIA_O_PROCEDURE": "poza_zalacznikiem_III",
     "KOREKTA_JEZYKOWA_UZASADNIENIA": "wyjatek_art_6_ust_3",
     "REDAKCJA_NOTATEK_OCENIAJACEGO": "wyjatek_art_6_ust_3",
+    "PYTANIA_DO_ROZMOWY_OCENIAJACEJ": "wyjatek_art_6_ust_3",
     "PROPOZYCJA_OCENY": "wysokie_ryzyko",
+    "PROPOZYCJA_KIERUNKOW_IPRZ": "wysokie_ryzyko",
     "PODSUMOWANIE_PRACY_PRACOWNIKA": "wysokie_ryzyko",
     "REKOMENDACJA_KADROWA": "wysokie_ryzyko",
     "ANALIZA_EMOCJI": "zakazana",
@@ -235,7 +242,9 @@ def test_dozwolona_funkcja_ai_jest_zwracana(kod):
 
 
 @pytest.mark.parametrize(
-    "kod", [SUGESTIA, "PODSUMOWANIE_PRACY_PRACOWNIKA", "REKOMENDACJA_KADROWA", "ANALIZA_EMOCJI", "NIEZNANA"]
+    "kod",
+    [SUGESTIA, "PROPOZYCJA_KIERUNKOW_IPRZ", "PODSUMOWANIE_PRACY_PRACOWNIKA", "REKOMENDACJA_KADROWA", "ANALIZA_EMOCJI",
+     "NIEZNANA"],
 )
 def test_uzycie_niedozwolonej_albo_nieznanej_funkcji_ai_jest_blokowane(kod):
     """Bez pliku decyzji urzędu zablokowana jest także sugestia ocen cząstkowych."""
@@ -370,13 +379,14 @@ def test_brak_wskazanego_pliku_decyzji_jest_bledem_a_nie_cichym_wylaczeniem(tmp_
 
 
 @pytest.mark.decyzja_projektowa
-def test_plik_decyzji_pokazu_wlacza_tylko_sugestie_ocen_i_wymienia_obowiazki_urzedu():
-    """Decyzja prowadzącego projekt z 21.11.2026: sugestię ocen włącza tylko pokaz na danych fikcyjnych.
+def test_plik_decyzji_pokazu_wlacza_tylko_funkcje_pokazu_i_wymienia_obowiazki_urzedu():
+    """Decyzje prowadzącego projekt z 21.11.2026: funkcje wysokiego ryzyka włącza tylko pokaz na danych fikcyjnych.
     Opis decyzji mówi, kto i po co ją podjął, jakie obowiązki ma urząd i od kiedy się je stosuje
     (dokumentacja/analiza-prawna-ai-act-kp-rodo.md, pkt 3.1, 3.7 i 4)."""
     wymogi = wczytaj_wymogi(decyzje=DECYZJE_POKAZU, tryb_pokazu=True)
 
-    assert {f.kod for f in wymogi.funkcje_ai if f.wlaczona} == NISKIE_RYZYKO | {SUGESTIA}
+    assert {f.kod for f in wymogi.funkcje_ai if f.wlaczona} == NISKIE_RYZYKO | W_POKAZIE
+    assert all(f.decyzja_pokazowa and "nie wykonano" in f.decyzja_wlaczenia for f in wymogi.funkcje_ai if f.kod in W_POKAZIE)
     sugestia = wymagaj_dozwolonej_funkcji_ai(SUGESTIA, wymogi=wymogi)
     for fragment in (
         "21.11.2026", "art. 14", "art. 26 ust. 7", "art. 27 ust. 1", "art. 49 ust. 3", "art. 35",
