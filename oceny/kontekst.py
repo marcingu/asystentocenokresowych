@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 
 from . import uprawnienia
 from .czas import dzis
+from .kontekst_ezd import integracja_wlaczona
 
 
 def konta_demo():
@@ -30,4 +31,6 @@ def wspolny(request):
         "jestem_kadry": uprawnienia.czy_kadry(uzytkownik),
         "jestem_administratorem": uprawnienia.czy_administrator(uzytkownik),
         "widze_statystyki": uprawnienia.widzi_statystyki(uzytkownik),
+        # odnośnik „Moje dane z EZD RP” jest w menu tylko przy włączonej integracji
+        "integracja_ezd": uzytkownik.is_authenticated and integracja_wlaczona(),
     }

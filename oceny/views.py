@@ -25,7 +25,7 @@ from .karta import kontekst_karty
 from .kontekst_ezd import ustalenia_rdzenia
 from .lista_kadr import lista_pracownikow
 from .models import Ocena, Pracownik, Sprzeciw, UstaleniaMonitoringu
-from .symulacja import dane_symulacji
+from .wskazania_ezd import dane_wskazan
 from .zadania import zadania_uzytkownika
 
 
@@ -46,10 +46,13 @@ def _ocena_uzytkownika(request, pk: int) -> Ocena:
 
 @require_GET
 def zadania(request):
+    from .zadania import sprzeciwy_uzytkownika  # import przy użyciu - nazwa modułu pokrywa się z nazwą tego widoku
+
     dzien = dzis()
     widoczne = uprawnienia.oceny_widoczne(request.user)
     return render(request, "oceny/zadania.html", {
         "zadania": zadania_uzytkownika(request.user, dzien),
+        "sprzeciwy": sprzeciwy_uzytkownika(request.user, dzien),
         "moje_oceny": [ocena for ocena in widoczne if ocena.oceniany == uprawnienia.pracownik_uzytkownika(request.user)],
         "oceny_podwladnych": [
             ocena for ocena in widoczne
@@ -330,17 +333,16 @@ def kadry(request):
     return render(request, "oceny/kadry.html", lista_pracownikow(request.GET, dzis()))
 
 
-# --- symulacja oceny (pracownik) ---
+# --- moje dane z EZD RP (pracownik) ---
 
-@require_http_methods(["GET", "POST"])
-def symulacja(request):
-    """Symulacja oceny zalogowanej osoby. Adres nie przyjmuje wskazania pracownika, a wynik nie jest zapisywany -
-    POST służy tylko temu, żeby przewidywane oceny nie trafiały do adresu strony i dzienników serwera."""
+@require_GET
+def moje_dane_ezd(request):
+    """Na co wskazują fakty z EZD RP w kryteriach zalogowanej osoby. Adres nie przyjmuje wskazania pracownika,
+    a strona niczego nie zapisuje."""
     pracownik = uprawnienia.pracownik_uzytkownika(request.user)
     if pracownik is None:
         raise Http404
-    wybrane = request.POST if request.method == "POST" else None
-    return render(request, "oceny/symulacja.html", dane_symulacji(pracownik, wybrane, dzis()))
+    return render(request, "oceny/wskazania_ezd.html", dane_wskazan(pracownik, dzis()))
 
 
 @require_POST

@@ -74,14 +74,14 @@ def proces_zakonczony_fikcja_zapoznania():
 def proces_po_sprzeciwie_z_anulowana_ocena():
     """Art. 83 ust. 4 u.s.c.: ponowne sporządzenie - ocena trafia do anulowanych, proces wraca do oceniania."""
     p = proces_zakonczony()
-    p.uwzglednij_sprzeciw(Rola.ZARZADZAJACY, tryb="ponowne_sporzadzenie", data=d(2027, 9, 10))
+    p.uwzglednij_sprzeciw(Rola.DYREKTOR_GENERALNY, tryb="ponowne_sporzadzenie", data=d(2027, 9, 10))
     return p
 
 
 def proces_po_zmianie_oceny_po_sprzeciwie():
     p = proces_zakonczony_fikcja_zapoznania()
     wyzsze = dict(OCENY_NEGATYWNE) | {"Rzetelność": 3}
-    p.uwzglednij_sprzeciw(Rola.ZARZADZAJACY, tryb="zmiana", data=d(2027, 9, 20), nowe_oceny=wyzsze)
+    p.uwzglednij_sprzeciw(Rola.DYREKTOR_GENERALNY, tryb="zmiana", data=d(2027, 9, 20), nowe_oceny=wyzsze)
     return p
 
 

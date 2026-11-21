@@ -541,7 +541,8 @@
   <form method="post" action="{% url 'czynnosc' ocena.pk 'rozpatrz-sprzeciw' %}" class="formularz">
     {% csrf_token %}
     <h3>Rozstrzygnięcie dyrektora generalnego</h3>
-    <p class="podpowiedz">System rejestruje rozstrzygnięcie - decyzję podejmuje dyrektor generalny (art. 83 ust. 3 i 4 u.s.c.).</p>
+    <p class="podpowiedz">Sprzeciw rozpatrujesz jako dyrektor generalny urzędu w terminie 14 dni od wniesienia. Uwzględniając go,
+      zmieniasz ocenę albo polecasz sporządzić ją po raz drugi (art. 83 ust. 1, 3 i 4 u.s.c.).</p>
     <label for="rozstrzygniecie">Rozstrzygnięcie</label>
     <select name="rozstrzygniecie" id="rozstrzygniecie" required>
       <option value="">- wybierz -</option>
@@ -564,7 +565,7 @@
     </div>
     <label for="uzasadnienie_sprzeciwu">Uzasadnienie rozstrzygnięcia</label>
     <textarea name="uzasadnienie" id="uzasadnienie_sprzeciwu" rows="3"></textarea>
-    <button type="submit" class="przycisk" data-potwierdz="Wprowadzić rozstrzygnięcie sprzeciwu?">Wprowadź rozstrzygnięcie</button>
+    <button type="submit" class="przycisk" data-potwierdz="Rozstrzygnąć sprzeciw?">Rozstrzygnij sprzeciw</button>
   </form>
   {% endif %}
 </section>

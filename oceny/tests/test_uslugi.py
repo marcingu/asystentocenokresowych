@@ -16,6 +16,9 @@ from oceny.models import Nieobecnosc, Ocena, Sprzeciw, Zdarzenie
 from .pomocnicze import DZIEN_KRYTERIOW, DZIEN_OCENY, DZIEN_ROZMOWY, POCZATEK, TERMIN, Zespol, pracownik
 
 
+from .pomocnicze import dyrektor_generalny  # noqa: E402
+
+
 def czynnosci(ocena) -> list[str]:
     return list(Zdarzenie.objects.filter(ocena=ocena).order_by("pk").values_list("czynnosc", flat=True))
 
@@ -278,7 +281,7 @@ class SprzeciwTest(TestCase):
         )
 
         uslugi.rozpatrz_sprzeciw(
-            self.ocena, self.z.kadry.uzytkownik, rozstrzygniecie="ponowne_sporzadzenie",
+            self.ocena, dyrektor_generalny().uzytkownik, rozstrzygniecie="ponowne_sporzadzenie",
             uzasadnienie="Ocena nie odnosi się do kryteriów.", data=date(2026, 11, 20),
         )
 
@@ -292,7 +295,7 @@ class SprzeciwTest(TestCase):
         uslugi.wnies_sprzeciw(self.ocena, self.z.ola.uzytkownik, tresc="Nie zgadzam się.", data=date(2026, 11, 10))
 
         uslugi.rozpatrz_sprzeciw(
-            self.ocena, self.z.kadry.uzytkownik, rozstrzygniecie="zmiana", nowe_oceny=self.z.oceny(5),
+            self.ocena, dyrektor_generalny().uzytkownik, rozstrzygniecie="zmiana", nowe_oceny=self.z.oceny(5),
             data=date(2026, 11, 20),
         )
 
@@ -305,19 +308,21 @@ class SprzeciwTest(TestCase):
         )
 
         uslugi.rozpatrz_sprzeciw(
-            self.ocena, self.z.kadry.uzytkownik, rozstrzygniecie="nieuwzgledniony", data=date(2026, 11, 20)
+            self.ocena, dyrektor_generalny().uzytkownik, rozstrzygniecie="nieuwzgledniony", data=date(2026, 11, 20)
         )
 
         sprzeciw.refresh_from_db()
         self.assertEqual(sprzeciw.rozstrzygniecie, "nieuwzgledniony")
         self.assertEqual(Ocena.objects.get(pk=self.ocena.pk).wynik, "NEGATYWNA")
 
-    def test_sprzeciw_rozpatruja_kadry_w_imieniu_dyrektora_generalnego(self):
+    def test_sprzeciwu_nie_rozstrzyga_przelozony_komorka_kadr_ani_oceniany(self):
+        """Art. 83 ust. 1 u.s.c.: sprzeciw służy do dyrektora generalnego urzędu - i to on rozstrzyga go w systemie."""
         uslugi.wnies_sprzeciw(self.ocena, self.z.ola.uzytkownik, tresc="Nie zgadzam się.", data=date(2026, 11, 10))
-        with self.assertRaises(BladUprawnien):
-            uslugi.rozpatrz_sprzeciw(
-                self.ocena, self.z.szef.uzytkownik, rozstrzygniecie="nieuwzgledniony", data=date(2026, 11, 20)
-            )
+        for osoba in (self.z.szef, self.z.kadry, self.z.ola):
+            with self.assertRaises(BladUprawnien):
+                uslugi.rozpatrz_sprzeciw(
+                    self.ocena, osoba.uzytkownik, rozstrzygniecie="nieuwzgledniony", data=date(2026, 11, 20)
+                )
         self.assertEqual(Sprzeciw.objects.get().rozstrzygniecie, "")
 
 

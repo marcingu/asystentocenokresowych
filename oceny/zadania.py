@@ -98,10 +98,11 @@ def zadania_oceny(ocena: Ocena, role: set[Rola], dzien: date) -> list[Zadanie]:
     elif etap == Etap.ZAKONCZONA and not _ma_nastepna(ocena):
         w_toku = [sprzeciw for sprzeciw in ocena.sprzeciwy.all() if not sprzeciw.rozpatrzony]
         if w_toku:
-            dodaj(
-                Rola.ZARZADZAJACY, "ROZPATRZ_SPRZECIW", "Wprowadź rozstrzygnięcie sprzeciwu od oceny",
-                terminy.termin_rozpatrzenia_sprzeciwu(w_toku[0].data_wniesienia), "art. 83 ust. 3 u.s.c.",
-            )
+            if Rola.OCENIANY not in role:  # sprzeciwu od własnej oceny dyrektor generalny nie rozstrzyga
+                dodaj(
+                    Rola.DYREKTOR_GENERALNY, "ROZPATRZ_SPRZECIW", "Rozpatrz sprzeciw od oceny",
+                    terminy.termin_rozpatrzenia_sprzeciwu(w_toku[0].data_wniesienia), "art. 83 ust. 1 i 3 u.s.c.",
+                )
         else:
             negatywna = ocena.wynik == NEGATYWNA
             data_sporzadzenia = ocena.proces().data_sporzadzenia
@@ -120,6 +121,22 @@ def zadania_uzytkownika(uzytkownik, dzien: date) -> list[Zadanie]:
     for ocena in oceny:
         zadania += zadania_oceny(ocena, role_uzytkownika(uzytkownik, ocena), dzien)
     return sorted(zadania, key=lambda z: (z.termin is None, z.termin or date.max, z.ocena.pk))
+
+
+def sprzeciwy_uzytkownika(uzytkownik, dzien: date) -> list[dict]:
+    """Sprzeciwy od ocen widocznych dla użytkownika i stan ich rozpatrzenia: w toku - z terminem z art. 83 ust. 3
+    u.s.c. - albo rozstrzygnięty. Najpierw sprzeciwy w toku, od najstarszego."""
+    wiersze = []
+    for ocena in oceny_widoczne(uzytkownik).prefetch_related("sprzeciwy"):
+        for sprzeciw in ocena.sprzeciwy.all():
+            termin = terminy.termin_rozpatrzenia_sprzeciwu(sprzeciw.data_wniesienia)
+            dni = (termin - dzien).days
+            if sprzeciw.rozpatrzony:
+                stan, opis = "wykonane", sprzeciw.rozstrzygniecie_opis
+            else:
+                stan, opis = ("po_terminie" if dni < 0 else "pilne"), f"w toku - {opis_dni_do_terminu(dni)}"
+            wiersze.append({"ocena": ocena, "sprzeciw": sprzeciw, "termin": termin, "stan": stan, "stan_opis": opis})
+    return sorted(wiersze, key=lambda wiersz: (wiersz["sprzeciw"].rozpatrzony, wiersz["sprzeciw"].data_wniesienia, wiersz["sprzeciw"].pk))
 
 
 # --- skutki zakończonej oceny ---

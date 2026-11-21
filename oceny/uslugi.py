@@ -546,19 +546,22 @@ def rozpatrz_sprzeciw(
     nowe_oceny: dict[str, int] | None = None,
     data: date | None = None,
 ) -> None:
-    """Rozstrzygnięcie dyrektora generalnego wprowadza komórka kadr (model BPMN KPRM)."""
+    """Sprzeciw rozstrzyga dyrektor generalny urzędu (art. 83 ust. 1, 3 i 4 u.s.c.) i sam wprowadza
+    rozstrzygnięcie - nie komórka kadr w jego imieniu. Sprzeciwu od własnej oceny nie rozstrzyga."""
     if rozstrzygniecie not in Sprzeciw.NAZWY_ROZSTRZYGNIEC:
         raise ValueError(f"Nieznane rozstrzygnięcie sprzeciwu: {rozstrzygniecie!r}")
     data = data or dzis()
     with transaction.atomic():
         biezaca = Ocena.objects.select_for_update().get(pk=ocena.pk)
-        _wymagaj_roli(uzytkownik, biezaca, Rola.ZARZADZAJACY)
+        _wymagaj_roli(uzytkownik, biezaca, Rola.DYREKTOR_GENERALNY)
+        if Rola.OCENIANY in role_uzytkownika(uzytkownik, biezaca):
+            raise BladUprawnien("Sprzeciwu od własnej oceny nie rozstrzyga osoba oceniana")
         sprzeciw = biezaca.sprzeciwy.filter(rozstrzygniecie="").order_by("pk").first()
         if sprzeciw is None:
             raise BladWalidacji([Blad("BRAK_SPRZECIWU", "Nie ma sprzeciwu do rozpatrzenia.")])
         if rozstrzygniecie in UWZGLEDNIENIA_SPRZECIWU:
             proces = biezaca.proces()
-            proces.uwzglednij_sprzeciw(Rola.ZARZADZAJACY, tryb=rozstrzygniecie, data=data, nowe_oceny=nowe_oceny)
+            proces.uwzglednij_sprzeciw(Rola.DYREKTOR_GENERALNY, tryb=rozstrzygniecie, data=data, nowe_oceny=nowe_oceny)
             biezaca.zapisz_proces(proces)
         sprzeciw.rozstrzygniecie = rozstrzygniecie
         sprzeciw.data_rozstrzygniecia = data

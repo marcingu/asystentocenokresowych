@@ -61,6 +61,11 @@ def _dane_zrodlowe(identyfikator: str, od: date, do: date):
     return None
 
 
+def integracja_wlaczona() -> bool:
+    """Czy komórka kadr włączyła integrację z EZD RP (po ustaleniach wymaganych przez Kodeks pracy)."""
+    return UstaleniaMonitoringu.pobierz().integracja_wlaczona
+
+
 def przeszkody_monitoringu(ocena: Ocena, dzien: date) -> tuple[UstaleniaMonitoringu, list[Blad]]:
     """Ustalenia pracodawcy i przeszkody z Kodeksu pracy, które nie pozwalają pokazać danych o pracy tej osoby.
     Z tej samej bramki korzystają karta kontekstu z EZD RP i Radar Dobrostanu i Doceniania."""

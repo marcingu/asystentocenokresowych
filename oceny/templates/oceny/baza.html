@@ -44,7 +44,7 @@
     {% with strona=request.resolver_match.url_name %}
     <nav class="menu" aria-label="Menu główne">
       <a href="{% url 'zadania' %}"{% if strona == 'zadania' %} aria-current="page"{% endif %}>Moje zadania</a>
-      {% if ja.podlega_ocenie %}<a href="{% url 'symulacja' %}"{% if strona == 'symulacja' %} aria-current="page"{% endif %}>Symulacja oceny</a>{% endif %}
+      {% if ja.podlega_ocenie and integracja_ezd %}<a href="{% url 'moje_dane_ezd' %}"{% if strona == 'moje_dane_ezd' %} aria-current="page"{% endif %}>Moje dane z EZD RP</a>{% endif %}
       {% if jestem_kadry %}<a href="{% url 'kadry' %}"{% if strona == 'kadry' %} aria-current="page"{% endif %}>Kadry</a>{% endif %}
       {% if widze_statystyki %}<a href="{% url 'statystyki' %}"{% if strona == 'statystyki' %} aria-current="page"{% endif %}>Statystyki</a>{% endif %}
       <a href="{% url 'asystent' %}"{% if strona == 'asystent' %} aria-current="page"{% endif %}>Asystent AI</a>

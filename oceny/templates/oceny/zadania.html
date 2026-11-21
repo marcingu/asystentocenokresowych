@@ -26,6 +26,29 @@
 <p class="pusto">Nie masz teraz żadnych zadań w procesie ocen okresowych.</p>
 {% endif %}
 
+{% if sprzeciwy %}
+<h2>Sprzeciwy od ocen</h2>
+<div class="przewijana" role="region" aria-labelledby="t-sprzeciwy" tabindex="0">
+<table class="tabela">
+  <caption id="t-sprzeciwy" class="ukryte">Sprzeciwy od ocen okresowych i stan ich rozpatrzenia</caption>
+  <thead>
+    <tr><th scope="col">Stan</th><th scope="col">Oceniany</th><th scope="col">Wniesiony</th><th scope="col">Termin rozpatrzenia</th><th scope="col">Rozstrzygnięcie</th></tr>
+  </thead>
+  <tbody>
+    {% for wiersz in sprzeciwy %}
+    <tr>
+      <td><span class="stan stan-{{ wiersz.stan }}">{{ wiersz.stan_opis }}</span></td>
+      <td><a href="{% url 'ocena' wiersz.ocena.pk %}">{{ wiersz.ocena.oceniany.imie_i_nazwisko }}</a><small>{{ wiersz.ocena.oceniany.stanowisko }}</small></td>
+      <td>{{ wiersz.sprzeciw.data_wniesienia|date:"d.m.Y" }}{% if wiersz.sprzeciw.po_terminie %}<small>po terminie</small>{% endif %}</td>
+      <td>{{ wiersz.termin|date:"d.m.Y" }}<small>art. 83 ust. 3 u.s.c.</small></td>
+      <td>{% if wiersz.sprzeciw.rozpatrzony %}{{ wiersz.sprzeciw.data_rozstrzygniecia|date:"d.m.Y" }}{% else %}rozpatruje dyrektor generalny{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+
 {% if moje_oceny %}
 <h2>Moje oceny</h2>
 <ul class="lista-ocen">

@@ -266,6 +266,7 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
     oceniajacy = Rola.OCENIAJACY in role
     oceniany = Rola.OCENIANY in role
     kadry = Rola.ZARZADZAJACY in role
+    dyrektor = Rola.DYREKTOR_GENERALNY in role
     etap = proces.etap
     sprzeciwy = list(ocena.sprzeciwy.all())
     sprzeciw_w_toku = next((sprzeciw for sprzeciw in sprzeciwy if not sprzeciw.rozpatrzony), None)
@@ -283,6 +284,7 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
         "jestem_oceniajacym": oceniajacy,
         "jestem_ocenianym": oceniany,
         "jestem_w_kadrach": kadry,
+        "jestem_dyrektorem": dyrektor,
         "os_etapow": os_etapow(etap),
         "terminy": wiersze_terminow(ocena, proces, nieobecnosci, dzien),
         "zadania": zadania_oceny(ocena, role, dzien),
@@ -293,7 +295,7 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
         # Kadry i oceniający widzą wszystkie pisma w sprawie; oceniany - pisma skierowane do niego.
         "dokumenty": [
             dokument for dokument in proces.dokumenty
-            if kadry or oceniajacy or (oceniany and dokument.adresat == Rola.OCENIANY)
+            if kadry or oceniajacy or dyrektor or (oceniany and dokument.adresat == Rola.OCENIANY)
         ],
         # Wpisy o notatkach widzi tylko oceniający - inni nie dowiadują się nawet, że notatki powstają.
         # Praca nad oceną jest niejawna do jej sporządzenia, więc ślad użycia asystenta AI strony widzą potem.
@@ -364,7 +366,8 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
         if oceniany and not sprzeciwy and nastepna is None:
             kontekst["mozna_wniesc_sprzeciw"] = True
             kontekst["termin_sprzeciwu"] = terminy.termin_sprzeciwu(proces.data_zapoznania_z_ocena)
-        if kadry and sprzeciw_w_toku:
+        # Sprzeciw rozstrzyga dyrektor generalny (art. 83 ust. 1 u.s.c.) - poza sprzeciwem od własnej oceny.
+        if dyrektor and sprzeciw_w_toku and not oceniany:
             kontekst["mozna_rozpatrzyc_sprzeciw"] = True
             kontekst["skala"] = skala_ocen()
             kontekst["wiersze_zmiany"] = [

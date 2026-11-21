@@ -13,7 +13,7 @@ from asystent_ocen.przebieg import Rola
 from oceny import uslugi
 from oceny.zadania import opisy_skutkow, skutki_oceny_zakonczonej, zadania_uzytkownika
 
-from .pomocnicze import DZIEN_OCENY, POCZATEK, TERMIN, Zespol, pracownik
+from .pomocnicze import DZIEN_OCENY, POCZATEK, TERMIN, Zespol, dyrektor_generalny, pracownik
 
 
 def kody(zadania) -> list[str]:
@@ -94,15 +94,18 @@ class ZadaniaTest(TestCase):
 
         self.assertEqual(zadanie.termin, terminy.termin_wyznaczenia_kryteriow(DZIEN_OCENY, po_negatywnej=True))
 
-    def test_sprzeciw_wstrzymuje_kolejny_cykl_i_daje_kadrom_termin_rozpatrzenia(self):
-        """Art. 83 ust. 3 u.s.c.: 14 dni od wniesienia."""
+    def test_sprzeciw_wstrzymuje_kolejny_cykl_i_daje_dyrektorowi_generalnemu_termin_rozpatrzenia(self):
+        """Art. 83 ust. 1 i 3 u.s.c.: sprzeciw służy do dyrektora generalnego; 14 dni od wniesienia."""
+        dyrektor = dyrektor_generalny()
         ocena = self.z.ocena_zakonczona(punkty=1)
         uslugi.wnies_sprzeciw(ocena, self.z.ola.uzytkownik, tresc="Nie zgadzam się.", data=date(2026, 11, 10))
 
-        zadania = zadania_uzytkownika(self.z.kadry.uzytkownik, date(2026, 11, 11))
+        zadania = zadania_uzytkownika(dyrektor.uzytkownik, date(2026, 11, 11))
 
         self.assertEqual(kody(zadania), ["ROZPATRZ_SPRZECIW"])
+        self.assertEqual(zadania[0].rola, Rola.DYREKTOR_GENERALNY)
         self.assertEqual(zadania[0].termin, terminy.termin_rozpatrzenia_sprzeciwu(date(2026, 11, 10)))
+        self.assertEqual(zadania_uzytkownika(self.z.kadry.uzytkownik, date(2026, 11, 11)), [])
 
     def test_po_rozpoczeciu_kolejnego_cyklu_stara_ocena_nie_daje_zadan(self):
         ocena = self.z.ocena_zakonczona()

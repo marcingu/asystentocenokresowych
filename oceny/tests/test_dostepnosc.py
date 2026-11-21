@@ -103,7 +103,7 @@ class KontrolerHtmlTest(SimpleTestCase):
 class PrzegladDostepnosciStronTest(TestCase):
     """Każda strona pokazu, dla każdego konta i na każdym etapie oceny, przechodzi kontrolę znaczników."""
 
-    STRONY = ("zadania", "symulacja", "kadry", "kadry_ezd", "statystyki", "przepisy", "asystent")
+    STRONY = ("zadania", "moje_dane_ezd", "kadry", "kadry_ezd", "statystyki", "przepisy", "asystent")
     maxDiff = None  # przy błędzie potrzebna jest pełna lista naruszeń, nie jej skrót
 
     @classmethod
@@ -119,8 +119,6 @@ class PrzegladDostepnosciStronTest(TestCase):
             for nazwa in self.STRONY:
                 yield f"{konto.username}: {nazwa}", klient.get(reverse(nazwa))
             yield f"{konto.username}: brak strony", klient.get("/nie-ma-takiej-strony/")
-            if konto.username == "anna":
-                yield "anna: symulacja po przeliczeniu", klient.post(reverse("symulacja"), {"ocena_0": "9"})
         kadry = get_user_model().objects.get(username="kadry")
         for ocena in Ocena.objects.select_related("oceniany__uzytkownik", "oceniajacy__uzytkownik"):
             for konto in (ocena.oceniany.uzytkownik, ocena.oceniajacy.uzytkownik, kadry):

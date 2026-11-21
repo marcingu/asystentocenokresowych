@@ -32,6 +32,12 @@ def pracownik(login: str, **pola) -> Pracownik:
     return Pracownik.objects.create(uzytkownik=uzytkownik, **dane)
 
 
+def dyrektor_generalny() -> Pracownik:
+    """Dyrektor generalny urzędu - rozstrzyga sprzeciwy (art. 83 ust. 1 u.s.c.). Powstaje przy pierwszym użyciu."""
+    istniejacy = Pracownik.objects.filter(rola_dyrektor=True).first()
+    return istniejacy or pracownik("dyrektor", rola_dyrektor=True, stanowisko="dyrektor generalny urzędu")
+
+
 class Zespol:
     """Kadry, przełożony i oceniany - najmniejszy komplet ról do przejścia procesu."""
 

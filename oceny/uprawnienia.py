@@ -1,8 +1,9 @@
 """Role i uprawnienia.
 
 Role rdzenia (`przebieg.Rola`) odpowiadają torom modelu BPMN i wynikają z relacji użytkownika do konkretnej oceny:
-oceniany, oceniający, zarządzający (komórka kadr), administrator. Oceny, w której użytkownik nie ma żadnej
-roli, nie widać. Notatki oceniającego widzi wyłącznie oceniający (decyzja zespołu z 21.11.2026).
+oceniany, oceniający, zarządzający (komórka kadr), dyrektor generalny, administrator. Oceny, w której użytkownik
+nie ma żadnej roli, nie widać. Dyrektor generalny rozstrzyga sprzeciwy (art. 83 ust. 1 u.s.c.), więc widzi
+oceny, od których wniesiono sprzeciw - i tylko te. Notatki oceniającego widzi wyłącznie oceniający (decyzja zespołu z 21.11.2026).
 """
 
 from __future__ import annotations
@@ -32,6 +33,12 @@ def czy_administrator(uzytkownik) -> bool:
     return bool(uzytkownik is not None and uzytkownik.is_authenticated and uzytkownik.is_superuser)
 
 
+def czy_dyrektor(uzytkownik) -> bool:
+    """Dyrektor generalny urzędu (w urzędzie bez dyrektora generalnego - kierownik urzędu)."""
+    pracownik = pracownik_uzytkownika(uzytkownik)
+    return bool(pracownik and pracownik.rola_dyrektor)
+
+
 def widzi_statystyki(uzytkownik) -> bool:
     """Statystyki zbiorcze (bez danych osób): dyrektor i komórka kadr."""
     pracownik = pracownik_uzytkownika(uzytkownik)
@@ -51,6 +58,8 @@ def role_uzytkownika(uzytkownik, ocena: Ocena) -> set[Rola]:
         role.add(Rola.OCENIAJACY)
     if pracownik.rola_kadry:
         role.add(Rola.ZARZADZAJACY)
+    if pracownik.rola_dyrektor:
+        role.add(Rola.DYREKTOR_GENERALNY)
     return role
 
 
@@ -66,4 +75,7 @@ def oceny_widoczne(uzytkownik) -> QuerySet[Ocena]:
     pracownik = pracownik_uzytkownika(uzytkownik)
     if pracownik is None:
         return wszystkie.none()
-    return wszystkie.filter(Q(oceniany=pracownik) | Q(oceniajacy=pracownik))
+    strona = Q(oceniany=pracownik) | Q(oceniajacy=pracownik)
+    if pracownik.rola_dyrektor:
+        return wszystkie.filter(strona | Q(sprzeciwy__isnull=False)).distinct()
+    return wszystkie.filter(strona)

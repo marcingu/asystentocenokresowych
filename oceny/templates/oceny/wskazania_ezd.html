@@ -1,0 +1,56 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Moje dane z EZD RP{% endblock %}
+{% block tresc %}
+<h1>Moje dane z EZD RP</h1>
+
+{% if not podlega %}
+<p class="komunikat komunikat-info">Przy obecnym rodzaju zatrudnienia nie podlegasz ocenie okresowej (art. 81 ust. 1 u.s.c.),
+  więc system nie zestawia dla Ciebie danych z EZD RP.</p>
+{% elif not integracja %}
+<p class="komunikat komunikat-info">Integracja z EZD RP jest wyłączona, więc nie ma tu nic do pokazania. Włącza ją komórka kadr
+  po dokonaniu ustaleń wymaganych przez Kodeks pracy.</p>
+{% else %}
+<div class="zastrzezenie" role="note">
+  <p><strong>To jedynie przypuszczenie, a nie zapowiedź oceny.</strong> Ocenę wystawia przełożony na podstawie wszystkich
+    informacji, które posiada - także tych, których nie ma w systemie EZD RP: obserwacji, rozmów, jakości pracy,
+    współpracy i dodatkowych osiągnięć.</p>
+  <p>Tej strony nie widzi przełożony ani kadry. System niczego z niej nie zapisuje.</p>
+</div>
+
+<section class="karta" aria-labelledby="n-ezd">
+  <h2 id="n-ezd">Na co wskazują dane z EZD RP</h2>
+  {% if ezd.wskazania %}
+  <p class="podpowiedz">Fakty o Twoich sprawach za okres {{ ezd.od|date:"d.m.Y" }} - {{ ezd.do|date:"d.m.Y" }} - te same, które
+    widzisz na karcie oceny. Mówią coś o {{ liczba_z_danymi }} z {{ kryteria|length }} Twoich kryteriów; o pozostałych
+    system nie wie nic.</p>
+  {% if ezd.dane_przykladowe %}<p class="komunikat komunikat-info">Pokaz: dane przykładowe zamiast połączenia z EZD RP.</p>{% endif %}
+  {% for wskazanie in ezd.wskazania %}
+  <article class="wskazanie">
+    <h3>{{ wskazanie.kryterium }}: <span class="wskazana-ocena">{{ wskazanie.ocena }} - {{ wskazanie.poziom }}</span></h3>
+    <div class="przewijana" role="region" aria-labelledby="t-fakty-{{ forloop.counter }}" tabindex="0">
+    <table class="tabela">
+      <caption class="ukryte" id="t-fakty-{{ forloop.counter }}">Fakty z EZD RP dla kryterium {{ wskazanie.kryterium }}</caption>
+      <thead><tr><th scope="col">Fakt</th><th scope="col">Wartość</th><th scope="col">Wskazuje na</th></tr></thead>
+      <tbody>
+        {% for fakt in wskazanie.fakty %}
+        <tr><td>{{ fakt.nazwa }}<small>liczba zdarzeń: {{ fakt.licznosc }}</small></td>
+          <td><strong>{{ fakt.wartosc }}</strong></td><td>{{ fakt.ocena }} - {{ fakt.poziom }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% if wskazanie.uzasadnienie %}<p class="podpowiedz">Dlaczego te fakty: {{ wskazanie.uzasadnienie }}</p>{% endif %}
+  </article>
+  {% endfor %}
+  <p class="podpowiedz">Progi ustalił urząd: {% for prog in progi %}co najmniej {{ prog.prog }}% - ocena {{ prog.ocena }}, {% endfor %}mniej -
+    ocena {{ najnizsza }}. Przy kilku faktach liczy się ich średnia. Przepisy takich progów nie przewidują - przełożony
+    nie jest nimi związany i może ocenić te same fakty inaczej, bo zna ich przyczyny.</p>
+  {% else %}
+  <p>Dane z EZD RP nie są teraz pokazywane. {{ ezd.powod }}</p>
+  {% if ezd.przeszkody %}
+  <ul>{% for blad in ezd.przeszkody %}<li>{{ blad.komunikat }} <small>({{ blad.podstawa }})</small></li>{% endfor %}</ul>
+  {% endif %}
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

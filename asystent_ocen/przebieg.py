@@ -24,6 +24,7 @@ class Rola(str, Enum):
     ZARZADZAJACY = "zarządzający"
     OCENIAJACY = "oceniający"
     OCENIANY = "oceniany"
+    DYREKTOR_GENERALNY = "dyrektor generalny"
     ADMIN = "admin"
 
 
@@ -406,11 +407,12 @@ class ProcesOceny:
     ) -> None:
         """tryb: "zmiana" albo "ponowne_sporzadzenie" (art. 83 ust. 4 u.s.c.).
 
-        Uwzględnienie sprzeciwu wprowadza zarządzający w imieniu dyrektora generalnego (model BPMN).
+        Sprzeciw służy do dyrektora generalnego urzędu (art. 83 ust. 1 u.s.c.) i to on wprowadza rozstrzygnięcie -
+        nie komórka kadr w jego imieniu, jak w torze ZARZĄDZAJĄCY modelu BPMN (decyzja projektowa z 21.11.2026).
         „zmiana” zastępuje oceny cząstkowe nowymi - żadna nie może być niższa niż dotychczas (Poradnik KPRM
         s. 32); „ponowne_sporzadzenie” anuluje ocenę i cofa proces do etapu rozmowy i dokonania oceny.
         """
-        self._wymagaj_roli(rola, Rola.ZARZADZAJACY, czynnosc="uwzględnienie sprzeciwu od oceny")
+        self._wymagaj_roli(rola, Rola.DYREKTOR_GENERALNY, czynnosc="uwzględnienie sprzeciwu od oceny")
         self._wymagaj_etapu(Etap.ZAKONCZONA, czynnosc="uwzględnienie sprzeciwu od oceny")
         if self.wynik is None:
             raise BladEtapu("Nie ma oceny, od której można uwzględnić sprzeciw")

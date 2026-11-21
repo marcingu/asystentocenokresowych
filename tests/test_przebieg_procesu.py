@@ -227,19 +227,24 @@ def test_po_zapoznaniu_ocena_jest_zablokowana_dla_oceniajacego():
 
 # --- sprzeciw (art. 83 ust. 4) ---
 
-def test_uwzglednienie_sprzeciwu_wprowadza_zarzadzajacy_w_imieniu_dyrektora_generalnego():
-    """Model BPMN: „[dyrektor generalny] wprowadza zmianę w formularzu oceny” (tor ZARZĄDZAJĄCY)."""
+def test_sprzeciw_rozstrzyga_dyrektor_generalny_a_nie_komorka_kadr():
+    """Art. 83 ust. 1 u.s.c.: sprzeciw służy do dyrektora generalnego urzędu. Decyzja prowadzącego projekt
+    z 21.11.2026: rozstrzygnięcie wprowadza w systemie dyrektor generalny, a nie komórka kadr w jego imieniu
+    (inaczej niż w torze ZARZĄDZAJĄCY modelu BPMN)."""
     p = proces_z_ocena()
     p.potwierdz_zapoznanie(Rola.OCENIANY, data=d(2028, 1, 11))
-    with pytest.raises(BladUprawnien):
-        p.uwzglednij_sprzeciw(Rola.OCENIAJACY, tryb="ponowne_sporzadzenie", data=d(2028, 1, 20))
+    for rola in (Rola.OCENIAJACY, Rola.ZARZADZAJACY, Rola.OCENIANY, Rola.ADMIN):
+        with pytest.raises(BladUprawnien):
+            p.uwzglednij_sprzeciw(rola, tryb="ponowne_sporzadzenie", data=d(2028, 1, 20))
+    p.uwzglednij_sprzeciw(Rola.DYREKTOR_GENERALNY, tryb="ponowne_sporzadzenie", data=d(2028, 1, 20))
+    assert p.etap == Etap.OCENIANIE
 
 
 def test_ponowne_sporzadzenie_oceny_anuluje_ocene_i_wraca_do_etapu_oceniania():
     """Przypadek użycia: „anulowanie oceny i powrót do etapu rozmowa oceniająca i dokonanie oceny”."""
     p = proces_z_ocena()
     p.potwierdz_zapoznanie(Rola.OCENIANY, data=d(2028, 1, 11))
-    p.uwzglednij_sprzeciw(Rola.ZARZADZAJACY, tryb="ponowne_sporzadzenie", data=d(2028, 1, 20))
+    p.uwzglednij_sprzeciw(Rola.DYREKTOR_GENERALNY, tryb="ponowne_sporzadzenie", data=d(2028, 1, 20))
     assert p.etap == Etap.OCENIANIE
     assert p.wynik is None
     assert len(p.oceny_anulowane) == 1
@@ -252,13 +257,13 @@ def test_zmiana_oceny_po_sprzeciwie_nie_moze_obnizyc_ocen():
     p.potwierdz_zapoznanie(Rola.OCENIANY, data=d(2028, 1, 11))
     nizsze = dict(OCENY_POZYTYWNE) | {"Rzetelność": 5}  # było 7
     with pytest.raises(BladWalidacji):
-        p.uwzglednij_sprzeciw(Rola.ZARZADZAJACY, tryb="zmiana", data=d(2028, 1, 20), nowe_oceny=nizsze)
+        p.uwzglednij_sprzeciw(Rola.DYREKTOR_GENERALNY, tryb="zmiana", data=d(2028, 1, 20), nowe_oceny=nizsze)
 
 
 def test_zmiana_oceny_po_sprzeciwie_aktualizuje_wynik():
     p = proces_z_ocena(OCENY_NEGATYWNE, uzasadnienie="Liczne błędy w dokumentach.")
     p.potwierdz_zapoznanie(Rola.OCENIANY, data=d(2028, 1, 11))
     wyzsze = dict(OCENY_NEGATYWNE) | {"Rzetelność": 3}
-    p.uwzglednij_sprzeciw(Rola.ZARZADZAJACY, tryb="zmiana", data=d(2028, 1, 20), nowe_oceny=wyzsze)
+    p.uwzglednij_sprzeciw(Rola.DYREKTOR_GENERALNY, tryb="zmiana", data=d(2028, 1, 20), nowe_oceny=wyzsze)
     assert p.wynik.ocena == POZYTYWNA
     assert p.oceny == wyzsze

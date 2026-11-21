@@ -22,10 +22,11 @@ Pokaz włącza - wyłącznie na danych fikcyjnych - trzy funkcje modelu językow
 - **Moje zadania**: każda osoba widzi, co ma zrobić, do kiedy i na jakiej podstawie prawnej. Terminy liczone według Kodeksu cywilnego, z dniami wolnymi i przedłużeniem o długie nieobecności.
 - **Wynik liczony z przepisów**: średnia, poziom i ocena pozytywna albo negatywna. Formularz nie pozwala zatwierdzić oceny z brakami i mówi, czego brakuje.
 - **Skutki oceny**: ponowna ocena po negatywnej, termin nowych kryteriów, stopień służbowy z mocy prawa.
+- **Sprzeciw od oceny**: oceniany wnosi go w systemie, a rozstrzyga dyrektor generalny urzędu (art. 83 u.s.c.). Dyrektor widzi tylko oceny, od których wniesiono sprzeciw. Stan sprzeciwu i termin rozpatrzenia są na stronie „Moje zadania”.
 - **Role i poufność**: oceniany, oceniający, kadry, dyrektor, administrator. Notatki i szkic oceny widzi tylko oceniający. Statystyki są zbiorcze, bez nazwisk.
 - **Kadry**: lista pracowników z wyszukiwaniem, filtrami (komórka organizacyjna, status oceny) i sortowaniem.
 - **Notatki oceniającego**: obserwacje z pracy, dodatkowe osiągnięcia pracownika i - przy pierwszej ocenie - wynik egzaminu ze służby przygotowawczej.
-- **Symulacja oceny** dla pracownika: własne przewidywania i wskazanie z faktów EZD RP według jawnych progów urzędu, bez modelu AI. Strona mówi wprost, że to przypuszczenie, i niczego nie zapisuje.
+- **Moje dane z EZD RP** - strona pracownika: na jaki poziom w jego kryteriach wskazują fakty z EZD RP według jawnych progów urzędu, bez modelu AI. Jest w menu tylko przy włączonej integracji z EZD RP. Mówi wprost, że to przypuszczenie, i niczego nie zapisuje.
 - **Wydruk arkusza** zgodnego ze wzorem z rozporządzenia (PDF do podpisu, DOCX) i terminy do kalendarza (iCalendar).
 - **Asystent AI** na lokalnym modelu PLLuM: odpowiada na pytania o procedurę, wskazuje przepisy i ostrzega, gdy odpowiedź modelu powołuje przepis albo liczbę spoza źródeł.
 - **Projekt uzasadnienia z notatek**: na karcie oceny model układa notatki przełożonego w tekst uzasadnienia. Dostaje wyłącznie notatki - bez ocen cząstkowych i danych z EZD RP. Projekt jest oznaczony jako tekst AI, nie zapisuje się sam, a do formularza przenosi go oceniający.
@@ -40,7 +41,7 @@ Pokaz włącza - wyłącznie na danych fikcyjnych - trzy funkcje modelu językow
 - **Radar Dobrostanu i Doceniania**: na karcie oceny pracownik i jego przełożony widzą te same karty obserwacji - fakty z systemu kadrowego i EZD RP, np. urlop zaległy z terminem z Kodeksu pracy, godziny nadliczbowe, sprawy przejęte po nieobecnych, terminowość. Karty liczy zwykły kod według progów urzędu (`asystent_ocen/radar.toml`): bez punktów, rankingu i wniosków o zdrowiu albo emocjach. Radar działa po spełnieniu tych samych warunków Kodeksu pracy co karta z EZD RP. W pokazie liczby są przykładowe - prototyp nie ma połączenia z systemem kadrowym.
 - **Pytania do kart obserwacji** (po instalacji wyłączone): model układa do każdej karty jedno pytanie otwarte dla przełożonego. Dostaje same karty, bez danych osobowych; pytanie o zdrowie, emocje albo sprawy prywatne jest odrzucane. To funkcja wysokiego ryzyka - włącza ją decyzja urzędu.
 
-Testy: 749 testów rdzenia i 388 testów aplikacji.
+Testy: 749 testów rdzenia i 394 testy aplikacji.
 
 ## Założenia
 
