@@ -283,6 +283,8 @@ class KontrastTest(SimpleTestCase):
         """Przy 320 px szerokości (powiększenie 400%) przewijać w poziomie wolno tylko tabelę, nie całą stronę.
         Kolumna siatki zapisana samym „1fr” nie zwęża się poniżej szerokości zawartości i rozpycha stronę."""
         self.assertEqual(self.styl.deklaracje(".przewijana").get("overflow-x"), "auto")
+        # Ukryte nazwy przycisków pozycjonujemy względem obszaru tabeli, nie całej strony.
+        self.assertEqual(self.styl.deklaracje(".przewijana").get("position"), "relative")
         siatki = 0
         for selektor, deklaracje in self.styl.reguly:
             kolumny = deklaracje.get("grid-template-columns", "")
