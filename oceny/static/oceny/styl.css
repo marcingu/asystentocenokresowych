@@ -127,6 +127,8 @@ meter { width: 100%; min-width: 120px; height: 1rem; }
 .formularz fieldset { border: 1px solid var(--linia); border-radius: 4px; padding: .7rem .9rem; margin: .8rem 0 0; display: grid; gap: .35rem; }
 .formularz legend { font-weight: 700; padding: 0 .4rem; }
 .formularz-maly { max-width: 14rem; }
+.pole-wyboru { display: flex; gap: .5rem; align-items: center; }
+.pole-wyboru input { width: 1.2rem; height: 1.2rem; accent-color: var(--granat); }
 .wiersz-pol { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .6rem; }
 .wymagane { color: var(--czerwony); font-weight: 400; font-size: .85rem; }
 .przyciski { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }

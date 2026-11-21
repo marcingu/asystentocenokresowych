@@ -88,6 +88,36 @@
   {% endif %}
 </section>
 
+{% if karta_ezd and karta_ezd.stan != 'WYLACZONA' %}
+<section class="karta" aria-labelledby="n-ezd">
+  <h2 id="n-ezd">Kontekst z EZD RP</h2>
+  {% if karta_ezd.stan == 'GOTOWA' %}
+  <p class="podpowiedz">Fakty o sprawach za okres {{ karta_ezd.od|date:"d.m.Y" }} - {{ karta_ezd.do|date:"d.m.Y" }}. Bez punktów
+    i rankingów - ocenę wystawia oceniający. Te same dane widzą obie strony oceny. Model językowy nie ma do nich dostępu.</p>
+  {% if karta_ezd.dane_przykladowe %}<p class="komunikat komunikat-info">Pokaz: dane przykładowe zamiast połączenia z EZD RP.</p>{% endif %}
+  <ul class="fakty">
+    {% for wskaznik in karta_ezd.wskazniki %}
+    <li class="fakt">
+      <strong>{% if wskaznik.uwaga %}-{% else %}{{ wskaznik.wartosc }}{% endif %}</strong>{{ wskaznik.nazwa }}
+      <small>{% if wskaznik.uwaga %}{{ wskaznik.uwaga }}{% else %}liczba zdarzeń: {{ wskaznik.licznosc }}{% endif %}</small>
+      {% if wskaznik.szczegoly %}
+      <details><summary>Do sprawdzenia ({{ wskaznik.szczegoly|length }})</summary>
+        <ul>{% for opis in wskaznik.szczegoly %}<li>{{ opis }}</li>{% endfor %}</ul></details>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="podpowiedz">Ustalenia pracodawcy: {{ karta_ezd.podstawa }} Pracowników poinformowano {{ karta_ezd.poinformowano|date:"d.m.Y" }}
+    (art. 22[2] § 6 i 7 w zw. z art. 22[3] § 3 i 4 KP).</p>
+  {% else %}
+  <p>{{ karta_ezd.komunikat }}</p>
+  {% if karta_ezd.przeszkody %}
+  <ul>{% for blad in karta_ezd.przeszkody %}<li>{{ blad.komunikat }} <small>({{ blad.podstawa }})</small></li>{% endfor %}</ul>
+  {% endif %}
+  {% endif %}
+</section>
+{% endif %}
+
 {% if formularz_oceny %}
 <section class="karta" aria-labelledby="n-czesc2">
   <h2 id="n-czesc2">Część II - rozmowa oceniająca i ocena</h2>

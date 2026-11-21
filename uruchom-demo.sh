@@ -34,6 +34,15 @@ export ASYSTENT_TRYB_DEMO=1
 export ASYSTENT_BAZA="$PWD/demo.sqlite3"
 export ASYSTENT_URZAD="${ASYSTENT_URZAD:-Urząd Wojewódzki w Przykładowie}"
 export ASYSTENT_MIEJSCOWOSC="${ASYSTENT_MIEJSCOWOSC:-Przykładów}"
+# Klucz sesji pokazu zapisany obok bazy pokazowej: ponowne uruchomienie nie wylogowuje oglądających.
+# Plik jest tylko dla właściciela i nie trafia do repozytorium. We wdrożeniu klucz podaje się zmienną środowiskową.
+if [ -z "${ASYSTENT_SECRET_KEY:-}" ]; then
+  if [ ! -s .demo-klucz ]; then
+    (umask 077 && .venv/bin/python -c "import secrets; print(secrets.token_urlsafe(64))" > .demo-klucz)
+  fi
+  ASYSTENT_SECRET_KEY="$(cat .demo-klucz)"
+  export ASYSTENT_SECRET_KEY
+fi
 
 if [ "$OD_NOWA" = 1 ] && [ -f demo.sqlite3 ]; then
   rm demo.sqlite3

@@ -18,9 +18,11 @@ from django.db import transaction
 from asystent_ocen import terminy
 from asystent_ocen.bledy import Blad, BladWalidacji
 from asystent_ocen.przebieg import BladEtapu, BladUprawnien, Etap, Rola
+from asystent_ocen.zgodnosc import UstaleniaMonitoringu as UstaleniaRdzenia
+from asystent_ocen.zgodnosc import bledy_uruchomienia_monitoringu
 
 from .czas import dzis
-from .models import Nieobecnosc, Ocena, Pracownik, Sprzeciw, WniosekOTermin, Zdarzenie
+from .models import Nieobecnosc, Ocena, Pracownik, Sprzeciw, UstaleniaMonitoringu, WniosekOTermin, Zdarzenie
 from .uprawnienia import czy_kadry, pracownik_uzytkownika, role_uzytkownika
 
 UWZGLEDNIENIA_SPRZECIWU = (Sprzeciw.ZMIANA, Sprzeciw.PONOWNE_SPORZADZENIE)
@@ -230,6 +232,40 @@ def dodaj_nieobecnosc(
             "BLEDNY_OKRES_NIEOBECNOSCI", "Koniec nieobecności nie może być wcześniejszy niż jej początek."
         )])
     return Nieobecnosc.objects.create(pracownik=pracownik, od=od, do=do, usprawiedliwiona=usprawiedliwiona)
+
+
+def zapisz_ustalenia_monitoringu(
+    uzytkownik,
+    *,
+    podstawa: str,
+    cele: str,
+    zakres: str,
+    sposob: str,
+    data_poinformowania: date | None,
+    wlaczona: bool,
+    data: date | None = None,
+) -> UstaleniaMonitoringu:
+    """Ustalenia pracodawcy dotyczące danych z EZD RP. Integrację da się włączyć dopiero wtedy, gdy rdzeń nie
+    widzi przeszkód z Kodeksu pracy (art. 22[2] § 6-7 w zw. z art. 22[3] § 3-4); robocze ustalenia można
+    zapisywać przy wyłączonej integracji."""
+    _wymagaj_kadr(uzytkownik, "ustalenia dotyczące danych z EZD RP")
+    data = data or dzis()
+    dane = {
+        "podstawa": str(podstawa or "").strip(), "cele": str(cele or "").strip(),
+        "zakres": str(zakres or "").strip(), "sposob": str(sposob or "").strip(),
+        "data_poinformowania": data_poinformowania,
+    }
+    if wlaczona:
+        przeszkody = bledy_uruchomienia_monitoringu(UstaleniaRdzenia(**dane), data)
+        if przeszkody:
+            raise BladWalidacji(przeszkody)
+    with transaction.atomic():
+        zapis = UstaleniaMonitoringu.objects.select_for_update().order_by("pk").first() or UstaleniaMonitoringu()
+        for pole, wartosc in dane.items():
+            setattr(zapis, pole, wartosc)
+        zapis.integracja_wlaczona = bool(wlaczona)
+        zapis.save()
+    return zapis
 
 
 # --- część II i III: ocena ---

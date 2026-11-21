@@ -1,0 +1,50 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Dane z EZD RP - ustalenia{% endblock %}
+{% block tresc %}
+<p class="okruszki"><a href="{% url 'kadry' %}">Kadry</a> / dane z EZD RP</p>
+<h1>Dane z EZD RP - ustalenia pracodawcy</h1>
+<p class="podpowiedz">Zestawienie spraw pracownika z EZD RP jest formą monitoringu pracy. Kodeks pracy wymaga, żeby cele, zakres
+  i sposób ustalić w regulaminie pracy, układzie zbiorowym albo obwieszczeniu (art. 22[2] § 6 w zw. z art. 22[3] § 3 i 4 KP)
+  i poinformować pracowników co najmniej {{ wyprzedzenie }} dni przed uruchomieniem (art. 22[2] § 7 KP).
+  Dopóki te warunki nie są spełnione, system nie pokaże nikomu żadnych danych z EZD RP.</p>
+
+<section class="karta" aria-labelledby="n-stan">
+  <h2 id="n-stan">Stan</h2>
+  {% if ustalenia.integracja_wlaczona and not przeszkody %}
+  <p><span class="stan stan-w_terminie">integracja włączona</span> Karta „Kontekst z EZD RP” jest widoczna dla obu stron oceny.</p>
+  {% elif ustalenia.integracja_wlaczona %}
+  <p><span class="stan stan-po_terminie">integracja zablokowana</span> Warunki przestały być spełnione - dane nie są pokazywane.</p>
+  {% else %}
+  <p><span class="stan stan-bez_terminu">integracja wyłączona</span></p>
+  {% endif %}
+  {% if przeszkody %}
+  <div class="braki">
+    <strong>Do spełnienia przed włączeniem:</strong>
+    <ul>{% for blad in przeszkody %}<li>{{ blad.komunikat }} <small>({{ blad.podstawa }})</small></li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+  {% if bez_informacji %}
+  <p class="podpowiedz">Pracownicy bez odnotowanej informacji o danych z EZD RP: {{ bez_informacji }}. Ich karty pozostają
+    zablokowane (art. 22[2] § 8 KP) - informację odnotowuje administrator w danych pracownika.</p>
+  {% endif %}
+</section>
+
+<section class="karta" aria-labelledby="n-ustalenia">
+  <h2 id="n-ustalenia">Ustalenia</h2>
+  <form method="post" class="formularz">
+    {% csrf_token %}
+    <label for="podstawa">Gdzie dokonano ustaleń (regulamin pracy, układ zbiorowy albo obwieszczenie)</label>
+    <input type="text" name="podstawa" id="podstawa" value="{{ ustalenia.podstawa }}">
+    <label for="cele">Cele</label>
+    <textarea name="cele" id="cele" rows="2">{{ ustalenia.cele }}</textarea>
+    <label for="zakres">Zakres</label>
+    <textarea name="zakres" id="zakres" rows="2">{{ ustalenia.zakres }}</textarea>
+    <label for="sposob">Sposób zastosowania</label>
+    <textarea name="sposob" id="sposob" rows="2">{{ ustalenia.sposob }}</textarea>
+    <label for="data_poinformowania">Dzień poinformowania pracowników</label>
+    <input type="date" name="data_poinformowania" id="data_poinformowania" value="{{ ustalenia.data_poinformowania|date:'Y-m-d' }}">
+    <label class="pole-wyboru"><input type="checkbox" name="wlaczona"{% if ustalenia.integracja_wlaczona %} checked{% endif %}> Włącz integrację z EZD RP</label>
+    <button type="submit" class="przycisk">Zapisz</button>
+  </form>
+</section>
+{% endblock %}

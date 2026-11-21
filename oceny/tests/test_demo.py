@@ -12,6 +12,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from asystent_ocen.przebieg import Etap
+from oceny.kontekst_ezd import karta_kontekstu
 from oceny.models import Ocena, Pracownik, UstaleniaMonitoringu
 from oceny.zadania import skutki_oceny_zakonczonej, zadania_uzytkownika
 
@@ -68,6 +69,18 @@ class DaneDemoTest(TestCase):
         ustalenia = UstaleniaMonitoringu.pobierz()
         self.assertTrue(ustalenia.integracja_wlaczona)
         self.assertIsNotNone(ustalenia.data_poinformowania)
+
+    def test_karta_z_ezd_rp_zgadza_sie_z_uzasadnieniem_oceny_w_danych_pokazowych(self):
+        """Uzasadnienie mówi o 11 z 34 spraw załatwionych po terminie - karta faktów pokazuje to samo."""
+        zaladuj()
+        ocena = Pracownik.objects.get(uzytkownik__username="marek").biezaca_ocena()
+
+        with override_settings(ASYSTENT_TRYB_DEMO=True):
+            karta = karta_kontekstu(ocena, date(2026, 11, 21))
+
+        wartosci = {wskaznik["kod"]: wskaznik["wartosc"] for wskaznik in karta.wskazniki}
+        self.assertEqual((wartosci["SPRAWY_ZAKONCZONE"], wartosci["TERMINOWOSC"]), ("34", "68%"))
+        self.assertIn("11 z 34 spraw", ocena.proces().formularz.uzasadnienie)
 
     def _sprawdz_date(self, dzien: str) -> None:
         zaladuj(dzien)

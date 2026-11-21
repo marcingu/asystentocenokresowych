@@ -20,13 +20,14 @@ from asystent_ocen.bledy import Blad, BladWalidacji
 from asystent_ocen.konfiguracja import DOMYSLNY_PLIK, wczytaj_przepisy
 from asystent_ocen.przebieg import BladEtapu, BladUprawnien, Etap, Rola
 from asystent_ocen.wynik import NEGATYWNA, POZYTYWNA
-from asystent_ocen.zgodnosc import rejestr_funkcji_ai, wczytaj_wymogi
+from asystent_ocen.zgodnosc import bledy_uruchomienia_monitoringu, rejestr_funkcji_ai, wczytaj_wymogi
 
 from . import drukowanie, formularze, uprawnienia, uslugi
 from .czas import dzis
 from .karta import kontekst_karty
 from .kontekst import konta_demo
-from .models import Ocena, Pracownik, Sprzeciw
+from .kontekst_ezd import ustalenia_rdzenia
+from .models import Ocena, Pracownik, Sprzeciw, UstaleniaMonitoringu
 from .zadania import zadania_uzytkownika
 
 
@@ -314,6 +315,41 @@ def kadry_nieobecnosc(request, pk: int):
     else:
         messages.success(request, f"Dodano nieobecność: {osoba.imie_i_nazwisko}. Terminy ocen zostały przeliczone.")
     return redirect("kadry")
+
+
+@require_http_methods(["GET", "POST"])
+def kadry_ezd(request):
+    """Ustalenia wymagane przez Kodeks pracy przed pokazaniem danych z EZD RP - i włącznik integracji."""
+    _wymagaj_kadr(request)
+    dzien = dzis()
+    if request.method == "POST":
+        dane = {
+            "podstawa": formularze.tekst(request.POST, "podstawa"),
+            "cele": formularze.tekst(request.POST, "cele"),
+            "zakres": formularze.tekst(request.POST, "zakres"),
+            "sposob": formularze.tekst(request.POST, "sposob"),
+            "data_poinformowania": formularze.data_lub_none(request.POST, "data_poinformowania"),
+        }
+        wlaczona = request.POST.get("wlaczona") == "on"
+        try:
+            uslugi.zapisz_ustalenia_monitoringu(request.user, **dane, wlaczona=wlaczona)
+        except BladWalidacji as wyjatek:
+            # Wpisana treść zostaje zapisana roboczo - integracja pozostaje wyłączona.
+            uslugi.zapisz_ustalenia_monitoringu(request.user, **dane, wlaczona=False)
+            messages.error(request, "Integracji z EZD RP nie można jeszcze włączyć. Ustalenia zapisano roboczo.")
+            _zglos_bledy(request, wyjatek)
+        else:
+            messages.success(
+                request, "Ustalenia zapisano. Integracja z EZD RP jest " + ("włączona." if wlaczona else "wyłączona.")
+            )
+        return redirect("kadry_ezd")
+    zapis = UstaleniaMonitoringu.pobierz()
+    return render(request, "oceny/kadry_ezd.html", {
+        "ustalenia": zapis,
+        "przeszkody": bledy_uruchomienia_monitoringu(ustalenia_rdzenia(zapis), dzien),
+        "bez_informacji": Pracownik.objects.filter(klauzula_ezd_potwierdzona=False).count(),
+        "wyprzedzenie": wczytaj_wymogi().monitoring_wyprzedzenie_informacji_dni,
+    })
 
 
 # --- statystyki zbiorcze ---

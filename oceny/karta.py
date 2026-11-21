@@ -19,6 +19,7 @@ from asystent_ocen.wynik import NEGATYWNA, bledy_ocen_czastkowych, formatuj_sred
 
 from . import drukowanie
 from .formularze import nazwy_kryteriow
+from .kontekst_ezd import karta_kontekstu
 from .models import Ocena, WniosekOTermin
 from .uprawnienia import role_uzytkownika
 from .uslugi import CZYNNOSC_NOTATKA
@@ -301,6 +302,9 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
             kontekst["mozna_rozpoczac_kolejny_cykl"] = True
         if kadry or oceniajacy:
             kontekst["skutki"] = opisy_skutkow(ocena)
+    # Fakty z EZD RP są jawne dla obu stron oceny; komórka kadr ich nie potrzebuje (minimalizacja danych).
+    if oceniajacy or oceniany:
+        kontekst["karta_ezd"] = karta_kontekstu(ocena, dzien)
     # Wynik widzą strony dopiero po sporządzeniu oceny; szkicu oceniającego nie widzi nikt poza nim.
     kontekst["widac_wynik"] = proces.wynik is not None
     return kontekst
