@@ -1,0 +1,95 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}{% if nowe %}Nowe konto{% else %}Konto {{ wybrane.get_username }}{% endif %}{% endblock %}
+{% block tresc %}
+<p class="okruszki"><a href="{% url 'administracja' %}">Administracja - konta</a> / {% if nowe %}nowe konto{% else %}{{ wybrane.get_username }}{% endif %}</p>
+<h1>{% if nowe %}Nowe konto{% else %}Konto {{ wybrane.get_username }}{% endif %}</h1>
+
+{% if link_hasla %}
+<section class="karta" aria-labelledby="n-link">
+  <h2 id="n-link">Link do ustawienia hasła</h2>
+  <p>Przekaż ten link użytkownikowi bezpiecznym kanałem. Link działa jedną dobę i tylko raz. Ta strona pokazuje go jeden raz -
+    po odświeżeniu zniknie, a w dzienniku zostaje tylko informacja, że go wydano.</p>
+  <label for="link-hasla">Link dla użytkownika {{ wybrane.get_username }}</label>
+  <input type="text" id="link-hasla" value="{{ link_hasla }}" readonly class="szerokie">
+</section>
+{% endif %}
+
+{% if not nowe %}
+<section class="karta" aria-labelledby="n-stan">
+  <h2 id="n-stan">Stan konta</h2>
+  <dl class="metryczka">
+    <div><dt>Stan</dt><dd>{{ stan.nazwa }}{% if stan.od %} od {{ stan.od|date:"d.m.Y H:i" }}{% endif %}</dd></div>
+    {% if stan.opis %}<div><dt>Powód</dt><dd>{{ stan.opis }}</dd></div>{% endif %}
+    {% if stan.termin_zawieszenia %}<div><dt>Bez logowania czynne do</dt><dd>{{ stan.termin_zawieszenia|date:"d.m.Y" }}</dd></div>{% endif %}
+    <div><dt>Ostatnie logowanie</dt><dd>{{ wybrane.last_login|date:"d.m.Y H:i"|default:"nigdy" }}</dd></div>
+    <div><dt>Weryfikacja dwuetapowa</dt><dd>{% if aplikacja %}włączona od {{ aplikacja.potwierdzono|date:"d.m.Y" }}{% else %}brak{% endif %}</dd></div>
+    <div><dt>Osoba</dt><dd>{% if pracownik %}{{ pracownik.imie_i_nazwisko }}, {{ pracownik.stanowisko }}{% else %}bez powiązania z pracownikiem{% endif %}</dd></div>
+  </dl>
+  <div class="przyciski">
+    {% if wybrane.is_active %}
+    {% if not to_ja %}
+    <form method="post" action="{% url 'administracja_akcja' wybrane.pk 'zablokuj' %}" class="formularz formularz-maly">{% csrf_token %}
+      <label for="powod">Powód blokady</label>
+      <input type="text" name="powod" id="powod" maxlength="200">
+      <button type="submit" class="przycisk przycisk-drugi" data-potwierdz="Zablokować konto {{ wybrane.get_username }}? Trwające sesje tego konta przestaną działać.">Zablokuj konto</button>
+    </form>
+    {% endif %}
+    {% else %}
+    <form method="post" action="{% url 'administracja_akcja' wybrane.pk 'odblokuj' %}">{% csrf_token %}
+      <button type="submit" class="przycisk">Odblokuj konto</button></form>
+    {% endif %}
+    {% if aplikacja %}
+    <form method="post" action="{% url 'administracja_akcja' wybrane.pk 'reset-dwuetapowego' %}">{% csrf_token %}
+      <button type="submit" class="przycisk przycisk-drugi" data-potwierdz="Odłączyć aplikację uwierzytelniającą od konta {{ wybrane.get_username }}?">Odłącz aplikację uwierzytelniającą</button></form>
+    {% endif %}
+    <form method="post" action="{% url 'administracja_akcja' wybrane.pk 'link-hasla' %}">{% csrf_token %}
+      <button type="submit" class="przycisk przycisk-drugi">Wydaj link do ustawienia hasła</button></form>
+  </div>
+</section>
+{% endif %}
+
+<section class="karta" aria-labelledby="n-dane">
+  <h2 id="n-dane">{% if nowe %}Dane nowego konta{% else %}Dane konta{% endif %}</h2>
+  {% if nowe %}<p class="podpowiedz">Konto powstaje bez hasła. Po zapisaniu zobaczysz jednorazowy link, z którego użytkownik sam ustawi hasło -
+    administrator go nie poznaje.</p>{% endif %}
+  <form method="post" class="formularz">
+    {% csrf_token %}
+    {% for pole in formularz %}
+    {% if pole.name == 'administrator' %}
+    <div class="pole-wyboru">{{ pole }} <label for="{{ pole.id_for_label }}">{{ pole.label }}</label></div>
+    <p class="podpowiedz">Administrator zarządza kontami i czyta dzienniki. Nie dostaje przez to wglądu w treść ocen.</p>
+    {% else %}
+    <label for="{{ pole.id_for_label }}">{{ pole.label }}{% if not pole.field.required %} <span class="wymagane">nieobowiązkowe</span>{% endif %}</label>
+    {{ pole }}
+    {% endif %}
+    {% if pole.errors %}<div id="{{ pole.id_for_label }}_error">{% for blad in pole.errors %}<p class="komunikat komunikat-error" role="alert">{{ blad }}</p>{% endfor %}</div>{% endif %}
+    {% endfor %}
+    <div class="przyciski">
+      <button type="submit" class="przycisk">{% if nowe %}Utwórz konto{% else %}Zapisz zmiany{% endif %}</button>
+      <a href="{% url 'administracja' %}" class="przycisk przycisk-drugi">Anuluj</a>
+    </div>
+  </form>
+</section>
+
+{% if not nowe %}
+<section class="karta" aria-labelledby="n-zdarzenia">
+  <h2 id="n-zdarzenia">Ostatnie zdarzenia dotyczące konta</h2>
+  {% if zdarzenia %}
+  <div class="przewijana" role="region" aria-labelledby="t-zdarzenia" tabindex="0">
+  <table class="tabela">
+    <caption id="t-zdarzenia" class="ukryte">Ostatnie zdarzenia bezpieczeństwa dotyczące tego konta</caption>
+    <thead><tr><th scope="col">Czas</th><th scope="col">Zdarzenie</th><th scope="col">Wykonał</th><th scope="col">Adres</th><th scope="col">Opis</th></tr></thead>
+    <tbody>
+      {% for wpis in zdarzenia %}
+      <tr><td>{{ wpis.czas|date:"d.m.Y H:i" }}</td><td>{{ wpis.rodzaj_opis }}</td><td>{{ wpis.uzytkownik.get_username|default:"system albo osoba niezalogowana" }}</td>
+        <td>{{ wpis.adres_ip|default:"-" }}</td><td>{{ wpis.opis|default:"-" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="pusto">Brak zdarzeń.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

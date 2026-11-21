@@ -1,0 +1,18 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Kod jednorazowy{% endblock %}
+{% block tresc %}
+<section class="karta waska">
+  <h1>Weryfikacja dwuetapowa</h1>
+  <p>Pierwszy krok logowania jest za Tobą. Podaj teraz 6-cyfrowy kod z aplikacji uwierzytelniającej w telefonie.</p>
+  {% if blad %}<p class="komunikat komunikat-error" role="alert">{{ blad }}</p>{% endif %}
+  <form method="post" class="formularz">
+    {% csrf_token %}
+    <label for="kod">Kod jednorazowy</label>
+    <input type="text" name="kod" id="kod" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required autofocus aria-describedby="kod-pomoc">
+    <p class="podpowiedz" id="kod-pomoc">Kod zmienia się co 30 sekund i działa tylko raz. Na jego podanie masz 5 minut.</p>
+    <button type="submit" class="przycisk">Zaloguj</button>
+  </form>
+  <p class="podpowiedz">Nie masz dostępu do aplikacji uwierzytelniającej? Zgłoś się do administratora - odłączy ją,
+    a przy następnym logowaniu skonfigurujesz nową. <a href="{% url 'logowanie' %}">Wróć do logowania</a>.</p>
+</section>
+{% endblock %}

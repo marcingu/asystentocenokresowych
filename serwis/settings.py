@@ -45,6 +45,19 @@ ASYSTENT_DECYZJE_AI = os.environ.get("ASYSTENT_DECYZJE_AI") or None
 # EZD RP (tylko odczyt). Bez adresu karta kontekstu pracuje na danych przykładowych - wyraźnie oznaczonych.
 ASYSTENT_EZD_ADRES = os.environ.get("ASYSTENT_EZD_ADRES") or None
 
+# --- bezpieczeństwo kont ---
+# Weryfikacja dwuetapowa (kod jednorazowy TOTP z aplikacji uwierzytelniającej): „wymagane” - każde konto musi ją
+# skonfigurować przy pierwszym logowaniu; „dobrowolne” - użytkownik włącza ją sam. Domyślnie wymagana;
+# w trybie demonstracyjnym dobrowolna, żeby pokaz dało się obejrzeć bez telefonu.
+ASYSTENT_2FA = os.environ.get("ASYSTENT_2FA") or None
+if ASYSTENT_2FA not in (None, "wymagane", "dobrowolne"):
+    raise ValueError("ASYSTENT_2FA: dopuszczalne wartości to „wymagane” albo „dobrowolne”.")
+# Blokada logowania: po tylu nieudanych próbach (hasło albo kod) w ciągu tylu minut.
+ASYSTENT_PROBY_LOGOWANIA = int(os.environ.get("ASYSTENT_PROBY_LOGOWANIA", "5"))
+ASYSTENT_BLOKADA_MINUT = int(os.environ.get("ASYSTENT_BLOKADA_MINUT", "15"))
+# Link do ustawienia hasła, który administrator wydaje użytkownikowi, działa jedną dobę.
+PASSWORD_RESET_TIMEOUT = 24 * 60 * 60
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -66,6 +79,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "oceny.middleware.NaglowkiBezpieczenstwa",
+    "oceny.middleware.BezpieczenstwoKont",
 ]
 
 ROOT_URLCONF = "serwis.urls"
@@ -91,6 +105,9 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": os.environ.get("ASYSTENT_BAZA") or BASE_DIR / "db.sqlite3",
+        # Zapisy ustawiają się w kolejce od początku transakcji: dziennik zdarzeń dopisuje wpis przy wielu
+        # żądaniach, a domyślny tryb SQLite kończyłby równoległe zapisy błędem „database is locked”.
+        "OPTIONS": {"transaction_mode": "IMMEDIATE", "timeout": 20},
     }
 }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

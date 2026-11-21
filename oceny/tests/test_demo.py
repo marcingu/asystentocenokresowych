@@ -27,13 +27,15 @@ class DaneDemoTest(TestCase):
         etapy = set(Ocena.objects.values_list("etap", flat=True))
         self.assertEqual(etapy, {etap.name for etap in Etap})
 
-    def test_konta_demo_nie_maja_hasel_ani_uprawnien_administracyjnych(self):
+    def test_konta_demo_nie_maja_hasel_ani_dostepu_do_panelu_django(self):
+        """Jedynym kontem z uprawnieniami administratora jest administrator pokazu - do obejrzenia zaplecza."""
         zaladuj()
         konta = get_user_model().objects.all()
         self.assertGreaterEqual(konta.count(), 8)
         for konto in konta:
             self.assertFalse(konto.has_usable_password(), konto.username)
-            self.assertFalse(konto.is_superuser or konto.is_staff, konto.username)
+            self.assertFalse(konto.is_staff, konto.username)
+        self.assertEqual([konto.username for konto in konta.filter(is_superuser=True)], ["administrator"])
 
     def test_polecenie_odmawia_pracy_na_bazie_z_danymi(self):
         """Polecenie niczego nie usuwa - na niepustej bazie nie robi nic."""
@@ -139,10 +141,13 @@ class PrzegladStronDemoTest(TestCase):
     def setUpTestData(cls):
         zaladuj()
 
-    def test_kazde_konto_otwiera_swoje_strony(self):
+    def test_kazde_czynne_konto_otwiera_swoje_strony_a_zawieszone_nie_wchodzi(self):
         for konto in get_user_model().objects.all():
             klient = Client()
             odpowiedz = klient.post(reverse("demo_zaloguj"), {"login": konto.username})
+            if not konto.is_active:  # konto zawieszone za brak aktywności - odblokowuje je administrator
+                self.assertEqual(odpowiedz.status_code, 404, konto.username)
+                continue
             self.assertEqual(odpowiedz.status_code, 302, konto.username)
             for nazwa in ("zadania", "przepisy", "asystent"):
                 self.assertEqual(klient.get(reverse(nazwa)).status_code, 200, f"{konto.username}: {nazwa}")
@@ -151,6 +156,8 @@ class PrzegladStronDemoTest(TestCase):
         kadry = get_user_model().objects.get(username="kadry")
         for ocena in Ocena.objects.select_related("oceniany__uzytkownik", "oceniajacy__uzytkownik"):
             for konto in (ocena.oceniany.uzytkownik, ocena.oceniajacy.uzytkownik, kadry):
+                if not konto.is_active:
+                    continue
                 klient = Client()
                 klient.force_login(konto)
                 odpowiedz = klient.get(reverse("ocena", args=[ocena.pk]))

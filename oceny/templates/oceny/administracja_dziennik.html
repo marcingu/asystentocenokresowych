@@ -1,0 +1,82 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Administracja - dziennik{% endblock %}
+{% block tresc %}
+<h1>Administracja - {% if proces %}czynności w procesie oceny{% else %}dziennik zdarzeń bezpieczeństwa{% endif %}</h1>
+{% if proces %}{% include "oceny/_administracja_menu.html" with zakladka="proces" %}{% else %}{% include "oceny/_administracja_menu.html" with zakladka="bezpieczenstwo" %}{% endif %}
+
+{% if proces %}
+<p class="podpowiedz">Czynności w procesie oceny: kto, kiedy i co zrobił w której ocenie. Bez opisów i bez treści ocen - wgląd
+  w dziennik nie daje administratorowi dostępu do danych z ocen.</p>
+{% else %}
+{% if lancuch.poprawny %}
+<p class="komunikat komunikat-success" role="status"><strong>Dziennik jest nienaruszony.</strong> Łańcuch skrótów zgadza się dla
+  wszystkich wpisów (liczba wpisów: {{ lancuch.wpisow }}).</p>
+{% else %}
+<p class="komunikat komunikat-error" role="alert"><strong>Dziennik jest naruszony.</strong>
+  {% if lancuch.pierwszy_bledny %}Pierwszy niezgodny wpis ma numer {{ lancuch.pierwszy_bledny }} - ten wpis albo wpis przed nim zmieniono
+  lub usunięto poza aplikacją.{% else %}Brakuje wpisów na końcu dziennika.{% endif %} Zabezpiecz kopię bazy i zgłoś incydent.</p>
+{% endif %}
+<p class="podpowiedz">Logowania, kody jednorazowe, zmiany kont, czynności administratora, odmowy dostępu, odczyty kart ocen
+  i pobrania arkuszy (§ 20 rozporządzenia KRI). Wpisów nie da się zmienić ani usunąć w aplikacji. Wpisy przechowuje się
+  co najmniej {{ przechowywanie }} (§ 20 ust. 4 KRI). Wgląd w dziennik i eksport też są zapisywane.</p>
+{% endif %}
+
+<form method="get" action="{% url 'administracja_dziennik' %}" class="formularz filtry" role="search" aria-label="Filtry dziennika">
+  {% if proces %}<input type="hidden" name="dziennik" value="proces">{% endif %}
+  <div class="wiersz-pol">
+    {% if not proces %}
+    <div><label for="rodzaj">Rodzaj zdarzenia</label>
+      <select name="rodzaj" id="rodzaj">
+        <option value="">wszystkie</option>
+        {% for kod, opis in rodzaje.items %}<option value="{{ kod }}"{% if kod == filtry.rodzaj %} selected{% endif %}>{{ opis }}</option>{% endfor %}
+      </select></div>
+    {% endif %}
+    <div><label for="login">Login{% if not proces %} albo konto, którego dotyczy zdarzenie{% endif %}</label>
+      <input type="search" name="login" id="login" value="{{ filtry.login }}" maxlength="150"></div>
+    <div><label for="od">Od dnia</label><input type="date" name="od" id="od" value="{{ filtry.od|date:'Y-m-d' }}"></div>
+    <div><label for="do">Do dnia</label><input type="date" name="do" id="do" value="{{ filtry.do|date:'Y-m-d' }}"></div>
+  </div>
+  <div class="przyciski">
+    <button type="submit" class="przycisk">Pokaż</button>
+    {% if not proces %}<a href="{% url 'administracja_dziennik_csv' %}{% if parametry %}?{{ parametry }}{% endif %}" class="przycisk przycisk-drugi">Pobierz jako CSV</a>{% endif %}
+  </div>
+</form>
+
+<p class="podpowiedz" role="status">Wpisów spełniających warunki: {{ strona.paginator.count }}; strona {{ strona.number }} z {{ strona.paginator.num_pages }}.</p>
+{% if not strona.object_list %}
+<p class="pusto">Brak zdarzeń spełniających podane warunki.</p>
+{% elif proces %}
+<div class="przewijana" role="region" aria-labelledby="t-dziennik" tabindex="0">
+<table class="tabela">
+  <caption id="t-dziennik" class="ukryte">Czynności w procesie oceny</caption>
+  <thead><tr><th scope="col">Czas</th><th scope="col">Kto</th><th scope="col">Czynność</th><th scope="col">Ocena</th></tr></thead>
+  <tbody>
+    {% for wpis in strona %}
+    <tr><td>{{ wpis.czas|date:"d.m.Y H:i" }}</td><td>{{ wpis.uzytkownik.get_username|default:"-" }}<small>{{ wpis.podpis }}</small></td>
+      <td>{{ wpis.czynnosc }}</td><td>ocena {{ wpis.ocena_id }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="przewijana" role="region" aria-labelledby="t-dziennik" tabindex="0">
+<table class="tabela">
+  <caption id="t-dziennik" class="ukryte">Zdarzenia bezpieczeństwa</caption>
+  <thead><tr><th scope="col">Czas</th><th scope="col">Zdarzenie</th><th scope="col">Login</th><th scope="col">Dotyczy</th><th scope="col">Adres</th><th scope="col">Opis</th></tr></thead>
+  <tbody>
+    {% for wpis in strona %}
+    <tr><td>{{ wpis.czas|date:"d.m.Y H:i:s" }}</td><td>{{ wpis.rodzaj_opis }}</td><td>{{ wpis.login|default:"-" }}</td><td>{{ wpis.dotyczy|default:"-" }}</td>
+      <td>{{ wpis.adres_ip|default:"-" }}</td><td>{{ wpis.opis|default:"-" }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% if strona.paginator.num_pages > 1 %}
+<nav class="strony" aria-label="Strony dziennika">
+  {% if strona.has_previous %}<a href="?{% if parametry %}{{ parametry }}&amp;{% endif %}strona={{ strona.previous_page_number }}">Nowsze wpisy</a>{% endif %}
+  <span>strona {{ strona.number }} z {{ strona.paginator.num_pages }}</span>
+  {% if strona.has_next %}<a href="?{% if parametry %}{{ parametry }}&amp;{% endif %}strona={{ strona.next_page_number }}">Starsze wpisy</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

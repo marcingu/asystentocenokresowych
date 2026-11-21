@@ -331,3 +331,78 @@ class UstaleniaMonitoringu(models.Model):
     @classmethod
     def pobierz(cls) -> "UstaleniaMonitoringu":
         return cls.objects.order_by("pk").first() or cls()
+
+
+class ZdarzenieBezpieczenstwa(models.Model):
+    """Dziennik zdarzeń bezpieczeństwa (§ 20 rozporządzenia KRI): logowania, zmiany kont, czynności administratora,
+    dostęp do ocen. Tylko dopisywanie. Każdy wpis zawiera skrót poprzedniego - zmiana albo usunięcie wpisu poza
+    aplikacją wychodzi przy sprawdzeniu łańcucha (`dziennik.sprawdz_lancuch`)."""
+
+    czas = models.DateTimeField("czas zdarzenia", db_index=True)
+    rodzaj = models.CharField("rodzaj zdarzenia", max_length=40, db_index=True)
+    uzytkownik = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+",
+        verbose_name="kto wykonał czynność",
+    )
+    login = models.CharField("login w chwili zdarzenia", max_length=150, blank=True, db_index=True)
+    dotyczy = models.CharField("konto albo zasób, którego dotyczy zdarzenie", max_length=150, blank=True)
+    adres_ip = models.GenericIPAddressField("adres IP", null=True, blank=True)
+    opis = models.TextField(blank=True)
+    poprzedni_skrot = models.CharField(max_length=64, blank=True)
+    skrot = models.CharField(max_length=64)
+
+    objects = _DziennikQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["pk"]
+        verbose_name = "zdarzenie bezpieczeństwa"
+        verbose_name_plural = "dziennik zdarzeń bezpieczeństwa"
+
+    def __str__(self) -> str:
+        return f"{self.czas:%d.%m.%Y %H:%M} {self.rodzaj} {self.login}"
+
+    @property
+    def rodzaj_opis(self) -> str:
+        from .dziennik import RODZAJE  # import przy użyciu - dziennik korzysta z tego modelu
+
+        return RODZAJE.get(self.rodzaj, self.rodzaj)
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None:
+            raise ValueError("Dziennik zdarzeń jest tylko do dopisywania - wpisów nie można zmieniać.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValueError("Dziennik zdarzeń jest tylko do dopisywania - wpisów nie można usuwać.")
+
+
+class GlowaDziennika(models.Model):
+    """Jeden wiersz: liczba wpisów i skrót ostatniego wpisu dziennika zdarzeń bezpieczeństwa. Blokada tego wiersza
+    ustawia zapisy w kolejce, a jego treść pozwala wykryć usunięcie wpisów z końca dziennika."""
+
+    liczba = models.PositiveBigIntegerField(default=0)
+    skrot = models.CharField(max_length=64, blank=True)
+
+    class Meta:
+        verbose_name = "stan dziennika zdarzeń bezpieczeństwa"
+        verbose_name_plural = "stan dziennika zdarzeń bezpieczeństwa"
+
+
+class UrzadzenieTotp(models.Model):
+    """Aplikacja uwierzytelniająca użytkownika - drugi składnik logowania (kody jednorazowe TOTP)."""
+
+    uzytkownik = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="totp")
+    sekret = models.CharField(max_length=64)
+    potwierdzone = models.BooleanField("potwierdzone pierwszym kodem", default=False)
+    # Krok czasu ostatnio użytego kodu - ten sam kod nie zadziała drugi raz.
+    ostatni_krok = models.BigIntegerField(default=0)
+    utworzono = models.DateTimeField(auto_now_add=True)
+    potwierdzono = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "aplikacja uwierzytelniająca"
+        verbose_name_plural = "aplikacje uwierzytelniające"
+
+    def __str__(self) -> str:
+        return f"{self.uzytkownik} ({'potwierdzona' if self.potwierdzone else 'niepotwierdzona'})"
+

@@ -115,6 +115,10 @@ class Wymogi:
     zrodla: dict[str, str]
     # Analizy i czynności wymagane przed włączeniem funkcji wysokiego ryzyka.
     warunki_wlaczenia: tuple[WarunekWlaczenia, ...] = ()
+    # Bezpieczeństwo kont: po ilu miesiącach bez aktywności konto jest zawieszane (zał. nr 4 część I pkt 6
+    # ustawy o KSC) i ile lat przechowuje się dziennik zdarzeń (§ 20 ust. 4 KRI).
+    zawieszenie_konta_po_miesiacach: int = 1
+    dziennik_przechowywanie_lat: int = 2
 
 
 def wczytaj_wymogi(
@@ -171,6 +175,8 @@ def _wczytaj_plik(plik: Path) -> Wymogi:
         funkcje_ai=funkcje,
         zrodla=dict(_wartosc(dane, "zrodla", dict)),
         warunki_wlaczenia=warunki,
+        zawieszenie_konta_po_miesiacach=_liczba(dane, "bezpieczenstwo.zawieszenie_konta_po_miesiacach", minimum=1),
+        dziennik_przechowywanie_lat=_liczba(dane, "bezpieczenstwo.dziennik_przechowywanie_lat", minimum=1),
     )
 
 

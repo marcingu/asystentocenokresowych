@@ -1,0 +1,56 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Moje konto{% endblock %}
+{% block tresc %}
+<h1>Moje konto</h1>
+<section class="karta" aria-labelledby="n-dane">
+  <h2 id="n-dane">Dane konta</h2>
+  <dl class="metryczka">
+    <div><dt>Login</dt><dd>{{ user.get_username }}</dd></div>
+    <div><dt>Imię i nazwisko</dt><dd>{% if ja %}{{ ja.imie_i_nazwisko }}{% else %}{{ user.get_full_name|default:"-" }}{% endif %}</dd></div>
+    <div><dt>Adres e-mail</dt><dd>{{ user.email|default:"-" }}</dd></div>
+    <div><dt>Konto czynne bez logowania do</dt><dd>{{ termin_zawieszenia|date:"d.m.Y" }}</dd></div>
+  </dl>
+  <p class="podpowiedz">Konto, na które nikt się nie loguje przez miesiąc, system zawiesza automatycznie (zał. nr 4 część I pkt 6
+    ustawy o krajowym systemie cyberbezpieczeństwa). Odblokowuje je administrator.</p>
+</section>
+
+<section class="karta" aria-labelledby="n-dwuetapowe">
+  <h2 id="n-dwuetapowe">Weryfikacja dwuetapowa</h2>
+  {% if aplikacja %}
+  <p><span class="stan stan-w_terminie">włączona</span> od {{ aplikacja.potwierdzono|date:"d.m.Y" }}. Przy logowaniu oprócz hasła podajesz
+    kod jednorazowy z aplikacji uwierzytelniającej.</p>
+  {% else %}
+  <p><span class="stan stan-pilne">wyłączona</span> Konto chroni samo hasło. Po włączeniu przy logowaniu podasz też kod jednorazowy
+    z aplikacji uwierzytelniającej w telefonie.</p>
+  {% endif %}
+  <p><a href="{% url 'konto_dwuetapowe' %}" class="przycisk przycisk-drugi">{% if aplikacja %}Ustawienia weryfikacji dwuetapowej{% else %}Włącz weryfikację dwuetapową{% endif %}</a></p>
+</section>
+
+{% if ma_haslo %}
+<section class="karta" aria-labelledby="n-haslo">
+  <h2 id="n-haslo">Hasło</h2>
+  <p>Hasło ma co najmniej 12 znaków i nie może być hasłem powszechnie używanym.</p>
+  <p><a href="{% url 'konto_haslo' %}" class="przycisk przycisk-drugi">Zmień hasło</a></p>
+</section>
+{% endif %}
+
+<section class="karta" aria-labelledby="n-logowania">
+  <h2 id="n-logowania">Ostatnie logowania</h2>
+  <p class="podpowiedz">Jeżeli widzisz logowanie, którego nie rozpoznajesz, zmień hasło i zgłoś to administratorowi.</p>
+  {% if logowania %}
+  <div class="przewijana" role="region" aria-labelledby="t-logowania" tabindex="0">
+  <table class="tabela">
+    <caption id="t-logowania" class="ukryte">Ostatnie logowania i nieudane próby na moim koncie</caption>
+    <thead><tr><th scope="col">Czas</th><th scope="col">Zdarzenie</th><th scope="col">Adres</th></tr></thead>
+    <tbody>
+      {% for wpis in logowania %}
+      <tr><td>{{ wpis.czas|date:"d.m.Y H:i" }}</td><td>{{ wpis.rodzaj_opis }}{% if wpis.opis %}<small>{{ wpis.opis }}</small>{% endif %}</td><td>{{ wpis.adres_ip|default:"-" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="pusto">Brak zapisanych logowań.</p>
+  {% endif %}
+</section>
+{% endblock %}

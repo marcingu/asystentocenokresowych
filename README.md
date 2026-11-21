@@ -33,9 +33,12 @@ Pokaz włącza - wyłącznie na danych fikcyjnych - dwie funkcje modelu językow
 - **Propozycja kierunków do IPRZ** (po instalacji wyłączona): razem z pytaniami model proponuje najwyżej 3 kierunki rozwoju i przy każdym wskazuje notatkę, z której go wyprowadził. Wymaga co najmniej 3 notatek. Do wniosków dotyczących IPRZ kierunki trafiają dopiero po decyzji oceniającego, który może je zmienić.
 - **Sugestia ocen cząstkowych** (po instalacji wyłączona): model podpowiada oceniającemu ocenę w każdym kryterium na podstawie jego notatek, a podpowiedzi nie da się przenieść do formularza. Wymaga co najmniej 3 notatek. W próbach model zbyt łatwo sugerował oceny skrajne, więc system oznacza je ostrzeżeniem.
 - **Informacja o AI przy treściach modelu**: przy odpowiedziach asystenta i projekcie uzasadnienia stoi klasyfikacja funkcji według rejestru urzędu, a przy sugestii ocen i propozycji kierunków do IPRZ - ostrzeżenie o funkcji wysokiego ryzyka z decyzją urzędu i listą analiz. Po sporządzeniu oceny oceniany widzi przy niej, z jakich funkcji modelu korzystał oceniający.
+- **Bezpieczeństwo kont**: weryfikacja dwuetapowa kodem TOTP z aplikacji uwierzytelniającej (poza pokazem wymagana od każdego konta), blokada logowania po 5 nieudanych próbach, hasła od 12 znaków ustawiane przez użytkownika z jednorazowego linku. Strona „Moje konto” pokazuje ostatnie logowania.
+- **Dziennik zdarzeń**: logowania, kody, zmiany kont, czynności administratora, odmowy dostępu, odczyty kart ocen i pobrania arkuszy. Wpisów nie da się zmienić ani usunąć, a łańcuch skrótów wykrywa ingerencję w bazie. Filtry, eksport CSV, osobny wgląd w czynności procesu oceny.
+- **Zaplecze administratora**: zakładanie i blokowanie kont, nadawanie uprawnień, odłączanie aplikacji uwierzytelniającej, wgląd w dzienniki. Konto bez logowania przez miesiąc system zawiesza sam. Administrator nie dostaje treści ocen i nie poznaje haseł.
 - **Kontekst z EZD RP**: karta faktów o sprawach ocenianego za okres oceny (liczba spraw, terminowość, akceptacje pism), jawna dla obu stron, bez punktów i rankingów. Włącza ją komórka kadr po spełnieniu warunków Kodeksu pracy. W pokazie karta działa na danych przykładowych; klient Integrator API jest w rdzeniu, przetestowany na atrapie i jeszcze niepodłączony do karty.
 
-Testy: 725 testów rdzenia i 272 testy aplikacji.
+Testy: 725 testów rdzenia i 372 testy aplikacji.
 
 ## Założenia
 
@@ -81,7 +84,11 @@ Wszystko, co zależy od urzędu, ustawia się zmiennymi środowiskowymi z prefik
 | `ASYSTENT_BAZA` | plik bazy danych |
 | `ASYSTENT_OLLAMA_ADRES`, `ASYSTENT_MODEL` | lokalny model językowy |
 | `ASYSTENT_DECYZJE_AI` | plik z decyzją urzędu o włączeniu funkcji AI wysokiego ryzyka (wzór: `decyzje-ai-wzor.toml`); bez niego żadna taka funkcja nie działa |
+| `ASYSTENT_2FA` | `wymagane` (domyślnie) albo `dobrowolne` - weryfikacja dwuetapowa kodem TOTP |
+| `ASYSTENT_PROBY_LOGOWANIA`, `ASYSTENT_BLOKADA_MINUT` | blokada logowania po nieudanych próbach (domyślnie 5 prób, 15 minut) |
 | `ASYSTENT_TRYB_DEMO` | `1` włącza konta pokazowe - nigdy we wdrożeniu |
+
+Pierwsze konto administratora zakłada się poleceniem `manage.py createsuperuser`; kolejne konta tworzy administrator w menu „Administracja”. Zawieszanie kont bez aktywności działa samo (przegląd przy pierwszym żądaniu dnia); do zadania cyklicznego służy `manage.py zawies_nieaktywne`, a nienaruszalność dziennika sprawdza `manage.py sprawdz_dziennik`.
 
 Skrypt `uruchom-demo.sh` używa serwera deweloperskiego Django i służy do pokazu. We wdrożeniu aplikację uruchamia się przez serwer WSGI za serwerem pośredniczącym z HTTPS.
 
@@ -94,11 +101,13 @@ Skrypt `uruchom-demo.sh` używa serwera deweloperskiego Django i służy do poka
 | `serwis/` | ustawienia projektu Django |
 | `tests/` | testy rdzenia; każdy cytuje przepis albo wymaganie |
 | `oceny/tests/` | testy aplikacji: role, dostęp, przebieg oceny przez przeglądarkę |
-| `dokumentacja/` | architektura, decyzje i interpretacje, analiza prawna, dostępność cyfrowa |
+| `dokumentacja/` | architektura, decyzje i interpretacje, analiza prawna, dostępność cyfrowa, bezpieczeństwo kont i dzienniki (KSC, KRI) |
 
 ## Podstawy prawne
 
 - ustawa z dnia 21 listopada 2008 r. o służbie cywilnej (t.j. Dz. U. z 2026 r. poz. 590),
 - rozporządzenie Prezesa Rady Ministrów z dnia 4 kwietnia 2016 r. w sprawie warunków i sposobu przeprowadzania ocen okresowych urzędników służby cywilnej i pracowników służby cywilnej (Dz. U. poz. 470),
 - Kodeks cywilny, art. 110-116 (terminy),
-- ustawa z dnia 4 kwietnia 2019 r. o dostępności cyfrowej stron internetowych i aplikacji mobilnych podmiotów publicznych (t.j. Dz. U. z 2023 r. poz. 1440) - wymagania WCAG 2.1.
+- ustawa z dnia 4 kwietnia 2019 r. o dostępności cyfrowej stron internetowych i aplikacji mobilnych podmiotów publicznych (t.j. Dz. U. z 2023 r. poz. 1440) - wymagania WCAG 2.1,
+- ustawa z dnia 5 lipca 2018 r. o krajowym systemie cyberbezpieczeństwa (t.j. Dz. U. z 2026 r. poz. 20, 252, 815, 1003 i 1206), art. 8 i załącznik nr 4 - kontrola dostępu, uwierzytelnianie wieloskładnikowe, zawieszanie uprawnień,
+- rozporządzenie Rady Ministrów z dnia 21 maja 2024 r. w sprawie Krajowych Ram Interoperacyjności (Dz. U. poz. 773), § 19 i § 20 - bezpieczeństwo informacji i dzienniki systemów.

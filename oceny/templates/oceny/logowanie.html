@@ -3,7 +3,8 @@
 {% block tresc %}
 <section class="karta waska">
   <h1>Logowanie</h1>
-  {% if form.errors %}<p class="komunikat komunikat-error" role="alert">Nieprawidłowy login lub hasło.</p>{% endif %}
+  {% if blokada %}<p class="komunikat komunikat-error" role="alert">{{ blokada }}</p>
+  {% elif form.errors %}<p class="komunikat komunikat-error" role="alert">Nieprawidłowy login lub hasło albo konto jest nieczynne.</p>{% endif %}
   <form method="post" class="formularz">
     {% csrf_token %}
     <input type="hidden" name="next" value="{{ next }}">
@@ -13,6 +14,8 @@
     <input type="password" name="password" id="id_password" autocomplete="current-password" required>
     <button type="submit" class="przycisk">Zaloguj</button>
   </form>
+  <p class="podpowiedz">Po haśle system poprosi o kod jednorazowy, jeżeli konto ma włączoną weryfikację dwuetapową.
+    Logowania są zapisywane w dzienniku zdarzeń.</p>
   {% if tryb_demo %}
   <p class="podpowiedz">W trybie demonstracyjnym wybierz osobę z paska u góry strony - konta pokazowe nie mają haseł.</p>
   {% endif %}

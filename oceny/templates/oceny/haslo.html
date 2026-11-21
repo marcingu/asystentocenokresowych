@@ -1,0 +1,24 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}{{ tytul }}{% endblock %}
+{% block tresc %}
+<section class="karta waska">
+  <h1>{{ tytul }}</h1>
+  {% if validlink == False %}
+  <p class="komunikat komunikat-error" role="alert">Link jest nieważny: został już użyty albo minęła doba od jego wydania.
+    Poproś administratora o nowy link.</p>
+  <p><a href="{% url 'logowanie' %}">Przejdź do logowania</a></p>
+  {% else %}
+  {% if form.non_field_errors %}{% for blad in form.non_field_errors %}<p class="komunikat komunikat-error" role="alert">{{ blad }}</p>{% endfor %}{% endif %}
+  <form method="post" class="formularz">
+    {% csrf_token %}
+    {% for pole in form %}
+    <label for="{{ pole.id_for_label }}">{{ pole.label }}</label>
+    {{ pole }}
+    {% if pole.help_text %}<div class="podpowiedz" id="{{ pole.id_for_label }}_helptext">{{ pole.help_text|safe }}</div>{% endif %}
+    {% if pole.errors %}<div id="{{ pole.id_for_label }}_error">{% for blad in pole.errors %}<p class="komunikat komunikat-error" role="alert">{{ blad }}</p>{% endfor %}</div>{% endif %}
+    {% endfor %}
+    <button type="submit" class="przycisk">{{ przycisk }}</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

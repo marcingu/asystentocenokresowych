@@ -280,7 +280,22 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
         sposob="Zestawienie zbiorcze za okres oceny, bez punktacji i rankingów; jawne dla ocenianego.",
         data_poinformowania=dzien - timedelta(days=60),
     )
+    _konta_do_pokazu_zaplecza()
     return {
         osoba.uzytkownik.username: osoba
         for osoba in Pracownik.objects.select_related("uzytkownik") if osoba.uzytkownik_id
     }
+
+
+def _konta_do_pokazu_zaplecza() -> None:
+    """Administrator pokazu (bez hasła i bez dostępu do panelu Django) oraz konto zawieszone za brak aktywności:
+    Ewa jest od dawna nieobecna, więc na jej koncie nikt się nie logował ponad miesiąc."""
+    from django.utils import timezone
+
+    from . import bezpieczenstwo
+
+    konta = get_user_model().objects
+    konta.create_user(username="administrator", first_name="Administrator", last_name="systemu", is_superuser=True)
+    teraz = timezone.now()
+    konta.filter(username="ewa").update(last_login=teraz - timedelta(days=45), date_joined=teraz - timedelta(days=400))
+    bezpieczenstwo.zawies_nieaktywne()

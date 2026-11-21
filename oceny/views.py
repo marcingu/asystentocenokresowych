@@ -8,9 +8,6 @@ from __future__ import annotations
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login
-from django.contrib.auth.decorators import login_not_required
-from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -22,10 +19,9 @@ from asystent_ocen.przebieg import OBSERWACJA, OSIAGNIECIE, BladEtapu, BladUpraw
 from asystent_ocen.wynik import NEGATYWNA, POZYTYWNA
 from asystent_ocen.zgodnosc import bledy_uruchomienia_monitoringu, wczytaj_wymogi
 
-from . import drukowanie, formularze, rejestr_ai, uprawnienia, uslugi
+from . import drukowanie, dziennik, formularze, rejestr_ai, uprawnienia, uslugi
 from .czas import dzis
 from .karta import kontekst_karty
-from .kontekst import konta_demo
 from .kontekst_ezd import ustalenia_rdzenia
 from .lista_kadr import lista_pracownikow
 from .models import Ocena, Pracownik, Sprzeciw, UstaleniaMonitoringu
@@ -44,24 +40,6 @@ def _zglos_bledy(request, wyjatek: BladWalidacji) -> None:
 def _ocena_uzytkownika(request, pk: int) -> Ocena:
     """Ocena, w której zalogowany ma rolę. Cudza ocena daje 404 - system nie zdradza, że istnieje."""
     return get_object_or_404(uprawnienia.oceny_widoczne(request.user), pk=pk)
-
-
-# --- logowanie ---
-
-class Logowanie(LoginView):
-    template_name = "oceny/logowanie.html"
-    redirect_authenticated_user = True
-
-
-@login_not_required
-@require_POST
-def demo_zaloguj(request):
-    """Wejście na konto demonstracyjne bez hasła - działa wyłącznie w trybie demo i tylko dla kont demo."""
-    konto = konta_demo().filter(username=request.POST.get("login", "")).first()
-    if konto is None:
-        raise Http404
-    login(request, konto, backend="django.contrib.auth.backends.ModelBackend")
-    return redirect("zadania")
 
 
 # --- moje zadania ---
@@ -85,6 +63,8 @@ def zadania(request):
 @require_GET
 def ocena(request, pk: int):
     wybrana = _ocena_uzytkownika(request, pk)
+    # § 19 ust. 2 pkt 7 lit. a KRI: monitorowanie dostępu do informacji - kto i kiedy otworzył kartę oceny.
+    dziennik.zapisz(dziennik.ODCZYT_OCENY, request=request, dotyczy=f"ocena {wybrana.pk}")
     return render(request, "oceny/ocena.html", kontekst_karty(wybrana, request.user, dzis()))
 
 
@@ -296,6 +276,7 @@ def _plik(tresc: bytes | str, typ: str, nazwa: str) -> HttpResponse:
 @require_GET
 def arkusz_docx(request, pk: int):
     wybrana = _ocena_uzytkownika(request, pk)
+    dziennik.zapisz(dziennik.POBRANIE_ARKUSZA, request=request, dotyczy=f"ocena {wybrana.pk}", opis="DOCX")
     return _plik(drukowanie.arkusz_docx(wybrana), drukowanie.TYP_DOCX, drukowanie.nazwa_pliku(wybrana, "docx"))
 
 
@@ -307,6 +288,7 @@ def arkusz_pdf(request, pk: int):
     except drukowanie.BladKonwersji as wyjatek:
         messages.error(request, str(wyjatek))
         return redirect("ocena", pk=wybrana.pk)
+    dziennik.zapisz(dziennik.POBRANIE_ARKUSZA, request=request, dotyczy=f"ocena {wybrana.pk}", opis="PDF")
     return _plik(pdf, "application/pdf", drukowanie.nazwa_pliku(wybrana, "pdf"))
 
 

@@ -17,7 +17,7 @@
     <span>Wejdź jako:</span>
     {% for konto in konta_demo %}
     <button type="submit" name="login" value="{{ konto.username }}"{% if konto == user %} class="aktywne" aria-current="true"{% endif %}>
-      {{ konto.pracownik.imie_i_nazwisko|default:konto.username }}<small>{{ konto.pracownik.opis_roli }}</small>
+      {{ konto.pracownik.imie_i_nazwisko|default:konto.username }}<small>{% if konto.is_superuser %}administrator{% else %}{{ konto.pracownik.opis_roli }}{% endif %}</small>
     </button>
     {% endfor %}
   </form>
@@ -32,6 +32,7 @@
       {% if user.is_authenticated %}
       <div class="uzytkownik">
         <span>{% if ja %}{{ ja.imie_i_nazwisko }}<small>{{ ja.stanowisko }}</small>{% else %}{{ user.get_username }}{% endif %}</span>
+        <a href="{% url 'konto' %}" class="przycisk przycisk-drugi przycisk-maly">Moje konto</a>
         <form method="post" action="{% url 'wylogowanie' %}">{% csrf_token %}<button type="submit" class="przycisk przycisk-drugi przycisk-maly">Wyloguj</button></form>
       </div>
       {% endif %}
@@ -48,6 +49,7 @@
       {% if widze_statystyki %}<a href="{% url 'statystyki' %}"{% if strona == 'statystyki' %} aria-current="page"{% endif %}>Statystyki</a>{% endif %}
       <a href="{% url 'asystent' %}"{% if strona == 'asystent' %} aria-current="page"{% endif %}>Asystent AI</a>
       <a href="{% url 'przepisy' %}"{% if strona == 'przepisy' %} aria-current="page"{% endif %}>Przepisy</a>
+      {% if jestem_administratorem %}<a href="{% url 'administracja' %}"{% if strona|slice:":13" == 'administracja' %} aria-current="page"{% endif %}>Administracja</a>{% endif %}
     </nav>
     {% endwith %}
     {% endif %}

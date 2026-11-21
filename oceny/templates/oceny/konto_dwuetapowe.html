@@ -1,0 +1,50 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Weryfikacja dwuetapowa{% endblock %}
+{% block tresc %}
+<p class="okruszki"><a href="{% url 'konto' %}">Moje konto</a> / weryfikacja dwuetapowa</p>
+<h1>Weryfikacja dwuetapowa</h1>
+{% if wymuszona %}
+<p class="komunikat komunikat-warning" role="status">Urząd wymaga weryfikacji dwuetapowej. Zanim przejdziesz dalej, połącz konto
+  z aplikacją uwierzytelniającą.</p>
+{% endif %}
+{% if blad %}<p class="komunikat komunikat-error" role="alert">{{ blad }}</p>{% endif %}
+
+{% if aplikacja %}
+<section class="karta" aria-labelledby="n-stan">
+  <h2 id="n-stan">Stan</h2>
+  <p><span class="stan stan-w_terminie">włączona</span> od {{ aplikacja.potwierdzono|date:"d.m.Y" }}.</p>
+  {% if dwuetapowe_wymagane %}
+  <p class="podpowiedz">Urząd wymaga weryfikacji dwuetapowej, więc nie można jej wyłączyć. Po zmianie telefonu zgłoś się
+    do administratora - odłączy aplikację, a przy następnym logowaniu skonfigurujesz nową.</p>
+  {% else %}
+  <form method="post" class="formularz">
+    {% csrf_token %}
+    <input type="hidden" name="akcja" value="wylacz">
+    <label for="kod">Kod jednorazowy z aplikacji - potwierdzenie wyłączenia</label>
+    <input type="text" name="kod" id="kod" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required>
+    <button type="submit" class="przycisk przycisk-drugi" data-potwierdz="Wyłączyć weryfikację dwuetapową? Konto będzie chronić samo hasło.">Wyłącz weryfikację dwuetapową</button>
+  </form>
+  {% endif %}
+</section>
+{% else %}
+<section class="karta" aria-labelledby="n-konfiguracja">
+  <h2 id="n-konfiguracja">Połącz konto z aplikacją uwierzytelniającą</h2>
+  <ol>
+    <li>Zainstaluj w telefonie aplikację uwierzytelniającą obsługującą kody TOTP (są dostępne bezpłatnie, także otwartoźródłowe).</li>
+    <li>W aplikacji uwierzytelniającej dodaj nowe konto i przepisz klucz: <strong class="klucz">{{ klucz }}</strong>
+      <small>Rodzaj kodu: czasowy (TOTP), 6 cyfr, co 30 sekund.</small>
+      <small>Na telefonie możesz też <a href="{{ adres }}">otworzyć konto bezpośrednio w aplikacji</a>.</small></li>
+    <li>Wpisz poniżej kod, który pokazuje aplikacja.</li>
+  </ol>
+  <form method="post" class="formularz">
+    {% csrf_token %}
+    <input type="hidden" name="akcja" value="potwierdz">
+    <label for="kod">Kod jednorazowy z aplikacji</label>
+    <input type="text" name="kod" id="kod" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required>
+    <button type="submit" class="przycisk">Włącz weryfikację dwuetapową</button>
+  </form>
+  <p class="podpowiedz">Klucz jest tajny - nie przesyłaj go nikomu. Kod działa raz i zmienia się co 30 sekund. System nie wysyła
+    kodów SMS-em ani e-mailem: klucz zostaje w telefonie i w bazie urzędu.</p>
+</section>
+{% endif %}
+{% endblock %}

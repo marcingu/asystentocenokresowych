@@ -1,0 +1,41 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Administracja - konta{% endblock %}
+{% block tresc %}
+<h1>Administracja - konta użytkowników</h1>
+{% include "oceny/_administracja_menu.html" with zakladka="konta" %}
+<p class="podpowiedz">Konto bez logowania przez {{ miesiace }} mies. system zawiesza automatycznie (zał. nr 4 część I pkt 6 ustawy
+  o krajowym systemie cyberbezpieczeństwa). Przegląd odbywa się raz dziennie; zawieszone konto odblokowuje administrator.
+  Weryfikacja dwuetapowa jest w tym urzędzie {% if dwuetapowe_wymagane %}wymagana od każdego konta{% else %}dobrowolna{% endif %}.
+  Każda czynność na tej stronie trafia do dziennika zdarzeń.</p>
+<div class="przyciski">
+  <a href="{% url 'administracja_nowe_konto' %}" class="przycisk">Dodaj konto</a>
+  <form method="post" action="{% url 'administracja_zawies' %}">{% csrf_token %}
+    <button type="submit" class="przycisk przycisk-drugi">Przejrzyj konta teraz i zawieś nieaktywne</button></form>
+</div>
+
+<div class="przewijana" role="region" aria-labelledby="t-konta" tabindex="0">
+<table class="tabela">
+  <caption id="t-konta" class="ukryte">Konta użytkowników, ich stan i zabezpieczenia</caption>
+  <thead>
+    <tr><th scope="col">Login</th><th scope="col">Osoba</th><th scope="col">Stan konta</th><th scope="col">Ostatnie logowanie</th>
+      <th scope="col">Weryfikacja dwuetapowa</th></tr>
+  </thead>
+  <tbody>
+    {% for wiersz in wiersze %}
+    <tr>
+      <td><a href="{% url 'administracja_konto' wiersz.konto.pk %}">{{ wiersz.konto.get_username }}</a>{% if wiersz.konto.is_superuser %}<small>administrator</small>{% endif %}</td>
+      <td>{% if wiersz.pracownik %}{{ wiersz.pracownik.imie_i_nazwisko }}<small>{{ wiersz.pracownik.stanowisko }}</small>{% else %}{{ wiersz.konto.get_full_name|default:"-" }}{% endif %}</td>
+      <td>
+        {% if wiersz.stan.kod == 'AKTYWNE' %}<span class="stan stan-w_terminie">{{ wiersz.stan.nazwa }}</span>
+        <small>bez logowania czynne do {{ wiersz.stan.termin_zawieszenia|date:"d.m.Y" }}</small>
+        {% else %}<span class="stan stan-po_terminie">{{ wiersz.stan.nazwa }}</span>
+        {% if wiersz.stan.od %}<small>od {{ wiersz.stan.od|date:"d.m.Y H:i" }}</small>{% endif %}{% endif %}
+      </td>
+      <td>{{ wiersz.konto.last_login|date:"d.m.Y H:i"|default:"nigdy" }}</td>
+      <td>{% if wiersz.dwuetapowe %}włączona{% else %}brak{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

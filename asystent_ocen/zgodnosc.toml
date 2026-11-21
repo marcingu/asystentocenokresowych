@@ -1,4 +1,4 @@
-# Wymogi zgodności dla integracji z EZD RP i funkcji AI: Kodeks pracy, RODO, AI Act.
+# Wymogi zgodności dla integracji z EZD RP, funkcji AI i bezpieczeństwa kont: Kodeks pracy, RODO, AI Act, KSC, KRI.
 # Stan prawny sprawdzony 21.11.2026 (API ELI Sejmu, Urząd Publikacji UE). Zmiana prawa = zmiana wartości tutaj.
 # Uzasadnienie: dokumentacja/analiza-prawna-ai-act-kp-rodo.md
 
@@ -8,6 +8,14 @@ sluzba_cywilna = "ustawa z dnia 21 listopada 2008 r. o służbie cywilnej (t.j. 
 ai_act = "rozporządzenie (UE) 2024/1689 zmienione rozporządzeniem (UE) 2026/1744 (wersja skonsolidowana z 27.07.2026)"
 rodo = "rozporządzenie (UE) 2016/679"
 ezdrp_api = "EZD RP Integrator API v2, specyfikacja OpenAPI v2.11.5 z 10.09.2026"
+ksc = "ustawa z dnia 5 lipca 2018 r. o krajowym systemie cyberbezpieczeństwa (t.j. Dz. U. z 2026 r. poz. 20, zm. poz. 252, 815, 1003 i 1206), art. 8 i załącznik nr 4"
+kri = "rozporządzenie Rady Ministrów z dnia 21 maja 2024 r. w sprawie Krajowych Ram Interoperacyjności (Dz. U. poz. 773), § 19 i § 20"
+
+[bezpieczenstwo]
+# zał. nr 4 część I pkt 6 ustawy o KSC: zawieszanie uprawnień w przypadku niewykonywania obowiązków co najmniej przez jeden miesiąc
+zawieszenie_konta_po_miesiacach = 1
+# § 20 ust. 4 KRI: informacje w dziennikach systemów przechowuje się dwa lata, gdy przepisy odrębne nie wskazują innego okresu
+dziennik_przechowywanie_lat = 2
 
 [monitoring]
 # art. 22[2] § 7 w zw. z art. 22[3] § 3 i 4 KP: pracodawca informuje pracowników nie później niż 2 tygodnie przed uruchomieniem
