@@ -41,7 +41,7 @@ Pokaz włącza - wyłącznie na danych fikcyjnych - trzy funkcje modelu językow
 - **Radar Dobrostanu i Doceniania**: na karcie oceny pracownik i jego przełożony widzą te same karty obserwacji - fakty z systemu kadrowego i EZD RP, np. urlop zaległy z terminem z Kodeksu pracy, godziny nadliczbowe, sprawy przejęte po nieobecnych, terminowość. Karty liczy zwykły kod według progów urzędu (`asystent_ocen/radar.toml`): bez punktów, rankingu i wniosków o zdrowiu albo emocjach. Radar działa po spełnieniu tych samych warunków Kodeksu pracy co karta z EZD RP. W pokazie liczby są przykładowe - prototyp nie ma połączenia z systemem kadrowym.
 - **Pytania do kart obserwacji** (po instalacji wyłączone): model układa do każdej karty jedno pytanie otwarte dla przełożonego. Dostaje same karty, bez danych osobowych; pytanie o zdrowie, emocje albo sprawy prywatne jest odrzucane. To funkcja wysokiego ryzyka - włącza ją decyzja urzędu.
 
-Testy: 749 testów rdzenia i 424 testy aplikacji.
+Testy: 749 testów rdzenia i 428 testów aplikacji.
 
 ## Założenia
 
@@ -93,7 +93,7 @@ Wszystko, co zależy od urzędu, ustawia się zmiennymi środowiskowymi z prefik
 | `ASYSTENT_PROBY_LOGOWANIA`, `ASYSTENT_BLOKADA_MINUT` | blokada logowania po nieudanych próbach (domyślnie 5 prób, 15 minut) |
 | `ASYSTENT_TRYB_DEMO` | `1` włącza konta pokazowe - nigdy we wdrożeniu |
 
-Pierwsze konto administratora zakłada się poleceniem `manage.py createsuperuser`; kolejne konta tworzy administrator w menu „Administracja”. Zawieszanie kont bez aktywności działa samo (przegląd przy pierwszym żądaniu dnia); do zadania cyklicznego służy `manage.py zawies_nieaktywne`, a nienaruszalność dziennika sprawdza `manage.py sprawdz_dziennik`.
+Pierwsze konto administratora zakłada się poleceniem `manage.py createsuperuser`; kolejne konta tworzy administrator w menu „Administracja”, wybierając pracownika bez konta. Login powstaje z imienia i nazwiska bez polskich znaków (np. `jan.nowak`), a przy kolizji dostaje pierwszy wolny numer: `jan.nowak1`, `jan.nowak2` itd. Zawieszanie kont bez aktywności działa samo (przegląd przy pierwszym żądaniu dnia); do zadania cyklicznego służy `manage.py zawies_nieaktywne`, a nienaruszalność dziennika sprawdza `manage.py sprawdz_dziennik`.
 
 Skrypt `uruchom-demo.sh` używa serwera deweloperskiego Django i służy do pokazu. We wdrożeniu aplikację uruchamia się przez serwer WSGI za serwerem pośredniczącym z HTTPS.
 

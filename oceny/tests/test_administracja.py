@@ -134,8 +134,19 @@ class ListaKontTest(Podstawa):
 class NoweKontoTest(Podstawa):
     ADRES = reverse("administracja_nowe_konto")
 
+    def setUp(self):
+        super().setUp()
+        self.osoba = self.osoba_bez_konta()
+
+    def osoba_bez_konta(self, imie="Jan", nazwisko="Nowak"):
+        from oceny.models import Pracownik
+        return Pracownik.objects.create(
+            imie=imie, nazwisko=nazwisko, stanowisko="referent", rodzaj_zatrudnienia="umowa_na_czas_nieokreslony",
+            data_zatrudnienia=datetime(2026, 9, 1).date(),
+        )
+
     def dane(self, **zmiany):
-        dane = {"username": "jnowak", "first_name": "Jan", "last_name": "Nowak", "email": "jan.nowak@example.org"}
+        dane = {"pracownik": self.osoba.pk, "email": "jan.nowak@example.org"}
         dane.update(zmiany)
         return dane
 
@@ -145,14 +156,14 @@ class NoweKontoTest(Podstawa):
     def test_nowe_konto_nie_ma_hasla_a_administrator_dostaje_jednorazowy_link(self):
         odpowiedz = self.przegladarka.post(self.ADRES, self.dane(), follow=True)
 
-        nowy = get_user_model().objects.get(username="jnowak")
+        nowy = get_user_model().objects.get(username="jan.nowak")
         self.assertFalse(nowy.has_usable_password())
         self.assertEqual((nowy.first_name, nowy.last_name, nowy.email, nowy.is_superuser), ("Jan", "Nowak", "jan.nowak@example.org", False))
         self.assertContains(odpowiedz, "/haslo/")
         self.assertContains(odpowiedz, "Link działa jedną dobę")
         wpis = zdarzenia(dziennik.KONTO_UTWORZONE).get()
-        self.assertEqual((wpis.uzytkownik, wpis.dotyczy, wpis.adres_ip), (self.admin, "jnowak", "10.9.9.9"))
-        self.assertEqual(zdarzenia(dziennik.HASLO_LINK).get().dotyczy, "jnowak")
+        self.assertEqual((wpis.uzytkownik, wpis.dotyczy, wpis.adres_ip), (self.admin, "jan.nowak", "10.9.9.9"))
+        self.assertEqual(zdarzenia(dziennik.HASLO_LINK).get().dotyczy, "jan.nowak")
         self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])
 
     def test_link_nie_trafia_do_dziennika_i_znika_po_odswiezeniu_strony(self):
@@ -160,7 +171,7 @@ class NoweKontoTest(Podstawa):
         link = re.search(r"/haslo/[^\s\"<]+", odpowiedz.content.decode()).group(0)
 
         self.assertFalse(ZdarzenieBezpieczenstwa.objects.filter(opis__contains=link.split("/")[-2]).exists())
-        nowy = get_user_model().objects.get(username="jnowak")
+        nowy = get_user_model().objects.get(username="jan.nowak")
         self.assertNotContains(self.przegladarka.get(reverse("administracja_konto", args=[nowy.pk])), "/haslo/")
 
     def test_z_linku_uzytkownik_ustawia_haslo_i_loguje_sie_a_link_dziala_raz(self):
@@ -173,29 +184,52 @@ class NoweKontoTest(Podstawa):
         ustawienie = nowa.post(formularz.redirect_chain[-1][0], {"new_password1": HASLO, "new_password2": HASLO})
 
         self.assertRedirects(ustawienie, reverse("logowanie"))
-        self.assertEqual(zdarzenia(dziennik.HASLO_ZMIENIONE).get().login, "jnowak")
-        nowa.post(reverse("logowanie"), {"username": "jnowak", "password": HASLO})
+        self.assertEqual(zdarzenia(dziennik.HASLO_ZMIENIONE).get().login, "jan.nowak")
+        nowa.post(reverse("logowanie"), {"username": "jan.nowak", "password": HASLO})
         self.assertIn("_auth_user_id", nowa.session)
         self.assertNotContains(Client().get(link, follow=True), 'name="new_password1"')
 
-    def test_konto_mozna_powiazac_z_pracownikiem_bez_konta(self):
-        from oceny.models import Pracownik
+    def test_formularz_wymaga_wyboru_nie_przepisania_danych(self):
+        odpowiedz = self.przegladarka.get(self.ADRES)
+        self.assertContains(odpowiedz, '<select name="pracownik"')
+        for pole in ("first_name", "last_name", "username"):
+            self.assertNotContains(odpowiedz, f'name="{pole}"')
+        self.assertNotContains(odpowiedz, f'<option value="{self.z.ola.pk}">')
+        self.assertContains(odpowiedz, f'#{self.osoba.pk}')
 
-        nowy_pracownik = Pracownik.objects.create(
-            imie="Jan", nazwisko="Nowak", stanowisko="referent", rodzaj_zatrudnienia="umowa_na_czas_nieokreslony",
-            data_zatrudnienia=datetime(2026, 9, 1).date(),
-        )
+    def test_przypisanie_pochodzi_z_ewidencji(self):
+        self.przegladarka.post(self.ADRES, self.dane(username="inny", first_name="Inna", last_name="Osoba"))
+        self.osoba.refresh_from_db()
+        konto = self.osoba.uzytkownik
+        self.assertEqual((konto.username, konto.first_name, konto.last_name), ("jan.nowak", "Jan", "Nowak"))
 
-        self.przegladarka.post(self.ADRES, self.dane(pracownik=str(nowy_pracownik.pk)))
+    def test_kolejne_osoby_o_tym_samym_imieniu_i_nazwisku(self):
+        for numer in ("", "1", "2"):
+            osoba = self.osoba_bez_konta("Łukasz", "Żółć")
+            wynik = self.przegladarka.post(self.ADRES, self.dane(pracownik=osoba.pk))
+            self.assertEqual(wynik.status_code, 302)
+            osoba.refresh_from_db()
+            self.assertEqual(osoba.uzytkownik.username, "lukasz.zolc" + numer)
 
-        nowy_pracownik.refresh_from_db()
-        self.assertEqual(nowy_pracownik.uzytkownik.username, "jnowak")
+    def test_zajety_login_takze_nieczynny_a_luki_w_numeracji_sa_wolne(self):
+        for login in ("JAN.NOWAK", "jan.nowak2"):
+            get_user_model().objects.create_user(username=login, is_active=False)
+        self.przegladarka.post(self.ADRES, self.dane())
+        self.osoba.refresh_from_db()
+        self.assertEqual(self.osoba.uzytkownik.username, "jan.nowak1")
 
-    def test_zajety_login_i_bledny_adres_sa_odrzucane_z_komunikatem(self):
-        odpowiedz = self.przegladarka.post(self.ADRES, self.dane(username="ola", email="to-nie-adres"))
+    def test_nie_mozna_zalozyc_drugiego_konta_ani_konta_bez_pracownika(self):
+        self.przegladarka.post(self.ADRES, self.dane())
+        for pk in (self.osoba.pk, ""):
+            wynik = self.przegladarka.post(self.ADRES, self.dane(pracownik=pk))
+            self.assertContains(wynik, 'role="alert"')
+        self.assertEqual(zdarzenia(dziennik.KONTO_UTWORZONE).count(), 1)
+
+    def test_bledny_adres_jest_odrzucany_z_komunikatem(self):
+        odpowiedz = self.przegladarka.post(self.ADRES, self.dane(email="to-nie-adres"))
 
         self.assertEqual(odpowiedz.status_code, 200)
-        self.assertContains(odpowiedz, "już istnieje")
+        self.assertContains(odpowiedz, 'role="alert"')
         self.assertEqual(get_user_model().objects.filter(username="ola").count(), 1)
         self.assertEqual(zdarzenia(dziennik.KONTO_UTWORZONE).count(), 0)
         self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])

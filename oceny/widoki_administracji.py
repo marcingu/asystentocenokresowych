@@ -11,16 +11,17 @@ oceny otwiera poza zapleczem - patrz `dokumentacja/bezpieczenstwo-ksc-kri.md`, p
 from __future__ import annotations
 
 import csv
+import re
+from itertools import count
 from datetime import date, datetime, time, timedelta
 
 from django import forms
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
-from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -33,6 +34,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from asystent_ocen.zgodnosc import wczytaj_wymogi
 
 from . import bezpieczenstwo, dziennik, uprawnienia
+from .lista_kadr import bez_ogonkow
 from .models import Pracownik, UrzadzenieTotp, Zdarzenie, ZdarzenieBezpieczenstwa
 
 NA_STRONIE = 50
@@ -84,30 +86,70 @@ def konta(request):
     })
 
 
+class WyborPracownika(forms.ModelChoiceField):
+    def label_from_instance(self, osoba):
+        # Identyfikator odróżnia też osoby o tych samych danych w jednym wydziale.
+        return f"{osoba.imie_i_nazwisko} - {osoba.komorka or 'bez wydziału'}, {osoba.stanowisko} (#{osoba.pk})"
+
+
+class FormularzNowegoKonta(forms.Form):
+    pracownik = WyborPracownika(label="Pracownik bez konta", empty_label="Wybierz pracownika",
+                                queryset=Pracownik.objects.filter(uzytkownik=None).select_related("wydzial"))
+    email = forms.EmailField(label="Adres e-mail", required=False)
+    administrator = forms.BooleanField(label="Administrator systemu", required=False)
+
+
 class FormularzKonta(forms.Form):
-    username = forms.CharField(label="Login", max_length=150, validators=[UnicodeUsernameValidator()])
+    """Edycja istniejącego konta; login pozostaje stały dla historii zdarzeń."""
     first_name = forms.CharField(label="Imię", max_length=150)
     last_name = forms.CharField(label="Nazwisko", max_length=150)
     email = forms.EmailField(label="Adres e-mail", required=False)
-    pracownik = forms.ModelChoiceField(
+    pracownik = WyborPracownika(
         label="Pracownik", queryset=Pracownik.objects.none(), required=False, empty_label="- bez powiązania -",
     )
     administrator = forms.BooleanField(label="Administrator systemu", required=False)
 
-    def __init__(self, *args, konto=None, **kwargs):
+    def __init__(self, *args, konto, **kwargs):
         super().__init__(*args, **kwargs)
-        self.konto = konto
-        wolni = Q(uzytkownik=None)
-        if konto is not None:
-            wolni |= Q(uzytkownik=konto)
-            del self.fields["username"]  # login jest stały - występuje w dziennikach
-        self.fields["pracownik"].queryset = Pracownik.objects.filter(wolni)
+        self.fields["pracownik"].queryset = Pracownik.objects.filter(
+            Q(uzytkownik=None) | Q(uzytkownik=konto)
+        ).select_related("wydzial")
 
-    def clean_username(self):
-        login = self.cleaned_data["username"].strip()
-        if get_user_model().objects.filter(username__iexact=login).exists():
-            raise forms.ValidationError("Konto o takim loginie już istnieje.")
-        return login
+
+def _czlon_loginu(nazwa):
+    czlon = "-".join(re.findall(r"[^\W_]+", bez_ogonkow(nazwa)))
+    if not czlon:
+        raise forms.ValidationError("Nie można wyznaczyć loginu. Sprawdź imię i nazwisko w ewidencji pracowników.")
+    return czlon
+
+
+def _utworz_konto(request, osoba, *, email, administrator):
+    konta = get_user_model().objects
+    limit = get_user_model()._meta.get_field("username").max_length
+    imie, nazwisko = _czlon_loginu(osoba.imie), _czlon_loginu(osoba.nazwisko)
+    for numer in count():
+        koncowka = str(numer) if numer else ""
+        poczatek = imie[:limit - len(koncowka) - 2] + "."
+        login = poczatek + nazwisko[:limit - len(poczatek) - len(koncowka)] + koncowka
+        if konta.filter(username__iexact=login).exists():
+            continue
+        try:
+            with transaction.atomic():
+                nowe = konta.create_user(username=login, first_name=osoba.imie, last_name=osoba.nazwisko,
+                                         email=email, is_superuser=administrator)
+                # Wybór z listy mógł się zdezaktualizować. Nie przejmujemy cudzego powiązania.
+                przypisano = Pracownik.objects.filter(pk=osoba.pk, uzytkownik=None, imie=osoba.imie,
+                                                      nazwisko=osoba.nazwisko).update(uzytkownik=nowe)
+                if not przypisano:
+                    raise forms.ValidationError("Dane pracownika zmieniły się lub ma on już konto. Odśwież listę.")
+                dziennik.zapisz(dziennik.KONTO_UTWORZONE, request=request, dotyczy=login,
+                               opis="z uprawnieniami administratora" if administrator else "")
+                _wydaj_link(request, nowe)
+                return nowe
+        except IntegrityError:
+            # Inny zapis mógł zająć login między sprawdzeniem a utworzeniem konta.
+            if not konta.filter(username__iexact=login).exists():
+                raise
 
 
 def _powiaz_z_pracownikiem(uzytkownik, pracownik: Pracownik | None) -> bool:
@@ -138,23 +180,19 @@ def _wydaj_link(request, uzytkownik) -> None:
 @require_http_methods(["GET", "POST"])
 def nowe_konto(request):
     _wymagaj_administratora(request)
-    formularz = FormularzKonta(request.POST or None)
+    formularz = FormularzNowegoKonta(request.POST if request.method == "POST" else None)
     if request.method == "POST" and formularz.is_valid():
         dane = formularz.cleaned_data
-        with transaction.atomic():
-            nowe = get_user_model().objects.create_user(
-                username=dane["username"], email=dane["email"], first_name=dane["first_name"],
-                last_name=dane["last_name"], is_superuser=dane["administrator"],
-            )
-            _powiaz_z_pracownikiem(nowe, dane["pracownik"])
-            dziennik.zapisz(
-                dziennik.KONTO_UTWORZONE, request=request, dotyczy=nowe.get_username(),
-                opis="z uprawnieniami administratora" if nowe.is_superuser else "",
-            )
-            _wydaj_link(request, nowe)
-        messages.success(request, f"Konto {nowe.get_username()} zostało utworzone. Przekaż użytkownikowi link do ustawienia hasła.")
-        return redirect("administracja_konto", pk=nowe.pk)
-    return render(request, "oceny/administracja_konto.html", {"formularz": formularz, "nowe": True})
+        try:
+            nowe = _utworz_konto(request, dane["pracownik"], email=dane["email"], administrator=dane["administrator"])
+        except forms.ValidationError as blad:
+            formularz.add_error("pracownik", blad)
+        else:
+            messages.success(request, f"Konto {nowe.get_username()} zostało utworzone. Przekaż użytkownikowi link do ustawienia hasła.")
+            return redirect("administracja_konto", pk=nowe.pk)
+    return render(request, "oceny/administracja_konto.html", {
+        "formularz": formularz, "nowe": True, "brak_pracownikow": not formularz.fields["pracownik"].queryset.exists(),
+    })
 
 
 @require_http_methods(["GET", "POST"])

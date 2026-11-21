@@ -50,7 +50,9 @@
 
 <section class="karta" aria-labelledby="n-dane">
   <h2 id="n-dane">{% if nowe %}Dane nowego konta{% else %}Dane konta{% endif %}</h2>
-  {% if nowe %}<p class="podpowiedz">Konto powstaje bez hasła. Po zapisaniu zobaczysz jednorazowy link, z którego użytkownik sam ustawi hasło -
+  {% if brak_pracownikow %}<p class="komunikat komunikat-info">Nie ma pracowników bez konta. Aby utworzyć konto nowej osoby, najpierw dodaj ją przez kadry.</p>{% endif %}
+  {% if nowe %}<p class="podpowiedz">Wybierz pracownika z ewidencji. System nada login w formacie <code>imie.nazwisko</code>, bez polskich znaków.
+    Przy zajętym loginie doda pierwszy wolny numer, zaczynając od 1. Konto powstaje bez hasła. Po zapisaniu zobaczysz jednorazowy link, z którego użytkownik sam ustawi hasło -
     administrator go nie poznaje.</p>{% endif %}
   <form method="post" class="formularz">
     {% csrf_token %}
@@ -65,7 +67,7 @@
     {% if pole.errors %}<div id="{{ pole.id_for_label }}_error">{% for blad in pole.errors %}<p class="komunikat komunikat-error" role="alert">{{ blad }}</p>{% endfor %}</div>{% endif %}
     {% endfor %}
     <div class="przyciski">
-      <button type="submit" class="przycisk">{% if nowe %}Utwórz konto{% else %}Zapisz zmiany{% endif %}</button>
+      <button type="submit" class="przycisk"{% if brak_pracownikow %} disabled{% endif %}>{% if nowe %}Utwórz konto{% else %}Zapisz zmiany{% endif %}</button>
       <a href="{% url 'administracja' %}" class="przycisk przycisk-drugi">Anuluj</a>
     </div>
   </form>
