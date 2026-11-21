@@ -19,15 +19,20 @@
 <div class="uklad uklad-rowny">
 <section class="karta" aria-labelledby="n-etapy">
   <h2 id="n-etapy">Oceny według etapu</h2>
+  <div class="przewijana" role="region" aria-labelledby="t-etapy" tabindex="0">
   <table class="tabela">
+    <caption class="ukryte" id="t-etapy">Liczba ocen na każdym etapie</caption>
     <thead><tr><th scope="col">Etap</th><th scope="col">Liczba ocen</th></tr></thead>
     <tbody>{% for etap in etapy %}<tr><td>{{ etap.nazwa }}</td><td>{{ etap.liczba }}</td></tr>{% endfor %}</tbody>
   </table>
+  </div>
 </section>
 
 <section class="karta" aria-labelledby="n-poziomy">
   <h2 id="n-poziomy">Zakończone oceny według poziomu</h2>
+  <div class="przewijana" role="region" aria-labelledby="t-poziomy" tabindex="0">
   <table class="tabela">
+    <caption class="ukryte" id="t-poziomy">Liczba zakończonych ocen na każdym poziomie</caption>
     <thead><tr><th scope="col">Poziom</th><th scope="col">Liczba</th><th scope="col"><span class="ukryte">Wykres</span></th></tr></thead>
     <tbody>
       {% for poziom in poziomy %}
@@ -36,13 +41,16 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 </section>
 </div>
 
 <section class="karta" aria-labelledby="n-komorki">
   <h2 id="n-komorki">Komórki organizacyjne</h2>
   {% if komorki %}
+  <div class="przewijana" role="region" aria-labelledby="t-komorki" tabindex="0">
   <table class="tabela">
+    <caption class="ukryte" id="t-komorki">Oceny w komórkach organizacyjnych</caption>
     <thead><tr><th scope="col">Komórka</th><th scope="col">Oceny</th><th scope="col">W toku</th><th scope="col">Po terminie</th></tr></thead>
     <tbody>
       {% for komorka in komorki %}
@@ -50,6 +58,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
   <p class="pusto">Żadna komórka nie osiąga progu {{ prog }} ocen.</p>
   {% endif %}

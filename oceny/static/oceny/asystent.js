@@ -28,10 +28,14 @@
   });
 
   // Lokalny model językowy odpowiada kilkanaście-kilkadziesiąt sekund - pokazujemy, że pracuje.
+  // Komunikat wpisujemy do elementu role="status", który jest w stronie od początku: tylko taką zmianę
+  // czytnik ekranu ogłasza (WCAG 4.1.3). Elementu odkrytego razem z gotową treścią zwykle nie ogłasza.
+  function pokazCzekanie(komunikat) {
+    if (komunikat) { komunikat.textContent = komunikat.getAttribute("data-komunikat") || ""; }
+  }
   Array.prototype.forEach.call(document.querySelectorAll("form.czeka-na-model"), function (formularz) {
     formularz.addEventListener("submit", function () {
-      var komunikat = formularz.querySelector(".czekanie");
-      if (komunikat) { komunikat.hidden = false; }
+      pokazCzekanie(formularz.querySelector(".czekanie"));
       Array.prototype.forEach.call(formularz.querySelectorAll("button[type=submit]"), function (przycisk) {
         // Wyłączenie po chwili: wyłączony od razu przycisk nie wysłałby swojej wartości.
         window.setTimeout(function () { przycisk.disabled = true; }, 0);
@@ -50,8 +54,7 @@
   // Przycisk wywołujący model w formularzu, który ma też inne przyciski: komunikat tylko po jego kliknięciu.
   Array.prototype.forEach.call(document.querySelectorAll("button[data-czekanie]"), function (przycisk) {
     przycisk.addEventListener("click", function () {
-      var komunikat = document.getElementById(przycisk.getAttribute("data-czekanie"));
-      if (komunikat) { komunikat.hidden = false; }
+      pokazCzekanie(document.getElementById(przycisk.getAttribute("data-czekanie")));
     });
   });
 

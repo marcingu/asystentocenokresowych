@@ -29,8 +29,9 @@
   {% for wskazanie in ezd.wskazania %}
   <article class="wskazanie">
     <h3>{{ wskazanie.kryterium }}: <span class="wskazana-ocena">{{ wskazanie.ocena }} - {{ wskazanie.poziom }}</span></h3>
+    <div class="przewijana" role="region" aria-labelledby="t-fakty-{{ forloop.counter }}" tabindex="0">
     <table class="tabela">
-      <caption class="ukryte">Fakty z EZD RP dla kryterium {{ wskazanie.kryterium }}</caption>
+      <caption class="ukryte" id="t-fakty-{{ forloop.counter }}">Fakty z EZD RP dla kryterium {{ wskazanie.kryterium }}</caption>
       <thead><tr><th scope="col">Fakt</th><th scope="col">Wartość</th><th scope="col">Wskazuje na</th></tr></thead>
       <tbody>
         {% for fakt in wskazanie.fakty %}
@@ -39,6 +40,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
     {% if wskazanie.uzasadnienie %}<p class="podpowiedz">Dlaczego te fakty: {{ wskazanie.uzasadnienie }}</p>{% endif %}
   </article>
   {% endfor %}
@@ -58,8 +60,9 @@
   <h2 id="n-przewidywania">Twoje przewidywania</h2>
   <form method="post" action="{% url 'symulacja' %}" class="formularz">
     {% csrf_token %}
+    <div class="przewijana" role="region" aria-labelledby="t-przewidywania" tabindex="0">
     <table class="tabela tabela-ocen">
-      <caption>Jak oceniasz swoją pracę w każdym kryterium? Zmień oceny i przelicz.</caption>
+      <caption id="t-przewidywania">Jak oceniasz swoją pracę w każdym kryterium? Zmień oceny i przelicz.</caption>
       <thead>
         <tr><th scope="col">Kryterium</th>{% for pozycja in skala %}<th scope="col">{{ pozycja.punkty }}<small>{{ pozycja.nazwa }}</small></th>{% endfor %}</tr>
       </thead>
@@ -74,6 +77,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
     <button type="submit" class="przycisk">Przelicz symulację</button>
   </form>
 

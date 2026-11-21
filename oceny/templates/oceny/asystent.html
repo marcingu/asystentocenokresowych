@@ -11,7 +11,7 @@
     <label for="pytanie">Twoje pytanie</label>
     <textarea name="pytanie" id="pytanie" rows="3" maxlength="1000" required>{{ pytanie }}</textarea>
     <button type="submit" class="przycisk">Zapytaj</button>
-    <p class="czekanie" hidden role="status">Model pracuje lokalnie - odpowiedź może potrwać kilkadziesiąt sekund...</p>
+    <p class="czekanie" role="status" data-komunikat="Model pracuje lokalnie - odpowiedź może potrwać kilkadziesiąt sekund..."></p>
   </form>
   <p class="podpowiedz">Przykłady:</p>
   <ul class="przyklady">{% for przyklad in przyklady %}<li><button type="button" class="przycisk-link wstaw-pytanie">{{ przyklad }}</button></li>{% endfor %}</ul>

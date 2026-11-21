@@ -419,6 +419,20 @@ def otworz_docx(dane, przepisy=None):
     return Document(io.BytesIO(generuj_arkusz_docx(dane, przepisy)))
 
 
+@pytest.mark.parametrize("symbol", ["A", "B", "C"])
+def test_tresc_dokumentu_ma_jezyk_polski(symbol):
+    """Dostępność cyfrowa, WCAG 2.1 kryterium 3.1.1 „Język strony” (załącznik do ustawy o dostępności cyfrowej,
+    t.j. Dz. U. z 2023 r. poz. 1440): czytnik ekranu dobiera wymowę do języka dokumentu. Język treści zapisują
+    style dokumentu (w:lang) - z nich bierze go też konwerter PDF; właściwość pliku „język” na to nie wpływa."""
+    dokument = otworz_docx(pelny_arkusz(symbol))
+
+    jezyki = dokument.styles.element.xpath("w:docDefaults/w:rPrDefault/w:rPr/w:lang/@w:val")
+
+    assert jezyki == ["pl-PL"]
+    assert dokument.core_properties.language == "pl-PL"
+    assert dokument.core_properties.title == f"Arkusz {symbol} - ocena okresowa"
+
+
 def teksty_docx(dokument) -> list[str]:
     """Niepuste akapity dokumentu w kolejności czytania (także z komórek tabel), bez odsyłaczy przypisów
     (tekst w indeksie górnym), z pojedynczymi odstępami."""

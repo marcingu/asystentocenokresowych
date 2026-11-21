@@ -26,7 +26,7 @@ Opcje: `./uruchom-demo.sh --od-nowa` buduje bazę pokazową od początku, `./uru
 - **Projekt uzasadnienia z notatek**: na karcie oceny model układa notatki przełożonego w tekst uzasadnienia. Dostaje wyłącznie notatki - bez ocen cząstkowych i danych z EZD RP. Projekt jest oznaczony jako tekst AI, nie zapisuje się sam, a do formularza przenosi go oceniający.
 - **Kontekst z EZD RP**: karta faktów o sprawach ocenianego za okres oceny (liczba spraw, terminowość, akceptacje pism), jawna dla obu stron, bez punktów i rankingów. Włącza ją komórka kadr po spełnieniu warunków Kodeksu pracy. W pokazie karta działa na danych przykładowych; klient Integrator API jest w rdzeniu, przetestowany na atrapie i jeszcze niepodłączony do karty.
 
-Testy: 577 testów rdzenia i 150 testów aplikacji.
+Testy: 628 testów rdzenia i 213 testów aplikacji.
 
 ## Założenia
 
@@ -34,6 +34,7 @@ Testy: 577 testów rdzenia i 150 testów aplikacji.
 - **AI nie ocenia pracownika.** Rejestr funkcji AI w `zgodnosc.toml` dopuszcza odpowiedzi na pytania o procedurę, korektę językową i ułożenie notatek oceniającego w projekt uzasadnienia. Model nie dostaje ocen ani danych z EZD RP. Funkcji wysokiego ryzyka nie da się włączyć w tej wersji.
 - **Dane zostają w urzędzie.** Model językowy działa lokalnie, a strony nie pobierają niczego z internetu (wymusza to polityka treści w nagłówkach odpowiedzi).
 - **Tylko licencje permisywne.** Django (BSD-3-Clause), python-docx (MIT), model PLLuM-12B-chat (Apache-2.0).
+- **Dostępność cyfrowa jest wymaganiem.** Interfejs i wydruki mają spełniać WCAG 2.1 na poziomach A i AA, czyli załącznik do ustawy o dostępności cyfrowej. Automatyczny audyt 71 stron pokazu nie wykazuje naruszeń, a strony działają przy szerokości 320 px. Testu z czytnikiem ekranu jeszcze nie było - stan kontroli i znane braki opisuje `dokumentacja/dostepnosc.md`.
 
 ## Testy
 
@@ -81,10 +82,11 @@ Skrypt `uruchom-demo.sh` używa serwera deweloperskiego Django i służy do poka
 | `serwis/` | ustawienia projektu Django |
 | `tests/` | testy rdzenia; każdy cytuje przepis albo wymaganie |
 | `oceny/tests/` | testy aplikacji: role, dostęp, przebieg oceny przez przeglądarkę |
-| `dokumentacja/` | architektura, decyzje i interpretacje, analiza prawna |
+| `dokumentacja/` | architektura, decyzje i interpretacje, analiza prawna, dostępność cyfrowa |
 
 ## Podstawy prawne
 
 - ustawa z dnia 21 listopada 2008 r. o służbie cywilnej (t.j. Dz. U. z 2026 r. poz. 590),
 - rozporządzenie Prezesa Rady Ministrów z dnia 4 kwietnia 2016 r. w sprawie warunków i sposobu przeprowadzania ocen okresowych urzędników służby cywilnej i pracowników służby cywilnej (Dz. U. poz. 470),
-- Kodeks cywilny, art. 110-116 (terminy).
+- Kodeks cywilny, art. 110-116 (terminy),
+- ustawa z dnia 4 kwietnia 2019 r. o dostępności cyfrowej stron internetowych i aplikacji mobilnych podmiotów publicznych (t.j. Dz. U. z 2023 r. poz. 1440) - wymagania WCAG 2.1.

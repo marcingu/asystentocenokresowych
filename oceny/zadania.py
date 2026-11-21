@@ -22,6 +22,15 @@ from .models import Ocena, WniosekOTermin
 from .uprawnienia import oceny_widoczne, role_uzytkownika
 
 
+def opis_dni_do_terminu(dni: int) -> str:
+    """Odległość od terminu słowami - stan terminu podaje tekst, a kolor tylko go wzmacnia (WCAG 2.1, 1.4.1)."""
+    if dni < 0:
+        return f"{-dni} dni po terminie"
+    if dni == 0:
+        return "termin mija dzisiaj"
+    return f"zostało {dni} dni"
+
+
 @dataclass(frozen=True)
 class Zadanie:
     ocena: Ocena
@@ -44,13 +53,7 @@ class Zadanie:
 
     @property
     def stan_opis(self) -> str:
-        if self.dni is None:
-            return "niezwłocznie"
-        if self.dni < 0:
-            return f"{-self.dni} dni po terminie"
-        if self.dni == 0:
-            return "termin mija dzisiaj"
-        return f"zostało {self.dni} dni"
+        return "niezwłocznie" if self.dni is None else opis_dni_do_terminu(self.dni)
 
 
 def _ma_nastepna(ocena: Ocena) -> bool:

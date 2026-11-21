@@ -23,7 +23,7 @@ from .kontekst_ezd import karta_kontekstu
 from .models import Ocena, WniosekOTermin
 from .uprawnienia import role_uzytkownika
 from .uslugi import CZYNNOSC_NOTATKA, CZYNNOSC_PROJEKT_AI
-from .zadania import opisy_skutkow, zadania_oceny
+from .zadania import opis_dni_do_terminu, opisy_skutkow, zadania_oceny
 
 
 def _stan_terminu(termin: date, dzien: date) -> str:
@@ -31,6 +31,16 @@ def _stan_terminu(termin: date, dzien: date) -> str:
     if dni < 0:
         return "po_terminie"
     return "pilne" if dni <= settings.ASYSTENT_DNI_PILNE else "w_terminie"
+
+
+def _opis_stanu_terminu(stan: str, termin: date | None, dzien: date) -> str:
+    """Stan terminu słowami. Wiersz terminu ma kolorowe obramowanie, a kolor nie może być jedynym nośnikiem
+    informacji (WCAG 2.1, kryterium 1.4.1). Termin czysto informacyjny nie ma stanu."""
+    if stan == "wykonane":
+        return "wykonano"
+    if stan == "informacja" or termin is None:
+        return ""
+    return opis_dni_do_terminu((termin - dzien).days)
 
 
 def os_etapow(etap: Etap) -> list[dict]:
@@ -72,7 +82,10 @@ def wiersze_terminow(ocena: Ocena, proces: ProcesOceny, nieobecnosci: list, dzie
     wiersze: list[dict] = []
 
     def dodaj(nazwa: str, data: date | None, podstawa: str = "", uwaga: str = "", stan: str = "informacja") -> None:
-        wiersze.append({"nazwa": nazwa, "data": data, "podstawa": podstawa, "uwaga": uwaga, "stan": stan})
+        wiersze.append({
+            "nazwa": nazwa, "data": data, "podstawa": podstawa, "uwaga": uwaga, "stan": stan,
+            "stan_opis": _opis_stanu_terminu(stan, data, dzien),
+        })
 
     po_negatywnej = ocena.po_negatywnej
     if proces.data_zapoznania_z_kryteriami:

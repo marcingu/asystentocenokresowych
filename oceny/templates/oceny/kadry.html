@@ -35,8 +35,9 @@
 {% if not wiersze %}
 <p class="pusto">Żaden pracownik nie spełnia podanych warunków.</p>
 {% else %}
+<div class="przewijana" role="region" aria-labelledby="t-kadry" tabindex="0">
 <table class="tabela">
-  <caption class="ukryte">Pracownicy urzędu i stan ich ocen okresowych</caption>
+  <caption id="t-kadry" class="ukryte">Pracownicy urzędu i stan ich ocen okresowych</caption>
   <thead>
     <tr><th scope="col">Pracownik</th><th scope="col">Zatrudnienie</th><th scope="col">Arkusz</th><th scope="col">Oceniający</th>
       <th scope="col">Ocena okresowa</th><th scope="col">Nieobecności</th></tr>
@@ -78,5 +79,6 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endif %}
 {% endblock %}

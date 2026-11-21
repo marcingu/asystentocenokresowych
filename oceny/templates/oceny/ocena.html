@@ -1,5 +1,5 @@
 {% extends "oceny/baza.html" %}
-{% block tytul %}Ocena: {{ ocena.oceniany.imie_i_nazwisko }}{% endblock %}
+{% block tytul %}Ocena: {{ ocena.oceniany.imie_i_nazwisko }}, okres od {{ proces.poczatek_cyklu|date:"d.m.Y" }}{% endblock %}
 {% block tresc %}
 <p class="okruszki"><a href="{% url 'zadania' %}">Moje zadania</a> / ocena okresowa</p>
 <header class="naglowek-oceny">
@@ -127,8 +127,9 @@
     <label for="data_rozmowy">Dzień rozmowy oceniającej</label>
     <input type="date" name="data_rozmowy" id="data_rozmowy" value="{{ f.data_rozmowy }}" max="{{ f.dzis }}">
 
+    <div class="przewijana" role="region" aria-labelledby="t-oceny-formularz" tabindex="0">
     <table class="tabela tabela-ocen">
-      <caption>Oceny cząstkowe (§ 11 ust. 1 pkt 1 rozp.)</caption>
+      <caption id="t-oceny-formularz">Oceny cząstkowe (§ 11 ust. 1 pkt 1 rozp.)</caption>
       <thead>
         <tr><th scope="col">Kryterium</th>{% for pozycja in f.skala %}<th scope="col">{{ pozycja.punkty }}<small>{{ pozycja.nazwa }}</small></th>{% endfor %}</tr>
       </thead>
@@ -143,6 +144,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
 
     {% if f.podglad %}
     <div class="podglad wynik-{{ f.podglad.ocena|lower }}" role="status">
@@ -161,7 +163,7 @@
         (liczba notatek: {{ copilot.liczba_notatek }}). Lokalny model językowy dostaje wyłącznie notatki - bez ocen cząstkowych,
         wyniku i danych z EZD RP. Projekt nie zapisuje się sam.</p>
       <button type="submit" formaction="{% url 'czynnosc' ocena.pk 'projekt-uzasadnienia' %}" class="przycisk przycisk-drugi" data-czekanie="czekanie-projekt">Ułóż projekt uzasadnienia z moich notatek</button>
-      <p class="czekanie" id="czekanie-projekt" hidden role="status">Model pracuje lokalnie - projekt będzie gotowy za kilka-kilkanaście sekund...</p>
+      <p class="czekanie" id="czekanie-projekt" role="status" data-komunikat="Model pracuje lokalnie - projekt będzie gotowy za kilka-kilkanaście sekund..."></p>
     </div>
     {% endif %}
     {% if projekt_ai.blad %}
@@ -258,8 +260,9 @@
     <strong>Ocena {{ wynik.ocena }}</strong> - {{ wynik.poziom }} (średnia {{ wynik.srednia }})
   </div>
   <p>Rozmowa oceniająca: {{ proces.data_rozmowy_oceniajacej|date:"d.m.Y" }}. Ocena sporządzona: {{ proces.data_sporzadzenia|date:"d.m.Y" }}.</p>
+  <div class="przewijana" role="region" aria-labelledby="t-oceny" tabindex="0">
   <table class="tabela">
-    <caption class="ukryte">Oceny cząstkowe</caption>
+    <caption id="t-oceny" class="ukryte">Oceny cząstkowe</caption>
     <thead><tr><th scope="col">Kryterium</th><th scope="col">Ocena cząstkowa</th></tr></thead>
     <tbody>
       {% for wiersz in wynik.wiersze %}
@@ -268,6 +271,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
   {% if wynik.uzasadnienie %}<h3>Uzasadnienie</h3><p class="tekst">{{ wynik.uzasadnienie }}</p>{% endif %}
   <h3>Wnioski do indywidualnego programu rozwoju zawodowego</h3><p class="tekst">{{ wynik.wnioski_iprz }}</p>
   <p>Wniosek o przyznanie kolejnego stopnia służbowego: <strong>{{ wynik.wniosek_o_stopien }}</strong></p>
@@ -334,8 +338,9 @@
       <option value="ponowne_sporzadzenie">uwzględniony - ponowne sporządzenie oceny</option>
       <option value="nieuwzgledniony">nieuwzględniony</option>
     </select>
+    <div class="przewijana" role="region" aria-labelledby="t-oceny-sprzeciw" tabindex="0">
     <table class="tabela tabela-ocen">
-      <caption>Nowe oceny cząstkowe - tylko przy zmianie oceny (żadna nie może być niższa niż dotychczas)</caption>
+      <caption id="t-oceny-sprzeciw">Nowe oceny cząstkowe - tylko przy zmianie oceny (żadna nie może być niższa niż dotychczas)</caption>
       <thead><tr><th scope="col">Kryterium</th>{% for pozycja in skala %}<th scope="col">{{ pozycja.punkty }}</th>{% endfor %}</tr></thead>
       <tbody>
         {% for wiersz in wiersze_zmiany %}
@@ -345,6 +350,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
     <label for="uzasadnienie_sprzeciwu">Uzasadnienie rozstrzygnięcia</label>
     <textarea name="uzasadnienie" id="uzasadnienie_sprzeciwu" rows="3"></textarea>
     <button type="submit" class="przycisk" data-potwierdz="Wprowadzić rozstrzygnięcie sprzeciwu?">Wprowadź rozstrzygnięcie</button>
@@ -381,6 +387,7 @@
     <li class="termin termin-{{ wiersz.stan }}">
       <span class="termin-data">{{ wiersz.data|date:"d.m.Y" }}</span>
       <span class="termin-nazwa">{{ wiersz.nazwa }}</span>
+      {% if wiersz.stan_opis %}<span class="stan stan-{{ wiersz.stan }}">{{ wiersz.stan_opis }}</span>{% endif %}
       {% if wiersz.podstawa %}<small>{{ wiersz.podstawa }}</small>{% endif %}
       {% if wiersz.uwaga %}<small class="uwaga">{{ wiersz.uwaga }}</small>{% endif %}
     </li>

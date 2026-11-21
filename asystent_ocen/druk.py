@@ -47,6 +47,7 @@ from .walidacja import (
 from .wynik import NEGATYWNA, POZYTYWNA, formatuj_srednia
 
 ZNAK_WYBORU = "X"
+JEZYK_DOKUMENTU = "pl-PL"
 
 _OPIS_DATY = "(dd.mm.rrrr)"
 _OPIS_ROKU = "(rrrr)"
@@ -872,6 +873,11 @@ class _Rysownik:
         self._w_pionie_na_srodku = WD_CELL_VERTICAL_ALIGNMENT.CENTER
 
         self.doc = Document()
+        # Język treści: czytnik ekranu i konwerter PDF biorą go ze stylów dokumentu, nie z właściwości pliku
+        # (dostępność cyfrowa - WCAG 2.1, kryterium 3.1.1). Szablon python-docx ma tu język angielski.
+        for jezyk in self.doc.styles.element.xpath("w:docDefaults/w:rPrDefault/w:rPr/w:lang"):
+            jezyk.set(qn("w:val"), JEZYK_DOKUMENTU)
+            jezyk.set(qn("w:eastAsia"), JEZYK_DOKUMENTU)
         sekcja = self.doc.sections[0]
         sekcja.page_width, sekcja.page_height = Mm(210), Mm(297)
         sekcja.left_margin = sekcja.right_margin = Mm(18)
@@ -889,7 +895,7 @@ class _Rysownik:
         wlasciwosci = self.doc.core_properties
         wlasciwosci.title = f"Arkusz {tresc.arkusz} - ocena okresowa"
         wlasciwosci.author = "Cyfrowy Asystent Ocen Okresowych"
-        wlasciwosci.language = "pl-PL"
+        wlasciwosci.language = JEZYK_DOKUMENTU
 
         self._akapit(tresc.naglowek[0], pogrubienie=True, rozmiar=12)
         for linia in tresc.naglowek[1:]:

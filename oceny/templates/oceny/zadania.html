@@ -3,8 +3,9 @@
 {% block tresc %}
 <h1>Moje zadania</h1>
 {% if zadania %}
+<div class="przewijana" role="region" aria-labelledby="t-zadania" tabindex="0">
 <table class="tabela">
-  <caption class="ukryte">Zadania w procesie ocen okresowych, od najbliższego terminu</caption>
+  <caption id="t-zadania" class="ukryte">Zadania w procesie ocen okresowych, od najbliższego terminu</caption>
   <thead>
     <tr><th scope="col">Stan</th><th scope="col">Zadanie</th><th scope="col">Oceniany</th><th scope="col">Termin</th><th scope="col">Podstawa prawna</th></tr>
   </thead>
@@ -20,6 +21,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <p class="pusto">Nie masz teraz żadnych zadań w procesie ocen okresowych.</p>
 {% endif %}
