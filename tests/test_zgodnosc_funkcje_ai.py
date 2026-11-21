@@ -5,16 +5,30 @@ a funkcję wysokiego ryzyka włącza wyłącznie decyzja urzędu zapisana w osob
 art. 6 ust. 2-4, załącznik III pkt 4 lit. b, art. 49 ust. 2, art. 50 ust. 1, motywy 12 i 53;
 art. 4 pkt 4 RODO (profilowanie); dokumentacja/analiza-prawna-ai-act-kp-rodo.md.
 Decyzje prowadzącego projekt z 21.11.2026: model sugeruje oceniającemu oceny cząstkowe (funkcja wysokiego ryzyka);
-w repozytorium funkcja jest wyłączona, a włącza ją tylko pokaz na danych fikcyjnych.
+w repozytorium funkcja jest wyłączona, a włącza ją tylko pokaz na danych fikcyjnych. Urząd przed włączeniem
+funkcji wysokiego ryzyka przygotowuje analizy i sam decyduje o włączeniu - decyzja wskazuje organ, datę
+i dokument każdej analizy.
+
+Źródła listy analiz i czynności (wersja skonsolidowana AI Act z 27.07.2026): art. 27 ust. 1 - ocena skutków dla
+praw podstawowych przed wdrożeniem, obowiązek podmiotów prawa publicznego; art. 26 ust. 9 AI Act i art. 35 RODO -
+ocena skutków dla ochrony danych; art. 26 ust. 2 - powierzenie nadzoru ze strony człowieka; art. 26 ust. 7 -
+poinformowanie pracowników i ich przedstawicieli przed użyciem systemu w miejscu pracy; art. 49 ust. 3 i art. 26
+ust. 8 - organ publiczny przed wykorzystaniem systemu rejestruje jego użycie w bazie danych UE, a systemu,
+którego nie zarejestrował dostawca, nie stosuje.
+Daty: art. 113 lit. c ppkt (i) - rozdział III sekcje 1-3 (w tym art. 14, 26 i 27) stosuje się do systemów
+z załącznika III od 2.12.2027; art. 49 leży w sekcji 5, której ten przepis nie wymienia.
 """
 
 import dataclasses
+import re
+from datetime import date
 from pathlib import Path
 
 import pytest
 
 from asystent_ocen.zgodnosc import (
     BladZgodnosci,
+    DokumentWarunku,
     FunkcjaAI,
     rejestr_funkcji_ai,
     sprawdz_rejestr_funkcji_ai,
@@ -25,8 +39,20 @@ from asystent_ocen.zgodnosc import (
 KATALOG = Path(__file__).resolve().parents[1]
 REJESTR = KATALOG / "asystent_ocen" / "zgodnosc.toml"
 DECYZJE_POKAZU = KATALOG / "decyzje-ai-pokaz.toml"
+WZOR_DECYZJI = KATALOG / "decyzje-ai-wzor.toml"
 SUGESTIA = "PROPOZYCJA_OCENY"
 NISKIE_RYZYKO = {"PYTANIA_O_PROCEDURE", "KOREKTA_JEZYKOWA_UZASADNIENIA", "REDAKCJA_NOTATEK_OCENIAJACEGO"}
+ORGAN = "Dyrektor Generalny Urzędu"
+DATA_DECYZJI = date(2027, 12, 6)
+# Analizy i czynności wymagane przed włączeniem funkcji wysokiego ryzyka - w kolejności z rejestru.
+WARUNKI = (
+    "OCENA_SKUTKOW_DLA_PRAW_PODSTAWOWYCH",
+    "OCENA_SKUTKOW_DLA_OCHRONY_DANYCH",
+    "NADZOR_CZLOWIEKA",
+    "POINFORMOWANIE_PRACOWNIKOW",
+    "REJESTRACJA_W_BAZIE_UE",
+)
+BRAK = object()  # wpis decyzji bez tabeli dokumentów
 
 KLASYFIKACJE = {
     "PYTANIA_O_PROCEDURE": "poza_zalacznikiem_III",
@@ -46,11 +72,41 @@ def funkcja(**zmiany):
     return dataclasses.replace(wzor, **zmiany)
 
 
+def dokumenty(**zmiany) -> dict:
+    """Dokument dla każdej analizy i czynności z rejestru; `zmiany` podmieniają pozycję, a None ją usuwa."""
+    wynik = {kod: f"Dokument {numer}/2027" for numer, kod in enumerate(WARUNKI, start=1)}
+    wynik.update(zmiany)
+    return {kod: dokument for kod, dokument in wynik.items() if dokument is not None}
+
+
+def wpis_decyzji(
+    kod: str = SUGESTIA, opis: str = "Zarządzenie DG nr 7/2027.", *, organ=ORGAN, data="2027-12-06", dok=None,
+    pokaz=None,
+) -> str:
+    """Wpis pliku decyzji urzędu, domyślnie pełny: organ, data i dokument każdej analizy. `data` i `pokaz` to
+    zapis TOML wstawiany bez zmian; None pomija pole, a `dok=BRAK` pomija tabelę dokumentów."""
+    linie = ["[[decyzje]]", f'kod = "{kod}"', f'decyzja_wlaczenia = "{opis}"']
+    if pokaz is not None:
+        linie.append(f"pokaz = {pokaz}")
+    if organ is not None:
+        linie.append(f'organ = "{organ}"')
+    if data is not None:
+        linie.append(f"data = {data}")
+    if dok is not BRAK:
+        linie.append("[decyzje.dokumenty]")
+        for klucz, wartosc in (dokumenty() if dok is None else dok).items():
+            linie.append(f'{klucz} = "{wartosc}"' if isinstance(wartosc, str) else f"{klucz} = {wartosc}")
+    return "\n".join(linie) + "\n\n"
+
+
 def plik_decyzji(katalog, *wpisy: tuple[str, str]) -> Path:
-    """Plik decyzji urzędu z wpisami (kod funkcji, opis decyzji)."""
+    """Plik decyzji urzędu z pełnymi wpisami dla par (kod funkcji, opis decyzji)."""
+    return plik_z_trescia(katalog, "".join(wpis_decyzji(kod, opis) for kod, opis in wpisy) or "decyzje = []\n")
+
+
+def plik_z_trescia(katalog, tresc: str) -> Path:
     plik = katalog / "decyzje-ai.toml"
-    tresc = "".join(f'[[decyzje]]\nkod = "{kod}"\ndecyzja_wlaczenia = "{opis}"\n\n' for kod, opis in wpisy)
-    plik.write_text(tresc or "decyzje = []\n", encoding="utf-8")
+    plik.write_text(tresc, encoding="utf-8")
     return plik
 
 
@@ -123,10 +179,33 @@ def test_funkcja_wysokiego_ryzyka_wlaczona_bez_opisanej_decyzji_jest_odrzucana(d
         sprawdz_rejestr_funkcji_ai([funkcja(klasyfikacja="wysokie_ryzyko", wlaczona=True, decyzja_wlaczenia=decyzja)])
 
 
-def test_funkcja_wysokiego_ryzyka_z_opisana_decyzja_moze_byc_wlaczona():
-    sprawdz_rejestr_funkcji_ai(
-        [funkcja(klasyfikacja="wysokie_ryzyko", wlaczona=True, decyzja_wlaczenia="Zarządzenie DG nr 7/2027.")]
-    )
+PELNA_DECYZJA = {
+    "klasyfikacja": "wysokie_ryzyko", "wlaczona": True, "decyzja_wlaczenia": "Zarządzenie DG nr 7/2027.",
+    "decyzja_organ": ORGAN, "decyzja_data": DATA_DECYZJI,
+}
+
+
+def test_funkcja_wysokiego_ryzyka_z_decyzja_podajaca_organ_i_date_moze_byc_wlaczona():
+    sprawdz_rejestr_funkcji_ai([funkcja(**PELNA_DECYZJA)])
+
+
+@pytest.mark.decyzja_projektowa
+@pytest.mark.parametrize(
+    "zmiany", [{"decyzja_organ": ""}, {"decyzja_organ": "  "}, {"decyzja_data": None}],
+    ids=["bez organu", "organ z samych odstępów", "bez daty"],
+)
+def test_funkcja_wysokiego_ryzyka_z_samym_opisem_decyzji_jest_odrzucana(zmiany):
+    """O włączeniu decyduje urząd: decyzja musi mówić, kto i kiedy ją podjął."""
+    with pytest.raises(BladZgodnosci):
+        sprawdz_rejestr_funkcji_ai([funkcja(**{**PELNA_DECYZJA, **zmiany})])
+
+
+@pytest.mark.decyzja_projektowa
+def test_decyzja_pokazowa_nie_potrzebuje_organu_ani_daty():
+    """Pokaz na danych fikcyjnych nie jest decyzją urzędu - mówi to znacznik, nie zmyślony organ."""
+    sprawdz_rejestr_funkcji_ai([
+        funkcja(klasyfikacja="wysokie_ryzyko", wlaczona=True, decyzja_wlaczenia="Pokaz.", decyzja_pokazowa=True)
+    ])
 
 
 def test_wylaczona_funkcja_wysokiego_ryzyka_moze_byc_opisana_w_rejestrze():
@@ -179,6 +258,28 @@ def test_funkcja_wysokiego_ryzyka_bez_opisanej_decyzji_jest_blokowana_takze_przy
         wymagaj_dozwolonej_funkcji_ai(SUGESTIA, wymogi=bez_decyzji)
     assert "nie ma opisanej decyzji" in str(blad.value)
     assert "III pkt 4 lit. b" in str(blad.value)
+
+
+@pytest.mark.decyzja_projektowa
+def test_funkcja_wysokiego_ryzyka_bez_dokumentow_analiz_jest_blokowana_takze_przy_uzyciu():
+    """Rejestr zbudowany z pominięciem pliku decyzji też nie przepuści funkcji, dla której urząd nie wskazał
+    dokumentu każdej analizy."""
+    bez_analiz = _wymogi_ze_zmieniona_funkcja(SUGESTIA, **{**PELNA_DECYZJA, "klasyfikacja": "wysokie_ryzyko"})
+    with pytest.raises(BladZgodnosci) as blad:
+        wymagaj_dozwolonej_funkcji_ai(SUGESTIA, wymogi=bez_analiz)
+    assert "ocena skutków dla praw podstawowych" in str(blad.value)
+    assert "art. 27 ust. 1" in str(blad.value)
+
+
+@pytest.mark.decyzja_projektowa
+def test_funkcja_wysokiego_ryzyka_z_dokumentami_wszystkich_analiz_jest_dopuszczona_przy_uzyciu():
+    wymogi = wczytaj_wymogi()
+    komplet = tuple(
+        DokumentWarunku(kod=w.kod, nazwa=w.nazwa, podstawa=w.podstawa, dokument="Dokument 1/2027")
+        for w in wymogi.warunki_wlaczenia
+    )
+    z_analizami = _wymogi_ze_zmieniona_funkcja(SUGESTIA, **PELNA_DECYZJA, decyzja_dokumenty=komplet)
+    assert wymagaj_dozwolonej_funkcji_ai(SUGESTIA, wymogi=z_analizami).decyzja_organ == ORGAN
 
 
 def test_wylaczona_w_konfiguracji_funkcja_niskiego_ryzyka_tez_jest_blokowana():
@@ -273,9 +374,150 @@ def test_plik_decyzji_pokazu_wlacza_tylko_sugestie_ocen_i_wymienia_obowiazki_urz
     """Decyzja prowadzącego projekt z 21.11.2026: sugestię ocen włącza tylko pokaz na danych fikcyjnych.
     Opis decyzji mówi, kto i po co ją podjął, jakie obowiązki ma urząd i od kiedy się je stosuje
     (dokumentacja/analiza-prawna-ai-act-kp-rodo.md, pkt 3.1, 3.7 i 4)."""
-    wymogi = wczytaj_wymogi(decyzje=DECYZJE_POKAZU)
+    wymogi = wczytaj_wymogi(decyzje=DECYZJE_POKAZU, tryb_pokazu=True)
 
     assert {f.kod for f in wymogi.funkcje_ai if f.wlaczona} == NISKIE_RYZYKO | {SUGESTIA}
-    decyzja = wymagaj_dozwolonej_funkcji_ai(SUGESTIA, wymogi=wymogi).decyzja_wlaczenia
-    for fragment in ("21.11.2026", "art. 14", "art. 26 ust. 7", "art. 27 ust. 1", "2.12.2027", "art. 35"):
-        assert fragment in decyzja
+    sugestia = wymagaj_dozwolonej_funkcji_ai(SUGESTIA, wymogi=wymogi)
+    for fragment in (
+        "21.11.2026", "art. 14", "art. 26 ust. 7", "art. 27 ust. 1", "art. 49 ust. 3", "art. 35",
+        "2.12.2027", "art. 113 lit. c",
+    ):
+        assert fragment in sugestia.decyzja_wlaczenia
+    assert sugestia.decyzja_pokazowa and sugestia.decyzja_dokumenty == ()
+    assert "nie wykonano" in sugestia.decyzja_wlaczenia
+
+
+@pytest.mark.decyzja_projektowa
+def test_plik_decyzji_pokazu_niczego_nie_wlacza_poza_trybem_pokazu():
+    """Plik pokazu nie zastąpi decyzji urzędu: bez analiz działa tylko na danych fikcyjnych."""
+    with pytest.raises(BladZgodnosci) as blad:
+        wczytaj_wymogi(decyzje=DECYZJE_POKAZU)
+    assert "trybie demonstracyjnym" in str(blad.value)
+
+
+# --- analizy i czynności przed włączeniem funkcji wysokiego ryzyka ---
+
+def test_rejestr_wymienia_analizy_i_czynnosci_wymagane_przed_wlaczeniem():
+    """Lista jest w konfiguracji, z podstawą prawną każdej pozycji (źródła w nagłówku pliku)."""
+    warunki = {w.kod: w for w in wczytaj_wymogi().warunki_wlaczenia}
+
+    assert tuple(warunki) == WARUNKI
+    assert all(w.nazwa.strip() and w.podstawa.strip() for w in warunki.values())
+    przepisy = {
+        "OCENA_SKUTKOW_DLA_PRAW_PODSTAWOWYCH": "art. 27 ust. 1 AI Act",
+        "OCENA_SKUTKOW_DLA_OCHRONY_DANYCH": "art. 35 RODO",
+        "NADZOR_CZLOWIEKA": "art. 26 ust. 2 AI Act",
+        "POINFORMOWANIE_PRACOWNIKOW": "art. 26 ust. 7 AI Act",
+        "REJESTRACJA_W_BAZIE_UE": "art. 49 ust. 3",
+    }
+    for kod, przepis in przepisy.items():
+        assert przepis in warunki[kod].podstawa
+
+
+@pytest.mark.decyzja_projektowa
+def test_rejestr_bez_listy_analiz_jest_odrzucany(tmp_path):
+    """Usunięcie listy z konfiguracji nie może znieść wymogu analiz."""
+    tresc = REJESTR.read_text(encoding="utf-8")
+    bez_listy = re.sub(r"(?ms)^\[\[warunki_wlaczenia_wysokiego_ryzyka\]\]\n.*?(?=^\[|\Z)", "", tresc)
+    assert "[[warunki_wlaczenia_wysokiego_ryzyka]]" in tresc and "[[warunki_wlaczenia_wysokiego_ryzyka]]" not in bez_listy
+    plik = tmp_path / "zgodnosc.toml"
+    plik.write_text(bez_listy, encoding="utf-8")
+
+    with pytest.raises(BladZgodnosci):
+        wczytaj_wymogi(str(plik))
+
+
+@pytest.mark.decyzja_projektowa
+def test_decyzja_urzedu_podaje_kto_i_kiedy_zdecydowal_oraz_dokument_kazdej_analizy(tmp_path):
+    plik = plik_z_trescia(tmp_path, wpis_decyzji())
+
+    sugestia = wymagaj_dozwolonej_funkcji_ai(SUGESTIA, wymogi=wczytaj_wymogi(decyzje=plik))
+
+    assert (sugestia.decyzja_organ, sugestia.decyzja_data, sugestia.decyzja_pokazowa) == (ORGAN, DATA_DECYZJI, False)
+    assert {d.kod: d.dokument for d in sugestia.decyzja_dokumenty} == dokumenty()
+    assert [d.kod for d in sugestia.decyzja_dokumenty] == list(WARUNKI)
+    assert all(d.nazwa.strip() and d.podstawa.strip() for d in sugestia.decyzja_dokumenty)
+
+
+@pytest.mark.decyzja_projektowa
+@pytest.mark.parametrize(
+    "zmiany",
+    [
+        {"organ": None},
+        {"organ": "   "},
+        {"data": None},
+        {"data": '"2027-12-06"'},
+        {"data": "2027-12-06T10:00:00"},
+        {"dok": BRAK},
+        {"dok": dokumenty(OCENA_SKUTKOW_DLA_PRAW_PODSTAWOWYCH=None)},
+        {"dok": dokumenty(NADZOR_CZLOWIEKA="  ")},
+        {"dok": dokumenty(POINFORMOWANIE_PRACOWNIKOW=5)},
+        {"dok": dokumenty(INNA_ANALIZA="Dokument 9/2027")},
+    ],
+    ids=[
+        "bez organu", "organ z samych odstępów", "bez daty", "data napisem", "data z godziną", "bez dokumentów",
+        "bez jednej analizy", "pusty dokument", "dokument nie jest napisem", "analiza spoza rejestru",
+    ],
+)
+def test_decyzja_bez_organu_daty_albo_dokumentu_analizy_niczego_nie_wlacza(tmp_path, zmiany):
+    with pytest.raises(BladZgodnosci):
+        wczytaj_wymogi(decyzje=plik_z_trescia(tmp_path, wpis_decyzji(**zmiany)))
+
+
+@pytest.mark.decyzja_projektowa
+def test_odmowa_wymienia_brakujace_analizy_z_podstawa_prawna(tmp_path):
+    """Urząd ma wiedzieć, czego brakuje - bez czytania kodu."""
+    niepelne = dokumenty(OCENA_SKUTKOW_DLA_PRAW_PODSTAWOWYCH=None, POINFORMOWANIE_PRACOWNIKOW=None)
+
+    with pytest.raises(BladZgodnosci) as blad:
+        wczytaj_wymogi(decyzje=plik_z_trescia(tmp_path, wpis_decyzji(dok=niepelne)))
+
+    komunikat = str(blad.value)
+    assert "ocena skutków dla praw podstawowych (art. 27 ust. 1 AI Act)" in komunikat
+    assert "poinformowanie pracowników" in komunikat
+    assert "ocena skutków dla ochrony danych" not in komunikat
+
+
+@pytest.mark.decyzja_projektowa
+def test_decyzja_pokazowa_bez_analiz_dziala_tylko_w_trybie_pokazu(tmp_path):
+    """Pokaz działa na danych fikcyjnych, więc nie wymaga analiz - ale poza trybem pokazu niczego nie włącza."""
+    plik = plik_z_trescia(tmp_path, wpis_decyzji(pokaz="true", organ=None, data=None, dok=BRAK))
+
+    with pytest.raises(BladZgodnosci) as blad:
+        wczytaj_wymogi(decyzje=plik)
+    assert "trybie demonstracyjnym" in str(blad.value)
+
+    w_pokazie = wymagaj_dozwolonej_funkcji_ai(SUGESTIA, wymogi=wczytaj_wymogi(decyzje=plik, tryb_pokazu=True))
+    assert (w_pokazie.wlaczona, w_pokazie.decyzja_pokazowa, w_pokazie.decyzja_dokumenty) == (True, True, ())
+    assert w_pokazie.klasyfikacja == "wysokie_ryzyko"
+
+
+def test_pelna_decyzja_urzedu_dziala_takze_w_trybie_pokazu(tmp_path):
+    wymogi = wczytaj_wymogi(decyzje=plik_z_trescia(tmp_path, wpis_decyzji(pokaz="false")), tryb_pokazu=True)
+
+    sugestia = wymagaj_dozwolonej_funkcji_ai(SUGESTIA, wymogi=wymogi)
+    assert (sugestia.decyzja_pokazowa, sugestia.decyzja_organ) == (False, ORGAN)
+
+
+def test_wzor_decyzji_w_niezmienionej_postaci_niczego_nie_wlacza():
+    with pytest.raises(BladZgodnosci):
+        wczytaj_wymogi(decyzje=WZOR_DECYZJI)
+
+
+def test_wzor_decyzji_po_wypelnieniu_jest_pelna_decyzja(tmp_path):
+    """Wzór po usunięciu znaków komentarza z wpisu podaje wszystko, czego wymaga rejestr - także po zmianie
+    listy analiz w konfiguracji."""
+    linie = WZOR_DECYZJI.read_text(encoding="utf-8").splitlines()
+    poczatek = linie.index("# [[decyzje]]")
+    wpis = "\n".join(linia.removeprefix("# ") for linia in linie[poczatek:])
+
+    sugestia = wymagaj_dozwolonej_funkcji_ai(SUGESTIA, wymogi=wczytaj_wymogi(decyzje=plik_z_trescia(tmp_path, wpis)))
+
+    assert [d.kod for d in sugestia.decyzja_dokumenty] == list(WARUNKI)
+    assert sugestia.decyzja_organ and sugestia.decyzja_data and not sugestia.decyzja_pokazowa
+
+
+@pytest.mark.parametrize("pokaz", ['"tak"', "1"], ids=["napis", "liczba"])
+def test_znacznik_pokazu_musi_byc_wartoscia_logiczna(tmp_path, pokaz):
+    with pytest.raises(BladZgodnosci):
+        wczytaj_wymogi(decyzje=plik_z_trescia(tmp_path, wpis_decyzji(pokaz=pokaz)), tryb_pokazu=True)

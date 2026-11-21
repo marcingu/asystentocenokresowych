@@ -65,15 +65,38 @@ class BladZgodnosci(Exception):
 
 
 @dataclass(frozen=True)
+class WarunekWlaczenia:
+    """Analiza albo czynność, którą urząd wykonuje przed włączeniem funkcji wysokiego ryzyka (`zgodnosc.toml`)."""
+
+    kod: str
+    nazwa: str
+    podstawa: str
+
+
+@dataclass(frozen=True)
+class DokumentWarunku:
+    """Dokument, którym urząd wykazał w decyzji wykonanie analizy albo czynności."""
+
+    kod: str
+    nazwa: str
+    podstawa: str
+    dokument: str
+
+
+@dataclass(frozen=True)
 class FunkcjaAI:
     kod: str
     opis: str
     klasyfikacja: str  # jedna ze stałych powyżej
     podstawa: str
     wlaczona: bool
-    # Tylko dla funkcji wysokiego ryzyka: kto, kiedy i na jakich warunkach ją włączył (z pliku decyzji urzędu).
-    # Puste = brak decyzji.
-    decyzja_wlaczenia: str = ""
+    # Pola decyzji wypełnia tylko plik decyzji urzędu o funkcji wysokiego ryzyka. Puste = brak decyzji.
+    decyzja_wlaczenia: str = ""  # zakres i warunki włączenia
+    decyzja_organ: str = ""  # kto zdecydował
+    decyzja_data: date | None = None  # kiedy
+    decyzja_dokumenty: tuple[DokumentWarunku, ...] = ()  # analizy i czynności wykonane przed włączeniem
+    # Pokaz na danych fikcyjnych: bez organu, daty i analiz; działa tylko w trybie demonstracyjnym.
+    decyzja_pokazowa: bool = False
 
 
 @dataclass(frozen=True)
@@ -90,22 +113,30 @@ class Wymogi:
     ezdrp_wyniki_akceptacji: dict[int, str]
     funkcje_ai: tuple[FunkcjaAI, ...]
     zrodla: dict[str, str]
+    # Analizy i czynności wymagane przed włączeniem funkcji wysokiego ryzyka.
+    warunki_wlaczenia: tuple[WarunekWlaczenia, ...] = ()
 
 
-def wczytaj_wymogi(sciezka: str | None = None, decyzje: str | Path | None = None) -> Wymogi:
+def wczytaj_wymogi(
+    sciezka: str | None = None, decyzje: str | Path | None = None, tryb_pokazu: bool = False
+) -> Wymogi:
     """Wczytuje `zgodnosc.toml` (domyślnie plik z pakietu). Klucze słowników statusów zamienia na int.
     Rejestr funkcji AI przechodzi przez `sprawdz_rejestr_funkcji_ai` - błędna konfiguracja nie da się wczytać.
 
-    `decyzje` to plik urzędu z decyzjami o włączeniu funkcji wysokiego ryzyka (wzór: `decyzje-ai-pokaz.toml`).
+    `decyzje` to plik urzędu z decyzjami o włączeniu funkcji wysokiego ryzyka (wzór: `decyzje-ai-wzor.toml`).
     Jest czytany przy każdym wywołaniu, więc usunięcie wpisu wyłącza funkcję bez ponownego uruchamiania systemu.
-    Brak pliku, błąd w jego budowie, nieznany kod, decyzja bez opisu albo decyzja o funkcji innej niż wysokiego
-    ryzyka -> BladZgodnosci. Wynik z decyzjami jest nowym obiektem - rejestr z pakietu się nie zmienia.
+    Decyzja podaje organ, datę i dokument każdej analizy i czynności z listy `warunki_wlaczenia`. Brak pliku, błąd
+    w jego budowie, nieznany kod, decyzja niepełna albo decyzja o funkcji innej niż wysokiego ryzyka ->
+    BladZgodnosci. Wynik z decyzjami jest nowym obiektem - rejestr z pakietu się nie zmienia.
+
+    `tryb_pokazu` dopuszcza decyzję pokazową (`pokaz = true`, bez organu, daty i analiz) - tylko dla pokazu na
+    danych fikcyjnych. Poza tym trybem plik z taką decyzją jest odrzucany.
 
     Plik domyślny jest czytany raz, a wynik zapamiętywany (kolejne wywołania zwracają ten sam obiekt - zmiany
     wprowadza się przez `dataclasses.replace`). Plik wskazany w `sciezka` jest czytany przy każdym wywołaniu.
     Brak klucza, zły typ albo wartość poniżej dopuszczalnego minimum -> BladZgodnosci."""
     wymogi = _wymogi_domyslne() if sciezka is None else _wczytaj_plik(Path(sciezka))
-    return wymogi if decyzje is None else _z_decyzjami_urzedu(wymogi, Path(decyzje))
+    return wymogi if decyzje is None else _z_decyzjami_urzedu(wymogi, Path(decyzje), tryb_pokazu)
 
 
 @lru_cache(maxsize=1)
@@ -118,6 +149,16 @@ def _wczytaj_plik(plik: Path) -> Wymogi:
         dane = tomllib.load(strumien)
     funkcje = tuple(_funkcja_ai(wpis, nr) for nr, wpis in enumerate(_wartosc(dane, "funkcje_ai", list), start=1))
     sprawdz_rejestr_funkcji_ai(funkcje)
+    warunki = tuple(
+        _warunek_wlaczenia(wpis, nr)
+        for nr, wpis in enumerate(_wartosc(dane, "warunki_wlaczenia_wysokiego_ryzyka", list), start=1)
+    )
+    kody_warunkow = [warunek.kod for warunek in warunki]
+    if not warunki or len(set(kody_warunkow)) != len(kody_warunkow):
+        raise BladZgodnosci(
+            "Konfiguracja zgodności: lista `warunki_wlaczenia_wysokiego_ryzyka` (analizy i czynności przed "
+            "włączeniem funkcji wysokiego ryzyka) nie może być pusta ani zawierać powtórzonych kodów."
+        )
     return Wymogi(
         monitoring_wyprzedzenie_informacji_dni=_liczba(dane, "monitoring.wyprzedzenie_informacji_dni", minimum=0),
         min_licznosc_wskaznika=_liczba(dane, "wiedza_o_pracy.min_licznosc_wskaznika", minimum=1),
@@ -129,10 +170,11 @@ def _wczytaj_plik(plik: Path) -> Wymogi:
         ezdrp_wyniki_akceptacji=_slownik_kodow(dane, "ezdrp.wyniki_akceptacji"),
         funkcje_ai=funkcje,
         zrodla=dict(_wartosc(dane, "zrodla", dict)),
+        warunki_wlaczenia=warunki,
     )
 
 
-def _z_decyzjami_urzedu(wymogi: Wymogi, plik: Path) -> Wymogi:
+def _z_decyzjami_urzedu(wymogi: Wymogi, plik: Path, tryb_pokazu: bool = False) -> Wymogi:
     """Wymogi z funkcjami wysokiego ryzyka włączonymi decyzjami urzędu z pliku `plik`."""
     try:
         with plik.open("rb") as strumien:
@@ -147,7 +189,7 @@ def _z_decyzjami_urzedu(wymogi: Wymogi, plik: Path) -> Wymogi:
             powod = f"błąd składni TOML ({blad})"
         raise BladZgodnosci(f"Nie można odczytać pliku decyzji urzędu o funkcjach AI „{plik.name}”: {powod}.") from blad
     znane = {funkcja.kod: funkcja for funkcja in wymogi.funkcje_ai}
-    decyzje: dict[str, str] = {}
+    decyzje: dict[str, dict] = {}
     for nr, wpis in enumerate(_wartosc(dane, "decyzje", list), start=1):
         gdzie = f"decyzje[{nr}]."
         kod = _wartosc(wpis, "kod", str, gdzie)
@@ -162,13 +204,73 @@ def _z_decyzjami_urzedu(wymogi: Wymogi, plik: Path) -> Wymogi:
                 f"Plik decyzji urzędu dotyczy tylko funkcji wysokiego ryzyka, a funkcja „{kod}” ma klasyfikację "
                 f"„{znane[kod].klasyfikacja}” - włącza się ją i wyłącza w rejestrze funkcji AI."
             )
-        decyzje[kod] = opis
+        pokazowa = _wartosc(wpis, "pokaz", bool, gdzie) if "pokaz" in wpis else False
+        if pokazowa and not tryb_pokazu:
+            raise BladZgodnosci(
+                f"Plik decyzji urzędu: wpis o funkcji „{kod}” jest decyzją pokazową (pokaz = true). Taka decyzja "
+                "działa tylko w trybie demonstracyjnym, na danych fikcyjnych. Urząd włącza funkcję wysokiego "
+                "ryzyka własną decyzją, która podaje organ, datę i dokument każdej analizy."
+            )
+        pola = {"wlaczona": True, "decyzja_wlaczenia": opis, "decyzja_pokazowa": pokazowa}
+        if not pokazowa:
+            pola.update(_pola_decyzji_urzedu(wpis, kod, wymogi.warunki_wlaczenia))
+        decyzje[kod] = pola
     funkcje = tuple(
-        replace(funkcja, wlaczona=True, decyzja_wlaczenia=decyzje[funkcja.kod]) if funkcja.kod in decyzje else funkcja
+        replace(funkcja, **decyzje[funkcja.kod]) if funkcja.kod in decyzje else funkcja
         for funkcja in wymogi.funkcje_ai
     )
     sprawdz_rejestr_funkcji_ai(funkcje)
     return replace(wymogi, funkcje_ai=funkcje)
+
+
+def _pola_decyzji_urzedu(wpis: dict, kod: str, warunki: tuple[WarunekWlaczenia, ...]) -> dict:
+    """Organ, data i dokumenty analiz z wpisu decyzji urzędu. Brak albo błąd któregokolwiek -> BladZgodnosci."""
+    organ = wpis.get("organ")
+    if not isinstance(organ, str) or not organ.strip():
+        raise BladZgodnosci(
+            f"Plik decyzji urzędu: decyzja o funkcji „{kod}” nie podaje organu, który ją podjął (pole organ)."
+        )
+    data = wpis.get("data")
+    if type(data) is not date:  # data z godziną (datetime) jest podtypem date - też jej nie przyjmujemy
+        raise BladZgodnosci(
+            f"Plik decyzji urzędu: decyzja o funkcji „{kod}” nie podaje daty (pole data w zapisie RRRR-MM-DD, "
+            "bez cudzysłowu i godziny, np. data = 2027-12-06)."
+        )
+    wskazane = wpis.get("dokumenty")
+    if not isinstance(wskazane, dict):
+        wskazane = {}
+    nieznane = sorted(set(wskazane) - {warunek.kod for warunek in warunki})
+    if nieznane:
+        raise BladZgodnosci(
+            f"Plik decyzji urzędu: decyzja o funkcji „{kod}” wskazuje pozycje spoza listy analiz i czynności "
+            f"z rejestru: {', '.join(nieznane)}."
+        )
+    dokumenty = []
+    for warunek in warunki:
+        dokument = wskazane.get(warunek.kod)
+        if isinstance(dokument, str) and dokument.strip():
+            dokumenty.append(DokumentWarunku(warunek.kod, warunek.nazwa, warunek.podstawa, dokument.strip()))
+    brakujace = _warunki_bez_dokumentu(dokumenty, warunki)
+    if brakujace:
+        raise BladZgodnosci(
+            f"Plik decyzji urzędu: decyzja o funkcji „{kod}” nie wskazuje dokumentu dla: {'; '.join(brakujace)}. "
+            "Urząd wykonuje te analizy i czynności, zanim włączy funkcję wysokiego ryzyka."
+        )
+    return {"decyzja_organ": organ.strip(), "decyzja_data": data, "decyzja_dokumenty": tuple(dokumenty)}
+
+
+def _warunki_bez_dokumentu(dokumenty, warunki: tuple[WarunekWlaczenia, ...]) -> list[str]:
+    """Analizy i czynności z rejestru, dla których decyzja nie wskazuje dokumentu - z podstawą prawną."""
+    wskazane = {dokument.kod for dokument in dokumenty if (dokument.dokument or "").strip()}
+    return [f"{warunek.nazwa} ({warunek.podstawa})" for warunek in warunki if warunek.kod not in wskazane]
+
+
+def _warunek_wlaczenia(wpis: object, nr: int) -> WarunekWlaczenia:
+    gdzie = f"warunki_wlaczenia_wysokiego_ryzyka[{nr}]."
+    pola = {klucz: _wartosc(wpis, klucz, str, gdzie).strip() for klucz in ("kod", "nazwa", "podstawa")}
+    if not all(pola.values()):
+        raise BladZgodnosci(f"Konfiguracja zgodności: wpis `{gdzie[:-1]}` wymaga kodu, nazwy i podstawy prawnej.")
+    return WarunekWlaczenia(**pola)
 
 
 def _wartosc(dane: object, klucz: str, typ: type, gdzie: str = ""):
@@ -292,7 +394,9 @@ def bledy_uruchomienia_monitoringu(
 
 def sprawdz_rejestr_funkcji_ai(funkcje: Iterable[FunkcjaAI]) -> None:
     """Rzuca BladZgodnosci, gdy: klasyfikacja spoza czterech stałych, brak podstawy klasyfikacji, powtórzony kod,
-    funkcja zakazana ma `wlaczona = True` albo funkcja wysokiego ryzyka jest włączona bez opisanej decyzji."""
+    funkcja zakazana ma `wlaczona = True` albo funkcja wysokiego ryzyka jest włączona bez decyzji urzędu:
+    opisu, organu i daty (decyzja pokazowa wymaga tylko opisu). Kompletność dokumentów analiz sprawdza
+    wczytanie pliku decyzji i `wymagaj_dozwolonej_funkcji_ai` - do tego potrzebna jest lista z rejestru."""
     problemy: list[str] = []
     kody: set[str] = set()
     for funkcja in funkcje:
@@ -320,6 +424,16 @@ def sprawdz_rejestr_funkcji_ai(funkcje: Iterable[FunkcjaAI]) -> None:
                 f"funkcja „{funkcja.kod}” wysokiego ryzyka może być włączona tylko z opisaną decyzją urzędu "
                 "(pole decyzja_wlaczenia)"
             )
+        if (
+            funkcja.klasyfikacja == WYSOKIE_RYZYKO
+            and funkcja.wlaczona is not False
+            and funkcja.decyzja_pokazowa is not True
+            and not ((funkcja.decyzja_organ or "").strip() and type(funkcja.decyzja_data) is date)
+        ):
+            problemy.append(
+                f"funkcja „{funkcja.kod}” wysokiego ryzyka może być włączona tylko decyzją urzędu, która podaje "
+                "organ i datę (pola organ i data)"
+            )
     if problemy:
         raise BladZgodnosci("Rejestr funkcji AI jest niezgodny z wymogami: " + "; ".join(problemy) + ".")
 
@@ -331,7 +445,8 @@ def rejestr_funkcji_ai(wymogi: Wymogi | None = None) -> tuple[FunkcjaAI, ...]:
 
 def wymagaj_dozwolonej_funkcji_ai(kod: str, wymogi: Wymogi | None = None) -> FunkcjaAI:
     """Zwraca funkcję, gdy istnieje w rejestrze, jest włączona i nie jest zakazana; funkcja wysokiego ryzyka
-    musi mieć dodatkowo opisaną decyzję o włączeniu.
+    musi mieć dodatkowo decyzję urzędu: opis, organ, datę i dokument każdej analizy z rejestru (albo decyzję
+    pokazową - tę dopuszcza tylko wczytanie w trybie pokazu).
     W przeciwnym razie (także dla nieznanego kodu) rzuca BladZgodnosci z podstawą klasyfikacji w komunikacie."""
     wpisy = [funkcja for funkcja in rejestr_funkcji_ai(wymogi) if funkcja.kod == kod]
     if not wpisy:
@@ -347,6 +462,17 @@ def wymagaj_dozwolonej_funkcji_ai(kod: str, wymogi: Wymogi | None = None) -> Fun
                     f"Funkcja AI „{kod}” jest funkcją wysokiego ryzyka i nie ma opisanej decyzji o włączeniu, "
                     f"więc nie można jej użyć. Podstawa klasyfikacji: {funkcja.podstawa}"
                 )
+            if funkcja.wlaczona is True and funkcja.decyzja_pokazowa is not True:
+                braki = [
+                    *([] if (funkcja.decyzja_organ or "").strip() else ["organ, który podjął decyzję"]),
+                    *([] if type(funkcja.decyzja_data) is date else ["data decyzji"]),
+                    *_warunki_bez_dokumentu(funkcja.decyzja_dokumenty, _wymogi(wymogi).warunki_wlaczenia),
+                ]
+                if braki:
+                    raise BladZgodnosci(
+                        f"Funkcja AI „{kod}” jest funkcją wysokiego ryzyka, a decyzja urzędu o jej włączeniu jest "
+                        f"niepełna - brakuje: {'; '.join(braki)}. Podstawa klasyfikacji: {funkcja.podstawa}"
+                    )
         elif funkcja.klasyfikacja not in _KLASYFIKACJE_DOZWOLONE:
             raise BladZgodnosci(
                 f"Funkcja AI „{kod}” ma klasyfikację „{funkcja.klasyfikacja}” i nie może być użyta w tej wersji "

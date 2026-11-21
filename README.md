@@ -14,7 +14,7 @@ Wymagany Python 3.11 lub nowszy. Wydruk PDF wymaga LibreOffice na serwerze; bez 
 
 Opcje: `./uruchom-demo.sh --od-nowa` buduje bazę pokazową od początku, `./uruchom-demo.sh 8080` zmienia port.
 
-Pokaz włącza - wyłącznie na danych fikcyjnych - sugestię ocen cząstkowych przez model językowy. To funkcja wysokiego ryzyka według AI Act, po instalacji wyłączona (patrz „Założenia”). Pokaz bez niej: `ASYSTENT_DECYZJE_AI= ./uruchom-demo.sh`.
+Pokaz włącza - wyłącznie na danych fikcyjnych - sugestię ocen cząstkowych przez model językowy. To funkcja wysokiego ryzyka według AI Act, po instalacji wyłączona (patrz „Założenia”). Wpis pokazowy nie zawiera analiz, które urząd wykonuje przed włączeniem, i poza trybem demonstracyjnym niczego nie włącza. Pokaz bez tej funkcji: `ASYSTENT_DECYZJE_AI= ./uruchom-demo.sh`.
 
 ## Co działa (stan na 21.11.2026)
 
@@ -30,14 +30,16 @@ Pokaz włącza - wyłącznie na danych fikcyjnych - sugestię ocen cząstkowych 
 - **Asystent AI** na lokalnym modelu PLLuM: odpowiada na pytania o procedurę, wskazuje przepisy i ostrzega, gdy odpowiedź modelu powołuje przepis albo liczbę spoza źródeł.
 - **Projekt uzasadnienia z notatek**: na karcie oceny model układa notatki przełożonego w tekst uzasadnienia. Dostaje wyłącznie notatki - bez ocen cząstkowych i danych z EZD RP. Projekt jest oznaczony jako tekst AI, nie zapisuje się sam, a do formularza przenosi go oceniający.
 - **Sugestia ocen cząstkowych** (po instalacji wyłączona): model podpowiada oceniającemu ocenę w każdym kryterium na podstawie jego notatek, a podpowiedzi nie da się przenieść do formularza. Wymaga co najmniej 3 notatek. W próbach model zbyt łatwo sugerował oceny skrajne, więc system oznacza je ostrzeżeniem.
+- **Informacja o AI przy treściach modelu**: przy odpowiedziach asystenta i projekcie uzasadnienia stoi klasyfikacja funkcji według rejestru urzędu, a przy sugestii ocen - ostrzeżenie o funkcji wysokiego ryzyka z decyzją urzędu i listą analiz. Po sporządzeniu oceny oceniany widzi przy niej, z jakich funkcji modelu korzystał oceniający.
 - **Kontekst z EZD RP**: karta faktów o sprawach ocenianego za okres oceny (liczba spraw, terminowość, akceptacje pism), jawna dla obu stron, bez punktów i rankingów. Włącza ją komórka kadr po spełnieniu warunków Kodeksu pracy. W pokazie karta działa na danych przykładowych; klient Integrator API jest w rdzeniu, przetestowany na atrapie i jeszcze niepodłączony do karty.
 
-Testy: 673 testy rdzenia i 237 testów aplikacji.
+Testy: 700 testów rdzenia i 249 testów aplikacji.
 
 ## Założenia
 
 - **Prawo w konfiguracji, nie w kodzie.** Parametry przepisów są w `asystent_ocen/przepisy.toml`, wymogi zgodności w `asystent_ocen/zgodnosc.toml`. Zmiana przepisu to zmiana pliku. Aplikacja pokazuje ten plik na stronie „Przepisy”.
-- **Ocenę wystawia człowiek.** Po instalacji działają tylko funkcje AI spoza wysokiego ryzyka: odpowiedzi na pytania o procedurę, korekta językowa i ułożenie notatek oceniającego w projekt uzasadnienia. Sugestia ocen cząstkowych jest w rejestrze (`zgodnosc.toml`) funkcją wysokiego ryzyka i jest wyłączona. Urząd może ją włączyć tylko własną decyzją zapisaną w pliku wskazanym zmienną `ASYSTENT_DECYZJE_AI` (wzór: `decyzje-ai-pokaz.toml`), a usunięcie wpisu wyłącza ją od razu. Funkcji zakazanych nie włącza nic. Model nie dostaje danych z EZD RP.
+- **Ocenę wystawia człowiek.** Po instalacji dozwolone są tylko funkcje AI spoza wysokiego ryzyka: odpowiedzi na pytania o procedurę, ułożenie notatek oceniającego w projekt uzasadnienia i korekta językowa (ta ostatnia jest w rdzeniu, bez przycisku w aplikacji). Sugestia ocen cząstkowych jest w rejestrze (`zgodnosc.toml`) funkcją wysokiego ryzyka i jest wyłączona. Funkcji zakazanych nie włącza nic. Model nie dostaje danych z EZD RP.
+- **O funkcji wysokiego ryzyka decyduje urząd.** Najpierw wykonuje analizy i czynności z listy w `zgodnosc.toml`: ocenę skutków dla praw podstawowych, ocenę skutków dla ochrony danych, powierzenie nadzoru, poinformowanie pracowników i rejestrację w bazie danych UE. Potem zapisuje decyzję - organ, datę i dokument każdej pozycji - w pliku wskazanym zmienną `ASYSTENT_DECYZJE_AI` (wzór: `decyzje-ai-wzor.toml`). Bez kompletnej decyzji system funkcji nie uruchomi, a usunięcie wpisu wyłącza ją od razu. System nie ocenia treści analiz - odpowiada za nie urząd. Lista to minimum, nie pełny katalog obowiązków z AI Act i RODO.
 - **Dane zostają w urzędzie.** Model językowy działa lokalnie, a strony nie pobierają niczego z internetu (wymusza to polityka treści w nagłówkach odpowiedzi).
 - **Tylko licencje permisywne.** Django (BSD-3-Clause), python-docx (MIT), model PLLuM-12B-chat (Apache-2.0).
 - **Dostępność cyfrowa jest wymaganiem.** Interfejs i wydruki mają spełniać WCAG 2.1 na poziomach A i AA, czyli załącznik do ustawy o dostępności cyfrowej. Automatyczny audyt 71 stron pokazu nie wykazuje naruszeń, a strony działają przy szerokości 320 px. Testu z czytnikiem ekranu jeszcze nie było - stan kontroli i znane braki opisuje `dokumentacja/dostepnosc.md`.
@@ -75,7 +77,7 @@ Wszystko, co zależy od urzędu, ustawia się zmiennymi środowiskowymi z prefik
 | `ASYSTENT_URZAD`, `ASYSTENT_MIEJSCOWOSC` | nazwa urzędu i miejscowość na wydrukach |
 | `ASYSTENT_BAZA` | plik bazy danych |
 | `ASYSTENT_OLLAMA_ADRES`, `ASYSTENT_MODEL` | lokalny model językowy |
-| `ASYSTENT_DECYZJE_AI` | plik z decyzjami urzędu o włączeniu funkcji AI wysokiego ryzyka; bez niego żadna taka funkcja nie działa |
+| `ASYSTENT_DECYZJE_AI` | plik z decyzją urzędu o włączeniu funkcji AI wysokiego ryzyka (wzór: `decyzje-ai-wzor.toml`); bez niego żadna taka funkcja nie działa |
 | `ASYSTENT_TRYB_DEMO` | `1` włącza konta pokazowe - nigdy we wdrożeniu |
 
 Skrypt `uruchom-demo.sh` używa serwera deweloperskiego Django i służy do pokazu. We wdrożeniu aplikację uruchamia się przez serwer WSGI za serwerem pośredniczącym z HTTPS.

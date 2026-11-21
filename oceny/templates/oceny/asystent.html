@@ -23,7 +23,8 @@
 <section class="karta" aria-labelledby="n-odpowiedz">
   <h2 id="n-odpowiedz">Odpowiedź</h2>
   {% if odpowiedz.odmowa %}<p class="komunikat komunikat-warning">{{ odpowiedz.tekst }}</p>
-  {% else %}<p class="tekst">{{ odpowiedz.tekst }}</p>{% endif %}
+  {% else %}<p class="tekst">{{ odpowiedz.tekst }}</p>
+  {% include "oceny/_nota_ai.html" %}{% endif %}
   {% for ostrzezenie in odpowiedz.ostrzezenia %}
   <p class="komunikat komunikat-warning"><strong>Kontrola odpowiedzi:</strong> {{ ostrzezenie }}</p>
   {% endfor %}

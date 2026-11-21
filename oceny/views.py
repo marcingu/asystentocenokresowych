@@ -461,6 +461,7 @@ def przepisy(request):
         "tresc": DOMYSLNY_PLIK.read_text(encoding="utf-8"),
         "funkcje_ai": wymogi.funkcje_ai,
         "blad_decyzji_ai": blad_decyzji_ai,
+        "warunki_wlaczenia": wymogi.warunki_wlaczenia,
     })
 
 
@@ -470,7 +471,11 @@ def przepisy(request):
 def asystent(request):
     from . import copilot  # import przy użyciu - moduł AI nie jest potrzebny do pracy reszty systemu
 
-    kontekst = {"model": settings.ASYSTENT_MODEL, "przyklady": copilot.PRZYKLADOWE_PYTANIA}
+    kontekst = {
+        "model": settings.ASYSTENT_MODEL,
+        "przyklady": copilot.PRZYKLADOWE_PYTANIA,
+        "nota": copilot.nota_ai(copilot.FUNKCJA_PYTANIA),
+    }
     if request.method == "POST":
         pytanie = formularze.tekst(request.POST, "pytanie")[:1000]
         kontekst["pytanie"] = pytanie

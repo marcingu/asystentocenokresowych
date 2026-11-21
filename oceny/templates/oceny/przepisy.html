@@ -25,15 +25,30 @@
         <td>{{ funkcja.opis }}<small>{{ funkcja.kod }}</small></td>
         <td>{{ funkcja.klasyfikacja }}</td>
         <td>{{ funkcja.podstawa }}</td>
-        <td>{% if funkcja.wlaczona and funkcja.decyzja_wlaczenia %}<span class="stan stan-pilne">włączona decyzją urzędu</span>{% elif funkcja.wlaczona %}<span class="stan stan-w_terminie">włączona</span>{% else %}<span class="stan stan-bez_terminu">wyłączona</span>{% endif %}</td>
+        <td>{% if funkcja.wlaczona and funkcja.decyzja_pokazowa %}<span class="stan stan-pilne">włączona w pokazie</span>{% elif funkcja.wlaczona and funkcja.decyzja_wlaczenia %}<span class="stan stan-pilne">włączona decyzją urzędu</span>{% elif funkcja.wlaczona %}<span class="stan stan-w_terminie">włączona</span>{% else %}<span class="stan stan-bez_terminu">wyłączona</span>{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   </div>
   {% for funkcja in funkcje_ai %}{% if funkcja.wlaczona and funkcja.decyzja_wlaczenia %}
-  <p class="pouczenie"><strong>Decyzja o włączeniu funkcji {{ funkcja.kod }} (wysokie ryzyko):</strong> {{ funkcja.decyzja_wlaczenia }}</p>
+  <div class="pouczenie">
+    {% if funkcja.decyzja_pokazowa %}
+    <p><strong>Funkcja {{ funkcja.kod }} (wysokie ryzyko) - włączenie pokazowe, bez decyzji urzędu.</strong> {{ funkcja.decyzja_wlaczenia }}</p>
+    {% else %}
+    <p><strong>Funkcja {{ funkcja.kod }} (wysokie ryzyko) - decyzja urzędu o włączeniu.</strong>
+      {{ funkcja.decyzja_organ }}, {{ funkcja.decyzja_data|date:"d.m.Y" }}. {{ funkcja.decyzja_wlaczenia }}</p>
+    <p>Analizy i czynności wykonane przez urząd przed włączeniem:</p>
+    <ul>{% for dokument in funkcja.decyzja_dokumenty %}<li>{{ dokument.nazwa }} ({{ dokument.podstawa }}): {{ dokument.dokument }}</li>{% endfor %}</ul>
+    {% endif %}
+  </div>
   {% endif %}{% endfor %}
+  <h3>Zanim urząd włączy funkcję wysokiego ryzyka</h3>
+  <p>O włączeniu decyduje urząd. Najpierw wykonuje analizy i czynności z listy poniżej, a w decyzji podaje organ, datę
+    i dokument każdej pozycji - inaczej system funkcji nie uruchomi. System nie ocenia treści analiz: za ich rzetelność
+    i za spełnienie obowiązków z AI Act, RODO i Kodeksu pracy odpowiada urząd. Lista jest w konfiguracji i urząd może ją
+    rozszerzyć.</p>
+  <ul>{% for warunek in warunki_wlaczenia %}<li>{{ warunek.nazwa }} ({{ warunek.podstawa }})</li>{% endfor %}</ul>
 </section>
 
 <section class="karta" aria-labelledby="n-plik">

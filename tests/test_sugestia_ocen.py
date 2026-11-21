@@ -39,8 +39,8 @@ NOTATKI = [
     "Dodatkowe osiągnięcie: przeprowadziła szkolenie dla nowych pracowników wydziału.",
     "Na prośby innych wydziałów odpowiada tego samego dnia.",
 ]
-# Rejestr z funkcją włączoną decyzją urzędu - tak jak w pokazie.
-WYMOGI = wczytaj_wymogi(decyzje=Path(__file__).resolve().parents[1] / "decyzje-ai-pokaz.toml")
+# Rejestr z funkcją włączoną tak jak w pokazie: decyzją pokazową, która działa tylko w trybie pokazu.
+WYMOGI = wczytaj_wymogi(decyzje=Path(__file__).resolve().parents[1] / "decyzje-ai-pokaz.toml", tryb_pokazu=True)
 
 
 def sugeruj(notatki, kryteria, **parametry):

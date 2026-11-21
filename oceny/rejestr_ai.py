@@ -1,9 +1,12 @@
 """Rejestr funkcji AI urzędu: rejestr z pakietu i decyzje urzędu o funkcjach wysokiego ryzyka.
 
-Rejestr z pakietu (`asystent_ocen/zgodnosc.toml`) ma funkcje wysokiego ryzyka wyłączone. Urząd włącza taką funkcję
-własną decyzją zapisaną w pliku wskazanym ustawieniem `ASYSTENT_DECYZJE_AI`. Plik jest czytany przy każdym użyciu,
-więc usunięcie wpisu wyłącza funkcję od razu. Błędny albo brakujący plik niczego nie włącza: system pracuje dalej
-na rejestrze z pakietu, a opis błędu pokazuje strona „Przepisy”.
+Rejestr z pakietu (`asystent_ocen/zgodnosc.toml`) ma funkcje wysokiego ryzyka wyłączone. O włączeniu decyduje urząd:
+po wykonaniu analiz z rejestru zapisuje decyzję (organ, data, dokument każdej analizy) w pliku wskazanym ustawieniem
+`ASYSTENT_DECYZJE_AI`. Plik jest czytany przy każdym użyciu, więc usunięcie wpisu wyłącza funkcję od razu. Błędny,
+niepełny albo brakujący plik niczego nie włącza: system pracuje dalej na rejestrze z pakietu, a opis błędu
+pokazuje strona „Przepisy”.
+
+Decyzja pokazowa (bez analiz) działa tylko w trybie demonstracyjnym, czyli na danych fikcyjnych.
 """
 
 from __future__ import annotations
@@ -19,7 +22,7 @@ def stan() -> tuple[Wymogi, str]:
     if not plik:
         return wczytaj_wymogi(), ""
     try:
-        return wczytaj_wymogi(decyzje=plik), ""
+        return wczytaj_wymogi(decyzje=plik, tryb_pokazu=settings.ASYSTENT_TRYB_DEMO), ""
     except BladZgodnosci as blad:
         return wczytaj_wymogi(), str(blad)
 

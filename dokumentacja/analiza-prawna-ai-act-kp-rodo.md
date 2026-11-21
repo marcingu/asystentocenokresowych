@@ -117,9 +117,23 @@ Rejestr jest w `asystent_ocen/zgodnosc.toml`. W rejestrze nie da się włączyć
 
 ### 3.7. Gdyby urząd chciał funkcję wysokiego ryzyka
 
-[F] Od 2.12.2027 obowiązują m.in.: nadzór człowieka (art. 14), poinformowanie przedstawicieli pracowników i pracowników przed użyciem systemu w miejscu pracy (art. 26 ust. 7), poinformowanie osób, których dotyczą decyzje (art. 26 ust. 11), ocena skutków dla praw podstawowych przez podmioty prawa publicznego przed wdrożeniem (art. 27 ust. 1), rejestracja w bazie UE (art. 49 ust. 1 i 3). [?] Pełnego katalogu wymogów z rozdziału III sekcji 2 nie analizowano.
+[F] Od 2.12.2027 stosuje się m.in.: nadzór człowieka (art. 14 i art. 26 ust. 2), poinformowanie przedstawicieli pracowników i pracowników przed użyciem systemu w miejscu pracy (art. 26 ust. 7), poinformowanie osób, których dotyczą decyzje (art. 26 ust. 11), ocenę skutków dla praw podstawowych przez podmioty prawa publicznego przed wdrożeniem (art. 27 ust. 1) oraz zakaz stosowania przez organ publiczny systemu niezarejestrowanego w bazie UE (art. 26 ust. 8). [F] Samą rejestrację opisuje art. 49: ust. 1 - dostawca, ust. 3 - organ publiczny jako podmiot stosujący, przed wykorzystaniem systemu. Art. 49 leży w sekcji 5 rozdziału III, której art. 113 lit. c nie wymienia. [?] Od kiedy art. 49 stosuje się do systemów z załącznika III - nie rozstrzygamy. [F] RODO, w tym art. 35 (ocena skutków dla ochrony danych), stosuje się już teraz. [?] Pełnego katalogu wymogów z rozdziału III sekcji 2 ani obowiązków dostawcy (art. 16) nie analizowano.
 
-**Jak system to obsługuje (decyzje prowadzącego projekt z 21.11.2026).** Sugestia ocen cząstkowych (`PROPOZYCJA_OCENY`) to jedyna funkcja wysokiego ryzyka, która ma kod. Po instalacji jest wyłączona. Urząd włącza ją plikiem decyzji wskazanym zmienną `ASYSTENT_DECYZJE_AI` (wzór: `decyzje-ai-pokaz.toml`). Wpis podaje kod funkcji i opis decyzji: kto, kiedy i na jakich warunkach ją włączył. Plik bez opisu, z nieznanym kodem albo z funkcją zakazaną system odrzuca i niczego nie włącza. Plik jest czytany przy każdym użyciu, więc usunięcie wpisu wyłącza funkcję od razu. Pokaz włącza funkcję na danych fikcyjnych.
+**Jak system to obsługuje (decyzje prowadzącego projekt z 21.11.2026).** Sugestia ocen cząstkowych (`PROPOZYCJA_OCENY`) to jedyna funkcja wysokiego ryzyka, która ma kod. Po instalacji jest wyłączona. O włączeniu decyduje urząd - po wykonaniu analiz i czynności z listy w `asystent_ocen/zgodnosc.toml` (sekcja `warunki_wlaczenia_wysokiego_ryzyka`):
+
+| Analiza albo czynność | Podstawa |
+|---|---|
+| ocena skutków dla praw podstawowych | art. 27 ust. 1 AI Act |
+| ocena skutków dla ochrony danych | art. 35 RODO; art. 26 ust. 9 AI Act |
+| powierzenie nadzoru nad funkcją osobom z kompetencjami, przeszkoleniem i uprawnieniami | art. 26 ust. 2 AI Act |
+| poinformowanie pracowników i ich przedstawicieli przed użyciem funkcji | art. 26 ust. 7 AI Act |
+| rejestracja użycia w bazie danych UE, po sprawdzeniu, że system zarejestrował dostawca | art. 49 ust. 3 i art. 26 ust. 8 AI Act |
+
+[W] To minimum sprawdzone w tekście przepisów, a nie pełny katalog obowiązków. Lista jest konfiguracją - urząd może ją rozszerzyć.
+
+Decyzję urząd zapisuje w pliku wskazanym zmienną `ASYSTENT_DECYZJE_AI` (wzór: `decyzje-ai-wzor.toml`). Wpis podaje kod funkcji, organ, datę, opis decyzji i dokument dla każdej pozycji listy. Plik bez organu, bez daty albo bez któregokolwiek dokumentu, z nieznanym kodem albo z funkcją zakazaną system odrzuca i niczego nie włącza. System nie ocenia treści analiz - sprawdza tylko, czy decyzja je wskazuje. Plik jest czytany przy każdym użyciu, więc usunięcie wpisu wyłącza funkcję od razu.
+
+Pokaz włącza funkcję wpisem ze znacznikiem `pokaz = true` (`decyzje-ai-pokaz.toml`), bez analiz. Taki wpis działa wyłącznie w trybie demonstracyjnym, na danych fikcyjnych; poza nim system go odrzuca.
 
 [W] Środki wbudowane w prototyp:
 
@@ -127,9 +141,12 @@ Rejestr jest w `asystent_ocen/zgodnosc.toml`. W rejestrze nie da się włączyć
 - podpowiedzi nie da się przenieść do formularza - oceny wpisuje oceniający;
 - przy mniej niż 3 notatkach model nie jest pytany;
 - ocena z krańca skali, ocena spoza skali i liczba spoza notatek dają ostrzeżenie;
-- użycie funkcji zostaje w historii czynności, a oceniany widzi je po sporządzeniu oceny.
+- użycie funkcji zostaje w historii czynności, a oceniany widzi je po sporządzeniu oceny;
+- przy przycisku i przy wygenerowanej sugestii stoi ostrzeżenie o funkcji wysokiego ryzyka: kto i kiedy zdecydował o włączeniu i jakie analizy to poprzedziły, a w pokazie - że analiz nie wykonano;
+- przy projekcie uzasadnienia i przy odpowiedziach asystenta stoi informacja, że to treść modelu językowego, z klasyfikacją funkcji z rejestru;
+- po sporządzeniu oceny oceniany widzi przy niej, z jakich funkcji modelu korzystał oceniający, w tym z funkcji wysokiego ryzyka (art. 26 ust. 11).
 
-[?] To nie jest wykazanie zgodności. Prototyp nie wykazuje spełnienia wymogów dla systemów wysokiego ryzyka ani obowiązków urzędu wymienionych wyżej. Użycie funkcji na danych pracowników wymaga decyzji urzędu poprzedzonej analizą prawną (pkt 7.7).
+[?] To nie jest wykazanie zgodności. Prototyp nie wykazuje spełnienia wymogów dla systemów wysokiego ryzyka ani obowiązków urzędu wymienionych wyżej. Użycie funkcji na danych pracowników wymaga decyzji urzędu poprzedzonej analizą prawną (pkt 7.7). Lista analiz dotyczy urzędu jako podmiotu stosującego; obowiązków dostawcy systemu (art. 16) prototyp nie obejmuje (pkt 7.3).
 
 ## 4. RODO
 
@@ -158,8 +175,8 @@ Ograniczenia: [F] wyszukiwanie spraw wymaga uprawnienia `Sprawy.Podglad`, a wyni
 | Decyzja | Testy |
 |---|---|
 | Integracja z EZD RP rusza dopiero po ustaleniach z art. 22[2] § 6 i po 2 tygodniach od poinformowania pracowników | `tests/test_zgodnosc_monitoring.py` |
-| Rejestr funkcji AI z klasyfikacją; funkcji zakazanej nie włącza nic; funkcję wysokiego ryzyka włącza tylko plik decyzji urzędu z opisem decyzji | `tests/test_zgodnosc_funkcje_ai.py` |
-| Sugestia ocen cząstkowych: po instalacji wyłączona; tylko z notatek oceniającego, przy co najmniej 3 notatkach; bez przenoszenia do formularza; ostrzeżenie przy ocenie skrajnej; ślad w historii czynności | `tests/test_sugestia_ocen.py`, `oceny/tests/test_sugestia_ocen.py` |
+| Rejestr funkcji AI z klasyfikacją; funkcji zakazanej nie włącza nic; funkcję wysokiego ryzyka włącza tylko decyzja urzędu z organem, datą i dokumentem każdej analizy z listy; wpis pokazowy działa tylko w trybie demonstracyjnym | `tests/test_zgodnosc_funkcje_ai.py` |
+| Sugestia ocen cząstkowych: po instalacji wyłączona; tylko z notatek oceniającego, przy co najmniej 3 notatkach; bez przenoszenia do formularza; ostrzeżenie przy ocenie skrajnej; ślad w historii czynności; ostrzeżenie o funkcji wysokiego ryzyka z decyzją urzędu przy przycisku i przy wyniku; informacja dla ocenianego po sporządzeniu oceny | `tests/test_sugestia_ocen.py`, `oceny/tests/test_sugestia_ocen.py` |
 | Zamknięta lista jawnych wskaźników z listą spraw źródłowych; bez oceny zbiorczej i rankingu; minimalna liczność 5 | `tests/test_wskazniki_pracy.py` |
 | Klient EZD RP tylko do odczytu, bez treści pism; wynik odwołań z rejestru własnego | `tests/test_ezdrp_api.py` |
 | Projekt uzasadnienia z notatek: model dostaje wyłącznie notatki (bez ocen, szkicu, wyniku i danych z EZD RP), projekt nie jest zapisywany, a kontrola oznacza pola do uzupełnienia, liczby spoza notatek, pominięte liczby i sformułowania o ocenie | `tests/test_redakcja_notatek.py`, `oceny/tests/test_copilot.py` |
@@ -174,7 +191,7 @@ Poza testami: model PLLuM-12B-chat-2512 działa lokalnie (licencja Apache-2.0 we
 4. Czy korekta językowa uzasadnienia na pewno mieści się w art. 6 ust. 3 lit. b i kogo obciąża rejestracja z art. 49 ust. 2.
 5. Czy urzędy prowadzą w EZD RP rejestr odwołań z wynikiem.
 6. Czy ułożenie notatek oceniającego w projekt uzasadnienia mieści się w art. 6 ust. 3 lit. d (albo b) AI Act. Model nie ocenia i nie dostaje ocen ani danych z EZD RP, ale jego tekst po akceptacji oceniającego trafia do arkusza. Do rozstrzygnięcia funkcję można wyłączyć jedną zmianą w `zgodnosc.toml`.
-7. Sugestia ocen cząstkowych (funkcja wysokiego ryzyka, pkt 3.7): czy urząd chce z niej korzystać, kto jest dostawcą, a kto podmiotem stosującym, i jakie obowiązki trzeba spełnić przed użyciem na danych pracowników. Do rozstrzygnięcia funkcja jest wyłączona poza pokazem na danych fikcyjnych.
+7. Sugestia ocen cząstkowych (funkcja wysokiego ryzyka, pkt 3.7): czy urząd chce z niej korzystać, kto jest dostawcą, a kto podmiotem stosującym, jakie obowiązki trzeba spełnić przed użyciem na danych pracowników i od kiedy stosuje się rejestrację z art. 49. Do rozstrzygnięcia funkcja jest wyłączona poza pokazem na danych fikcyjnych.
 
 ## 8. Źródła
 

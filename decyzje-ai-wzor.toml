@@ -1,0 +1,25 @@
+# Wzór decyzji urzędu o włączeniu funkcji AI wysokiego ryzyka.
+#
+# Po instalacji żadna funkcja wysokiego ryzyka nie działa. O włączeniu decyduje urząd - po wykonaniu analiz
+# i czynności z listy w asystent_ocen/zgodnosc.toml (sekcja warunki_wlaczenia_wysokiego_ryzyka). System nie ocenia
+# treści analiz: sprawdza, czy decyzja podaje organ, datę i dokument każdej pozycji. Za rzetelność analiz i za
+# spełnienie obowiązków z AI Act, RODO i Kodeksu pracy odpowiada urząd.
+#
+# Jak użyć:
+# 1. Skopiuj ten plik poza katalog programu, usuń znaki "#" z wpisu poniżej i wpisz dane swojej decyzji.
+# 2. Wskaż plik zmienną środowiskową ASYSTENT_DECYZJE_AI.
+# 3. Sprawdź stronę "Przepisy" - pokazuje decyzję albo opis błędu w pliku.
+# Plik jest czytany przy każdym użyciu funkcji: usunięcie wpisu wyłącza ją od razu.
+# Ten wzór w niezmienionej postaci niczego nie włącza.
+#
+# [[decyzje]]
+# kod = "PROPOZYCJA_OCENY"
+# organ = "Dyrektor Generalny Urzędu"
+# data = 2027-12-06
+# decyzja_wlaczenia = "Zarządzenie nr .../...: zakres użycia, osoby sprawujące nadzór, termin przeglądu decyzji."
+# [decyzje.dokumenty]
+# OCENA_SKUTKOW_DLA_PRAW_PODSTAWOWYCH = "znak i data dokumentu"
+# OCENA_SKUTKOW_DLA_OCHRONY_DANYCH = "znak i data dokumentu"
+# NADZOR_CZLOWIEKA = "znak i data dokumentu"
+# POINFORMOWANIE_PRACOWNIKOW = "znak i data dokumentu"
+# REJESTRACJA_W_BAZIE_UE = "znak i data dokumentu"

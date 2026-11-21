@@ -5,10 +5,15 @@ funkcja jest wyłączona, a włącza ją plik decyzji urzędu (w pokazie `decyzj
 Klasyfikacja: zał. III pkt 4 lit. b AI Act (dokumentacja/analiza-prawna-ai-act-kp-rodo.md, pkt 3.6).
 Decyzje projektowe: sugestia powstaje z notatek oceniającego (bez danych z EZD RP i bez szkicu oceny), nie jest
 zapisywana i nie da się jej przenieść do formularza; użycie funkcji zostaje w historii czynności.
+
+Decyzja prowadzącego projekt z 21.11.2026 (wieczorem): urząd przed włączeniem funkcji wysokiego ryzyka przygotowuje
+analizy i sam decyduje o włączeniu, a przy treściach wygenerowanych przez model stoją ostrzeżenia i informacja
+o tej decyzji. Informacja dla ocenianego: art. 26 ust. 11 AI Act.
 """
 
 import json
 import os
+import tempfile
 import unittest
 from datetime import date, timedelta
 from pathlib import Path
@@ -21,6 +26,7 @@ from django.urls import reverse
 from asystent_ocen.asystent_ai import MIN_NOTATEK_DO_SUGESTII, BladModelu
 from asystent_ocen.kryteria import kryteria_obowiazkowe
 from asystent_ocen.przebieg import OSIAGNIECIE
+from asystent_ocen.zgodnosc import wczytaj_wymogi
 from oceny import copilot, uslugi
 from oceny.models import Ocena, UstaleniaMonitoringu, Zdarzenie
 
@@ -30,6 +36,23 @@ from .test_widoki import czynnosc, klient
 
 KATALOG = Path(__file__).resolve().parents[2]
 DECYZJE_POKAZU = str(KATALOG / "decyzje-ai-pokaz.toml")
+ORGAN = "Dyrektor Generalny Urzędu Testowego"
+WARUNKI = wczytaj_wymogi().warunki_wlaczenia
+# Decyzja fikcyjnego urzędu: organ, data i dokument każdej analizy z rejestru - tak urząd włącza funkcję.
+_KATALOG_DECYZJI = tempfile.TemporaryDirectory()
+DECYZJE_URZEDU = str(Path(_KATALOG_DECYZJI.name) / "decyzje-ai.toml")
+Path(DECYZJE_URZEDU).write_text(
+    '[[decyzje]]\nkod = "PROPOZYCJA_OCENY"\n'
+    f'organ = "{ORGAN}"\ndata = 2026-10-01\n'
+    'decyzja_wlaczenia = "Zarządzenie nr 7/2026: sugestie dla naczelników wydziałów, przegląd decyzji co rok."\n'
+    "[decyzje.dokumenty]\n"
+    + "".join(f'{warunek.kod} = "Dokument nr {numer}/2026"\n' for numer, warunek in enumerate(WARUNKI, start=1)),
+    encoding="utf-8",
+)
+OSTRZEZENIE = "Ostrzeżenie: funkcja wysokiego ryzyka według AI Act"
+OSTRZEZENIE_PRZY_TRESCI = "Ostrzeżenie: treść wygenerowana przez model językowy w funkcji wysokiego ryzyka"
+TRESC_AI = "Treść wygenerowana przez model językowy"
+INFORMACJA_O_UZYCIU = "Informacja o użyciu AI przy tej ocenie"
 DZIEN = date(2026, 11, 2)
 PRZYCISK = "Zasugeruj oceny cząstkowe z moich notatek"
 NAGLOWEK = "Sugestia modelu językowego"
@@ -86,6 +109,20 @@ class Podstawa(TestCase):
     def wpisy(self):
         return Zdarzenie.objects.filter(ocena=self.ocena, czynnosc=uslugi.CZYNNOSC_SUGESTIA_AI)
 
+    def sporzadz_ocene(self) -> None:
+        uslugi.sporzadz_ocene(
+            self.ocena, self.z.szef.uzytkownik, data_rozmowy=DZIEN_ROZMOWY, oceny=self.z.oceny(7),
+            wnioski_iprz="Szkolenie.", data=DZIEN_OCENY,
+        )
+
+    def assert_decyzja_urzedu(self, odpowiedz) -> None:
+        """Kto i kiedy włączył funkcję oraz dokument każdej analizy i czynności z rejestru."""
+        self.assertContains(odpowiedz, ORGAN)
+        self.assertContains(odpowiedz, "01.10.2026")
+        for numer, warunek in enumerate(WARUNKI, start=1):
+            self.assertContains(odpowiedz, warunek.nazwa)
+            self.assertContains(odpowiedz, f"Dokument nr {numer}/2026")
+
 
 @override_settings(ASYSTENT_DZIS=DZIEN.isoformat(), ASYSTENT_DECYZJE_AI=None)
 class BezDecyzjiUrzeduTest(Podstawa):
@@ -112,8 +149,18 @@ class BezDecyzjiUrzeduTest(Podstawa):
         self.assertNotContains(odpowiedz, "włączona decyzją urzędu")
         self.assertNotContains(odpowiedz, "Plik decyzji urzędu")
 
+    def test_strona_przepisow_wymienia_analizy_ktore_urzad_wykonuje_przed_wlaczeniem(self):
+        """Lista z konfiguracji jest jawna także wtedy, gdy żadna funkcja wysokiego ryzyka nie działa."""
+        odpowiedz = klient(self.z.szef).get(reverse("przepisy"))
 
-@override_settings(ASYSTENT_DZIS=DZIEN.isoformat(), ASYSTENT_DECYZJE_AI=DECYZJE_POKAZU)
+        self.assertContains(odpowiedz, "O włączeniu decyduje urząd")
+        for warunek in WARUNKI:
+            self.assertContains(odpowiedz, warunek.nazwa)
+            self.assertContains(odpowiedz, warunek.podstawa)
+        self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])
+
+
+@override_settings(ASYSTENT_DZIS=DZIEN.isoformat(), ASYSTENT_DECYZJE_AI=DECYZJE_URZEDU)
 class SugestiaOcenTest(Podstawa):
     def test_przycisk_widzi_tylko_oceniajacy(self):
         self.assertContains(klient(self.z.szef).get(self.karta), PRZYCISK)
@@ -228,15 +275,17 @@ class SugestiaOcenTest(Podstawa):
         self.assertEqual(bledy_dostepnosci(szef.get(self.karta).content.decode()), [])
         self.assertEqual(bledy_dostepnosci(szef.post(self.adres).content.decode()), [])
 
-    def test_strona_przepisow_pokazuje_decyzje_urzedu(self):
+    def test_strona_przepisow_pokazuje_decyzje_urzedu_i_dokumenty_analiz(self):
         odpowiedz = klient(self.z.szef).get(reverse("przepisy"))
 
         self.assertContains(odpowiedz, "włączona decyzją urzędu", count=1)
-        self.assertContains(odpowiedz, "Pokaz na danych fikcyjnych")
+        self.assertContains(odpowiedz, "Zarządzenie nr 7/2026")
+        self.assert_decyzja_urzedu(odpowiedz)
+        self.assertNotContains(odpowiedz, "włączona w pokazie")
         self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])
 
 
-@override_settings(ASYSTENT_DZIS=DZIEN.isoformat(), ASYSTENT_DECYZJE_AI=DECYZJE_POKAZU, ASYSTENT_TRYB_DEMO=True)
+@override_settings(ASYSTENT_DZIS=DZIEN.isoformat(), ASYSTENT_DECYZJE_AI=DECYZJE_URZEDU, ASYSTENT_TRYB_DEMO=True)
 class GraniceDanychTest(Podstawa):
     pola_ocenianego = {"klauzula_ezd_potwierdzona": True, "identyfikator_ezd": "stanowisko-ola"}
 
@@ -279,7 +328,7 @@ class GraniceDanychTest(Podstawa):
             self.assertNotIn(obce, self.model.wyslane)  # ...ale do modelu nie trafia
 
 
-@override_settings(ASYSTENT_DZIS=DZIEN.isoformat(), ASYSTENT_DECYZJE_AI=DECYZJE_POKAZU)
+@override_settings(ASYSTENT_DZIS=DZIEN.isoformat(), ASYSTENT_DECYZJE_AI=DECYZJE_URZEDU)
 class SladUzyciaTest(Podstawa):
     def test_uzycie_ai_zostaje_w_historii_bez_tresci_sugestii(self):
         self.notatki()
@@ -298,14 +347,34 @@ class SladUzyciaTest(Podstawa):
         ola = klient(self.z.ola)
 
         self.assertNotContains(ola.get(self.karta), uslugi.CZYNNOSC_SUGESTIA_AI)
-        uslugi.sporzadz_ocene(
-            self.ocena, self.z.szef.uzytkownik, data_rozmowy=DZIEN_ROZMOWY, oceny=self.z.oceny(7),
-            wnioski_iprz="Szkolenie.", data=DZIEN_OCENY,
-        )
+        self.sporzadz_ocene()
         self.assertContains(ola.get(self.karta), uslugi.CZYNNOSC_SUGESTIA_AI)
 
+    def test_po_sporzadzeniu_oceny_oceniany_dostaje_informacje_o_uzyciu_funkcji_wysokiego_ryzyka(self):
+        """Art. 26 ust. 11 AI Act: osobę, wobec której wykorzystano system wysokiego ryzyka, informuje się o tym.
+        Informacja stoi przy ocenie - nie trzeba jej szukać w historii czynności."""
+        self.notatki()
+        klient(self.z.szef).post(self.adres)
+        ola = klient(self.z.ola)
+        self.assertNotContains(ola.get(self.karta), INFORMACJA_O_UZYCIU)
 
-@override_settings(ASYSTENT_DZIS=DZIEN_OCENY.isoformat(), ASYSTENT_DECYZJE_AI=DECYZJE_POKAZU)
+        self.sporzadz_ocene()
+
+        odpowiedz = ola.get(self.karta)
+        self.assertContains(odpowiedz, INFORMACJA_O_UZYCIU, count=1)
+        self.assertContains(odpowiedz, "funkcja wysokiego ryzyka według AI Act")
+        self.assertContains(odpowiedz, "Oceny cząstkowe i treść oceny ustalił oceniający")
+        self.assertContains(odpowiedz, ORGAN)
+        self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])
+        self.assertContains(klient(self.z.kadry).get(self.karta), INFORMACJA_O_UZYCIU, count=1)
+
+    def test_bez_uzycia_modelu_informacji_o_ai_przy_ocenie_nie_ma(self):
+        self.sporzadz_ocene()
+
+        self.assertNotContains(klient(self.z.ola).get(self.karta), INFORMACJA_O_UZYCIU)
+
+
+@override_settings(ASYSTENT_DZIS=DZIEN_OCENY.isoformat(), ASYSTENT_DECYZJE_AI=DECYZJE_URZEDU)
 class PozaEtapemOcenianiaTest(TestCase):
     def test_po_sporzadzeniu_oceny_sugestii_nie_da_sie_zamowic(self):
         z = Zespol()
@@ -338,6 +407,110 @@ class BlednyPlikDecyzjiTest(Podstawa):
         self.assertContains(przepisy, "Plik decyzji urzędu")
         self.assertNotContains(przepisy, "włączona decyzją urzędu")
         self.assertNotContains(przepisy, str(KATALOG))  # komunikat nie ujawnia ścieżek serwera
+        self.assertContains(odpowiedz, copilot.SUGESTIA_NIEWLACZONA)
+        self.assertEqual(self.model.wiadomosci, [])
+
+
+@override_settings(ASYSTENT_DZIS=DZIEN.isoformat(), ASYSTENT_DECYZJE_AI=DECYZJE_URZEDU)
+class OstrzezeniaPrzyTresciachAITest(Podstawa):
+    """Przy treści wygenerowanej przez model stoi ostrzeżenie i informacja, kto zdecydował o użyciu funkcji."""
+
+    def test_przy_przycisku_sugestii_jest_ostrzezenie_i_decyzja_urzedu_z_analizami(self):
+        odpowiedz = klient(self.z.szef).get(self.karta)
+
+        self.assertContains(odpowiedz, OSTRZEZENIE, count=1)
+        self.assertContains(odpowiedz, "III pkt 4 lit. b")
+        self.assertContains(odpowiedz, "Zarządzenie nr 7/2026")
+        self.assert_decyzja_urzedu(odpowiedz)
+        self.assertNotContains(odpowiedz, "Pokaz na danych fikcyjnych")
+
+    def test_przy_wygenerowanej_sugestii_jest_ostrzezenie_i_organ_ktory_wlaczyl_funkcje(self):
+        self.notatki()
+
+        odpowiedz = klient(self.z.szef).post(self.adres)
+
+        self.assertContains(odpowiedz, OSTRZEZENIE_PRZY_TRESCI, count=1)
+        self.assertContains(odpowiedz, ORGAN, count=2)  # przy przycisku i przy wygenerowanej treści
+        self.assertContains(odpowiedz, "może być błędna")
+
+    def test_przy_odmowie_i_bledzie_modelu_nie_ma_ostrzezenia_o_wygenerowanej_tresci(self):
+        odpowiedz = klient(self.z.szef).post(self.adres)  # bez notatek model nie jest pytany
+
+        self.assertNotContains(odpowiedz, OSTRZEZENIE_PRZY_TRESCI)
+
+    def test_przy_projekcie_uzasadnienia_jest_informacja_o_tresci_ai_i_klasyfikacji_funkcji(self):
+        """Redakcja notatek nie jest funkcją wysokiego ryzyka (rejestr: wyjątek z art. 6 ust. 3 AI Act) - przy
+        projekcie stoi informacja o klasyfikacji, bez ostrzeżenia o wysokim ryzyku."""
+        self.notatki()
+        self.model.odpowiedz = "Pani Ola Testowy załatwia sprawy przed terminem."
+
+        odpowiedz = klient(self.z.szef).post(czynnosc(self.ocena, "projekt-uzasadnienia"))
+
+        self.assertContains(odpowiedz, "Projekt przygotowany przez model językowy")
+        self.assertContains(odpowiedz, TRESC_AI)
+        self.assertContains(odpowiedz, "wyjątku z art. 6 ust. 3 AI Act")
+        self.assertNotContains(odpowiedz, OSTRZEZENIE_PRZY_TRESCI)
+        self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])
+
+    def test_przy_odpowiedzi_asystenta_jest_informacja_o_tresci_ai_i_klasyfikacji_funkcji(self):
+        self.model.odpowiedz = "Sprzeciw wnosi się w terminie 7 dni od dnia zapoznania się z oceną (art. 83 ust. 1 u.s.c.)."
+
+        odpowiedz = klient(self.z.szef).post(reverse("asystent"), {"pytanie": "Ile mam czasu na sprzeciw od oceny?"})
+
+        self.assertContains(odpowiedz, TRESC_AI)
+        self.assertContains(odpowiedz, "poza katalogiem systemów wysokiego ryzyka")
+        self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])
+
+
+@override_settings(ASYSTENT_DZIS=DZIEN.isoformat(), ASYSTENT_DECYZJE_AI=DECYZJE_POKAZU, ASYSTENT_TRYB_DEMO=True)
+class PokazNaDanychFikcyjnychTest(Podstawa):
+    """Pokaz włącza funkcję bez analiz - i mówi to wprost wszędzie, gdzie funkcja jest widoczna."""
+
+    def test_w_pokazie_ostrzezenie_mowi_ze_analiz_nie_wykonano_i_wymienia_co_robi_urzad(self):
+        odpowiedz = klient(self.z.szef).get(self.karta)
+
+        self.assertContains(odpowiedz, PRZYCISK)
+        self.assertContains(odpowiedz, OSTRZEZENIE, count=1)
+        self.assertContains(odpowiedz, "Pokaz na danych fikcyjnych")
+        self.assertContains(odpowiedz, "bez analiz")
+        for warunek in WARUNKI:
+            self.assertContains(odpowiedz, warunek.nazwa)
+        self.assertNotContains(odpowiedz, ORGAN)
+        self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])
+
+    def test_przy_wygenerowanej_sugestii_w_pokazie_tez_jest_ostrzezenie(self):
+        self.notatki()
+
+        odpowiedz = klient(self.z.szef).post(self.adres)
+
+        self.assertContains(odpowiedz, OSTRZEZENIE_PRZY_TRESCI, count=1)
+        self.assertContains(odpowiedz, "Pokaz na danych fikcyjnych")
+        self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])
+
+    def test_strona_przepisow_oznacza_wlaczenie_jako_pokazowe(self):
+        odpowiedz = klient(self.z.szef).get(reverse("przepisy"))
+
+        self.assertContains(odpowiedz, "włączona w pokazie", count=1)
+        self.assertNotContains(odpowiedz, "włączona decyzją urzędu")
+        self.assertContains(odpowiedz, "nie wykonano")
+        self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])
+
+
+@override_settings(ASYSTENT_DZIS=DZIEN.isoformat(), ASYSTENT_DECYZJE_AI=DECYZJE_POKAZU, ASYSTENT_TRYB_DEMO=False)
+class PlikPokazuPozaPokazemTest(Podstawa):
+    def test_plik_pokazu_niczego_nie_wlacza_poza_trybem_demonstracyjnym(self):
+        """Urząd nie włączy funkcji wysokiego ryzyka plikiem pokazu - potrzebna jest jego własna decyzja."""
+        self.notatki()
+        szef = klient(self.z.szef)
+
+        karta = szef.get(self.karta)
+        przepisy = szef.get(reverse("przepisy"))
+        odpowiedz = szef.post(self.adres)
+
+        self.assertNotContains(karta, PRZYCISK)
+        self.assertContains(przepisy, "trybie demonstracyjnym")
+        self.assertNotContains(przepisy, "włączona w pokazie")
+        self.assertNotContains(przepisy, "włączona decyzją urzędu")
         self.assertContains(odpowiedz, copilot.SUGESTIA_NIEWLACZONA)
         self.assertEqual(self.model.wiadomosci, [])
 

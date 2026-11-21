@@ -149,9 +149,9 @@
     {% if copilot.sugestie_dostepne %}
     <div class="copilot">
       <p class="podpowiedz"><span class="etykieta-ai">AI</span> Model językowy może zasugerować ocenę cząstkową w każdym kryterium
-        na podstawie Twoich notatek z okresu oceny (liczba notatek: {{ copilot.liczba_notatek }}). To funkcja wysokiego ryzyka według
-        AI Act, włączona decyzją urzędu. Model dostaje wyłącznie notatki - bez danych z EZD RP i bez ocen wpisanych w formularzu.
-        Podpowiedzi nie da się przenieść do formularza: oceny wpisujesz Ty.</p>
+        na podstawie Twoich notatek z okresu oceny (liczba notatek: {{ copilot.liczba_notatek }}). Model dostaje wyłącznie notatki -
+        bez danych z EZD RP i bez ocen wpisanych w formularzu. Podpowiedzi nie da się przenieść do formularza: oceny wpisujesz Ty.</p>
+      {% include "oceny/_nota_ai.html" with nota=copilot.nota_sugestii %}
       <button type="submit" formaction="{% url 'czynnosc' ocena.pk 'sugestia-ocen' %}" class="przycisk przycisk-drugi" data-czekanie="czekanie-sugestia">Zasugeruj oceny cząstkowe z moich notatek</button>
       <p class="czekanie" id="czekanie-sugestia" role="status" data-komunikat="Model pracuje lokalnie - podpowiedź będzie gotowa za kilkanaście sekund..."></p>
     </div>
@@ -163,6 +163,10 @@
     {% elif sugestia_ai.wiersze %}
     <div class="projekt-ai" id="sugestia-ai" role="status">
       <p><span class="etykieta-ai">AI</span> <strong>Sugestia modelu językowego</strong> ({{ copilot.model }}) - podpowiedź do sprawdzenia, nie ocena.</p>
+      <p class="komunikat komunikat-warning"><strong>Ostrzeżenie: treść wygenerowana przez model językowy w funkcji wysokiego ryzyka
+        według AI Act.</strong> Podpowiedź może być błędna albo krzywdząca dla ocenianego - sprawdź ją z notatkami.
+        {% if copilot.nota_sugestii.pokaz %}Pokaz na danych fikcyjnych: funkcję włączono bez analiz, które urząd wykonuje przed jej włączeniem.
+        {% else %}O użyciu tej funkcji zdecydował urząd: {{ copilot.nota_sugestii.organ }}, decyzja z {{ copilot.nota_sugestii.data|date:"d.m.Y" }}.{% endif %}</p>
       <div class="przewijana" role="region" aria-labelledby="t-sugestia" tabindex="0">
       <table class="tabela">
         <caption class="ukryte" id="t-sugestia">Podpowiedzi modelu językowego do ocen cząstkowych</caption>
@@ -213,6 +217,7 @@
     {% elif projekt_ai.projekt %}
     <div class="projekt-ai" id="projekt-ai" role="status">
       <p><span class="etykieta-ai">AI</span> <strong>Projekt przygotowany przez model językowy</strong> ({{ copilot.model }}) - do sprawdzenia i poprawienia.</p>
+      {% include "oceny/_nota_ai.html" with nota=copilot.nota_projektu %}
       <label for="projekt-ai-tekst" class="ukryte">Projekt uzasadnienia przygotowany przez model językowy</label>
       <textarea id="projekt-ai-tekst" rows="6" readonly>{{ projekt_ai.projekt.propozycja }}</textarea>
       {% for ostrzezenie in projekt_ai.projekt.ostrzezenia %}
@@ -315,6 +320,24 @@
   <h3>Wnioski do indywidualnego programu rozwoju zawodowego</h3><p class="tekst">{{ wynik.wnioski_iprz }}</p>
   <p>Wniosek o przyznanie kolejnego stopnia służbowego: <strong>{{ wynik.wniosek_o_stopien }}</strong></p>
   {% if wynik.umotywowanie_wniosku %}<h3>Umotywowanie wniosku</h3><p class="tekst">{{ wynik.umotywowanie_wniosku }}</p>{% endif %}
+
+  {% if uzycie_ai %}
+  <h3>Informacja o użyciu AI przy tej ocenie</h3>
+  <p>Przy przygotowaniu tej oceny oceniający korzystał z lokalnego modelu językowego:</p>
+  <ul>
+    {% for wpis in uzycie_ai.wpisy %}
+    <li>{{ wpis.czynnosc }}{% if wpis.wysokie_ryzyko %} - <strong>funkcja wysokiego ryzyka według AI Act</strong>{% endif %}
+      (liczba użyć: {{ wpis.liczba }}, ostatnio {{ wpis.ostatnio|date:"d.m.Y" }})</li>
+    {% endfor %}
+  </ul>
+  <p>Model pracował wyłącznie na notatkach oceniającego. System nie zapisuje jego podpowiedzi; projekt uzasadnienia
+    oceniający mógł przenieść do oceny i zmienić, a podpowiedzi ocen cząstkowych przenieść się nie da.
+    Oceny cząstkowe i treść oceny ustalił oceniający i to on za nie odpowiada.
+    {% if uzycie_ai.nota.wysokie_ryzyko %}{% if uzycie_ai.nota.pokaz %}Pokaz na danych fikcyjnych: funkcję wysokiego ryzyka włączono bez analiz,
+    które urząd wykonuje przed jej włączeniem.{% elif uzycie_ai.nota.organ %}O użyciu funkcji wysokiego ryzyka zdecydował urząd:
+    {{ uzycie_ai.nota.organ }}, decyzja z {{ uzycie_ai.nota.data|date:"d.m.Y" }}.{% endif %}{% endif %}
+    Od oceny przysługuje sprzeciw w terminie 7 dni od dnia zapoznania się z nią (art. 83 ust. 1 ustawy o służbie cywilnej).</p>
+  {% endif %}
 
   {% if mozna_potwierdzic_zapoznanie %}
   <form method="post" action="{% url 'czynnosc' ocena.pk 'potwierdz-zapoznanie' %}" class="potwierdzenie">

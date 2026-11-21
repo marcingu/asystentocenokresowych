@@ -14,6 +14,7 @@ from django.conf import settings
 
 from asystent_ocen.asystent_ai import (
     FUNKCJA_PROPOZYCJI_OCENY,
+    FUNKCJA_PYTANIA,
     FUNKCJA_REDAKCJI,
     MIN_NOTATEK_DO_SUGESTII,
     ODMOWA_ZA_MALO_NOTATEK,
@@ -24,7 +25,14 @@ from asystent_ocen.asystent_ai import (
     zasugeruj_oceny,
     zredaguj_notatki,
 )
-from asystent_ocen.zgodnosc import BladZgodnosci, wymagaj_dozwolonej_funkcji_ai
+from asystent_ocen.zgodnosc import (
+    POZA_ZALACZNIKIEM_III,
+    WYJATEK_ART_6_UST_3,
+    WYSOKIE_RYZYKO,
+    ZAKAZANA,
+    BladZgodnosci,
+    wymagaj_dozwolonej_funkcji_ai,
+)
 
 from . import rejestr_ai
 
@@ -48,6 +56,37 @@ BRAK_NOTATEK_DO_SUGESTII = (
     "Nie ma jeszcze notatek z okresu oceny, więc model nie ma na czym oprzeć sugestii. Dodaj notatki w panelu "
     "„Moje notatki z okresu oceny”."
 )
+
+
+# Klasyfikacje z rejestru funkcji AI w postaci dla czytelnika - do informacji przy treściach wygenerowanych przez model.
+KLASYFIKACJE = {
+    POZA_ZALACZNIKIEM_III: "poza katalogiem systemów wysokiego ryzyka z załącznika III AI Act",
+    WYJATEK_ART_6_UST_3: "poza wysokim ryzykiem na podstawie wyjątku z art. 6 ust. 3 AI Act",
+    WYSOKIE_RYZYKO: "wysokie ryzyko według AI Act",
+    ZAKAZANA: "praktyka zakazana według AI Act",
+}
+
+
+def nota_ai(kod: str) -> dict:
+    """Informacja pokazywana przy funkcji modelu i przy treści, którą wygenerował: klasyfikacja według AI Act
+    z rejestru urzędu, a dla funkcji wysokiego ryzyka także decyzja urzędu o włączeniu i analizy, które ją
+    poprzedziły. W pokazie zamiast decyzji jest lista analiz, które urząd wykonuje przed włączeniem.
+    Pusty słownik, gdy funkcji nie ma w rejestrze."""
+    wymogi = rejestr_ai.wymogi()
+    funkcja = next((wpis for wpis in wymogi.funkcje_ai if wpis.kod == kod), None)
+    if funkcja is None:
+        return {}
+    return {
+        "klasyfikacja": KLASYFIKACJE.get(funkcja.klasyfikacja, funkcja.klasyfikacja),
+        "podstawa": funkcja.podstawa,
+        "wysokie_ryzyko": funkcja.klasyfikacja == WYSOKIE_RYZYKO,
+        "pokaz": funkcja.decyzja_pokazowa,
+        "organ": funkcja.decyzja_organ,
+        "data": funkcja.decyzja_data,
+        "decyzja": funkcja.decyzja_wlaczenia,
+        "dokumenty": funkcja.decyzja_dokumenty,
+        "wymagane": wymogi.warunki_wlaczenia,
+    }
 
 
 def model() -> KlientOllama:

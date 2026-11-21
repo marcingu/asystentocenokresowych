@@ -1,11 +1,14 @@
-# Decyzje urzędu o włączeniu funkcji AI wysokiego ryzyka - plik pokazu na danych fikcyjnych.
+# Decyzja pokazowa o funkcji AI wysokiego ryzyka - plik pokazu na danych fikcyjnych.
 #
-# W rejestrze funkcji AI (asystent_ocen/zgodnosc.toml) funkcje wysokiego ryzyka są wyłączone i tam nie da się ich
-# włączyć. Urząd włącza taką funkcję wyłącznie własną decyzją zapisaną w pliku takim jak ten, wskazanym zmienną
-# ASYSTENT_DECYZJE_AI. Wpis podaje kod funkcji i opis decyzji: kto, kiedy i na jakich warunkach ją włączył.
-# Bez opisu system odrzuci plik. Plik jest czytany przy każdym użyciu funkcji - usunięcie wpisu wyłącza ją od razu.
-# Włączenie nie zmienia klasyfikacji funkcji ani obowiązków urzędu z AI Act i RODO.
+# To nie jest decyzja urzędu. Wpis ze znacznikiem `pokaz = true` nie podaje organu, daty ani dokumentów analiz
+# i działa wyłącznie w trybie demonstracyjnym (ASYSTENT_TRYB_DEMO=1), w którym system pracuje na danych fikcyjnych.
+# Poza tym trybem system odrzuca ten plik i funkcji nie uruchamia.
+#
+# Urząd, który chce używać funkcji wysokiego ryzyka, przygotowuje analizy i sam decyduje o włączeniu. Wzór decyzji
+# jest w pliku decyzje-ai-wzor.toml, a lista analiz i czynności w asystent_ocen/zgodnosc.toml.
+# Plik jest czytany przy każdym użyciu funkcji - usunięcie wpisu wyłącza ją od razu.
 
 [[decyzje]]
 kod = "PROPOZYCJA_OCENY"
-decyzja_wlaczenia = "Pokaz na danych fikcyjnych: funkcję włączył prowadzący projekt 21.11.2026. Kwalifikacja i zakres do potwierdzenia przez prawnika zespołu. To nie jest potwierdzenie spełnienia obowiązków. Urząd, który użyje funkcji na danych pracowników, odpowiada m.in. za: nadzór człowieka (art. 14 AI Act), poinformowanie pracowników i ich przedstawicieli (art. 26 ust. 7 i 11), ocenę skutków dla praw podstawowych (art. 27 ust. 1) i rejestrację (art. 49) - wymogi dla systemów wysokiego ryzyka z załącznika III stosuje się od 2.12.2027 - oraz za ocenę skutków dla ochrony danych (art. 35 RODO)."
+pokaz = true
+decyzja_wlaczenia = "Pokaz na danych fikcyjnych: funkcję włączył prowadzący projekt 21.11.2026. Analiz i czynności wymaganych przed włączeniem nie wykonano, bo pokaz nie przetwarza danych pracowników. Kwalifikacja i zakres do potwierdzenia przez prawnika zespołu. Urząd, który użyje funkcji na danych pracowników, sam decyduje o jej włączeniu i odpowiada m.in. za: ocenę skutków dla praw podstawowych (art. 27 ust. 1 AI Act), ocenę skutków dla ochrony danych (art. 35 RODO), nadzór człowieka (art. 14 i art. 26 ust. 2 AI Act), poinformowanie pracowników i ich przedstawicieli (art. 26 ust. 7 i 11) oraz rejestrację użycia w bazie danych UE (art. 49 ust. 3 i art. 26 ust. 8). Rozdział III sekcje 1-3 AI Act (m.in. art. 14, 26 i 27) stosuje się do systemów wysokiego ryzyka z załącznika III od 2.12.2027 (art. 113 lit. c); RODO stosuje się już teraz."

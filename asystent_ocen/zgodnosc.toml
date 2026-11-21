@@ -49,7 +49,8 @@ status_sprawy_zakonczona = 4
 # Rejestr funkcji AI. Klasyfikacje: poza_zalacznikiem_III | wyjatek_art_6_ust_3 | wysokie_ryzyko | zakazana.
 # W tym pliku nie da się włączyć funkcji o klasyfikacji wysokie_ryzyko ani zakazana. Funkcję wysokiego ryzyka
 # włącza wyłącznie decyzja urzędu zapisana w osobnym pliku wdrożenia (zmienna ASYSTENT_DECYZJE_AI, wzór:
-# decyzje-ai-pokaz.toml). Funkcji zakazanej nie włącza nic. Włączenie nie zmienia klasyfikacji ani obowiązków urzędu.
+# decyzje-ai-wzor.toml), poprzedzona analizami z listy na końcu tego pliku. Funkcji zakazanej nie włącza nic.
+# Włączenie nie zmienia klasyfikacji ani obowiązków urzędu.
 
 [[funkcje_ai]]
 kod = "PYTANIA_O_PROCEDURE"
@@ -99,3 +100,36 @@ opis = "Wnioskowanie o emocjach pracownika."
 klasyfikacja = "zakazana"
 podstawa = "Art. 5 ust. 1 lit. f AI Act - zakaz wyciągania wniosków o emocjach osoby fizycznej w miejscu pracy."
 wlaczona = false
+
+# Analizy i czynności, które urząd wykonuje, zanim włączy funkcję wysokiego ryzyka. O włączeniu decyduje urząd:
+# jego decyzja (plik wskazany zmienną ASYSTENT_DECYZJE_AI, wzór: decyzje-ai-wzor.toml) podaje organ, datę i dokument
+# dla każdej pozycji z tej listy - inaczej system funkcji nie uruchomi. Lista to minimum sprawdzone w tekście
+# powołanych przepisów, a nie pełny katalog obowiązków: zakres analiz ustala urząd z prawnikiem i inspektorem
+# ochrony danych i może dopisać tu własne pozycje. Lista dotyczy urzędu jako podmiotu stosującego - obowiązków
+# dostawcy systemu (art. 16 AI Act) nie obejmuje. Rozdział III sekcje 1-3 AI Act (m.in. art. 26 i 27) stosuje się
+# do systemów wysokiego ryzyka z załącznika III od 2.12.2027 (art. 113 lit. c ppkt (i)); RODO stosuje się już teraz.
+
+[[warunki_wlaczenia_wysokiego_ryzyka]]
+kod = "OCENA_SKUTKOW_DLA_PRAW_PODSTAWOWYCH"
+nazwa = "ocena skutków dla praw podstawowych"
+podstawa = "art. 27 ust. 1 AI Act"
+
+[[warunki_wlaczenia_wysokiego_ryzyka]]
+kod = "OCENA_SKUTKOW_DLA_OCHRONY_DANYCH"
+nazwa = "ocena skutków dla ochrony danych"
+podstawa = "art. 35 RODO; art. 26 ust. 9 AI Act"
+
+[[warunki_wlaczenia_wysokiego_ryzyka]]
+kod = "NADZOR_CZLOWIEKA"
+nazwa = "powierzenie nadzoru nad funkcją osobom z kompetencjami, przeszkoleniem i uprawnieniami"
+podstawa = "art. 26 ust. 2 AI Act"
+
+[[warunki_wlaczenia_wysokiego_ryzyka]]
+kod = "POINFORMOWANIE_PRACOWNIKOW"
+nazwa = "poinformowanie pracowników i ich przedstawicieli przed użyciem funkcji"
+podstawa = "art. 26 ust. 7 AI Act"
+
+[[warunki_wlaczenia_wysokiego_ryzyka]]
+kod = "REJESTRACJA_W_BAZIE_UE"
+nazwa = "rejestracja użycia funkcji w bazie danych UE, po sprawdzeniu, że system zarejestrował dostawca"
+podstawa = "art. 49 ust. 3 i art. 26 ust. 8 AI Act"

@@ -1,0 +1,19 @@
+{# Informacja przy funkcji modelu językowego i przy treści, którą wygenerował: klasyfikacja według AI Act z rejestru urzędu, a dla funkcji wysokiego ryzyka - ostrzeżenie, decyzja urzędu i analizy, które ją poprzedziły. Zmienna: nota (copilot.nota_ai). #}
+{% if nota.wysokie_ryzyko %}
+<div class="komunikat komunikat-warning">
+  <p><strong>Ostrzeżenie: funkcja wysokiego ryzyka według AI Act.</strong> {{ nota.podstawa }}</p>
+  {% if nota.pokaz %}
+  <p><strong>Pokaz na danych fikcyjnych.</strong> Funkcję włączono bez analiz i czynności, które urząd wykonuje, zanim użyje jej
+    na danych pracowników:</p>
+  <ul>{% for warunek in nota.wymagane %}<li>{{ warunek.nazwa }} ({{ warunek.podstawa }})</li>{% endfor %}</ul>
+  <p>O włączeniu funkcji decyduje urząd - własną decyzją, po wykonaniu tych analiz.</p>
+  {% else %}
+  <p>O włączeniu zdecydował urząd: {{ nota.organ }}, decyzja z {{ nota.data|date:"d.m.Y" }}. {{ nota.decyzja }}</p>
+  <p>Analizy i czynności wykonane przez urząd przed włączeniem:</p>
+  <ul>{% for dokument in nota.dokumenty %}<li>{{ dokument.nazwa }} ({{ dokument.podstawa }}): {{ dokument.dokument }}</li>{% endfor %}</ul>
+  {% endif %}
+</div>
+{% elif nota %}
+<p class="podpowiedz">Treść wygenerowana przez model językowy - może zawierać błędy, więc wymaga sprawdzenia. Klasyfikacja tej funkcji
+  w rejestrze funkcji AI urzędu: {{ nota.klasyfikacja }} (podstawa: strona <a href="{% url 'przepisy' %}">Przepisy</a>).</p>
+{% endif %}

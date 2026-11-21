@@ -12,7 +12,7 @@ Stan: 21.11.2026. Każda pozycja ma test albo przełącznik w `asystent_ocen/prz
 | Notatki robocze przełożonego | Oceniany ich nie widzi | `tests/test_przebieg_procesu.py` |
 | Fikcja zapoznania z oceną | Może ją stwierdzić oceniający, oceniany i zarządzający; data stwierdzenia jest datą zapoznania | `tests/test_przebieg_procesu.py` |
 | Dostępność cyfrowa | WCAG 2.1 na poziomach A i AA (załącznik do ustawy o dostępności cyfrowej) jest wymaganiem interfejsu i wydruków | `dokumentacja/dostepnosc.md`, `oceny/tests/test_dostepnosc.py` |
-| Sugestia ocen cząstkowych przez model językowy | Model podpowiada oceniającemu oceny na podstawie jego notatek. To funkcja wysokiego ryzyka: po instalacji wyłączona, włącza ją tylko plik decyzji urzędu; pokaz włącza ją na danych fikcyjnych | `decyzje-ai-pokaz.toml`, `tests/test_zgodnosc_funkcje_ai.py` |
+| Sugestia ocen cząstkowych przez model językowy | Model podpowiada oceniającemu oceny na podstawie jego notatek. To funkcja wysokiego ryzyka: po instalacji wyłączona. O włączeniu decyduje urząd po wykonaniu analiz z listy w `zgodnosc.toml`; decyzja podaje organ, datę i dokument każdej analizy. Pokaz włącza ją wpisem pokazowym, na danych fikcyjnych | `decyzje-ai-wzor.toml`, `decyzje-ai-pokaz.toml`, `tests/test_zgodnosc_funkcje_ai.py` |
 
 Bez decyzji: wartość pola „do” okresu oceny przy ocenie sporządzonej po terminie (data terminu według schematu pól czy data sporządzenia według przypisu 7 do części II arkusza B). Rdzeń przyjmuje datę sporządzenia.
 
@@ -33,9 +33,13 @@ Bez decyzji: wartość pola „do” okresu oceny przy ocenie sporządzonej po t
 13. **Druga kolejna ocena negatywna urzędnika.** Obok sygnału o rozwiązaniu stosunku pracy (art. 71 ust. 1 pkt 1 u.s.c.) system nadal pokazuje ponowną ocenę i nowe kryteria, bo przepisy ich nie wyłączają.
 14. **Sugestia ocen cząstkowych: granice.** Model dostaje tylko notatki oceniającego, bez danych z EZD RP i bez szkicu oceny. Przy mniej niż 3 notatkach nie jest pytany. Podpowiedzi nie da się przenieść do formularza. Ocena z krańca skali dostaje ostrzeżenie. Próg 3 notatek jest decyzją wykonawcy po próbach na modelu, nie przepisem.
 15. **Ślad użycia modelu.** Wpis o użyciu modelu przy pracy nad oceną widzi oceniający, a oceniany dopiero po sporządzeniu oceny - tak jak szkic.
+16. **Analizy przed włączeniem funkcji wysokiego ryzyka.** Lista w `zgodnosc.toml` ma pięć pozycji sprawdzonych w tekście AI Act i RODO. To minimum wybrane przez wykonawcę, a nie pełny katalog obowiązków; system sprawdza, czy decyzja urzędu wskazuje dokument każdej pozycji, i nie ocenia jego treści.
+17. **Ostrzeżenia przy treściach modelu.** Przy sugestii ocen stoi ostrzeżenie o funkcji wysokiego ryzyka z decyzją urzędu, a w pokazie - z informacją, że analiz nie wykonano. Przy projekcie uzasadnienia i odpowiedziach asystenta stoi informacja o treści modelu i klasyfikacji funkcji. Po sporządzeniu oceny oceniany widzi przy niej, z jakich funkcji modelu korzystał oceniający. Arkusz drukowany zostaje zgodny ze wzorem z rozporządzenia, więc tej informacji na nim nie ma.
 
 ## 3. Znane ograniczenia
 
 - Anonimizacja zastępuje nazwiska tylko w podanym brzmieniu; formy odmienione („Adama Kowalika”) zostają w tekście. NIP i numery rachunków nie są objęte. Do poprawy przed użyciem modelu spoza infrastruktury urzędu.
 - Integracja z EZD RP nie była testowana na działającej instancji (patrz `analiza-prawna-ai-act-kp-rodo.md`, pkt 5).
 - Sugestia ocen cząstkowych: w próbach model PLLuM-12B zbyt łatwo sugerował oceny z krańców skali i przypisywał notatki do niewłaściwych kryteriów (patrz `analiza-prawna-ai-act-kp-rodo.md`, pkt 6). Funkcja jest po instalacji wyłączona.
+- Decyzja urzędu o funkcji wysokiego ryzyka: system sprawdza, czy decyzja wskazuje organ, datę i dokument każdej analizy, ale nie sprawdza treści dokumentów ani tego, kto zapisał plik. Informacja dla ocenianego podaje decyzję według obecnego stanu pliku, a nie stanu z dnia użycia funkcji.
+- Lista analiz przed włączeniem funkcji wysokiego ryzyka dotyczy urzędu jako podmiotu stosującego. Obowiązków dostawcy systemu wysokiego ryzyka (art. 16 AI Act) prototyp nie obejmuje.
