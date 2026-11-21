@@ -1,0 +1,193 @@
+# Parametry prawne procesu oceny okresowej - konfiguracja, nie kod.
+# Zmiana przepisów (np. częstotliwości ocen, terminów, kryteriów) = zmiana tego pliku.
+# Źródła: ustawa z dnia 21 listopada 2008 r. o służbie cywilnej (t.j. Dz. U. z 2026 r. poz. 590) - "u.s.c.";
+#         (zmiana Dz. U. z 2026 r. poz. 26 od 1.01.2027 dodaje tylko art. 71 ust. 1a - bez wpływu na oceny;
+#         stan sprawdzony w API ELI Sejmu 21.11.2026)
+#         rozporządzenie Prezesa Rady Ministrów z dnia 4 kwietnia 2016 r. (Dz. U. poz. 470) - "rozp.";
+#         Kodeks cywilny art. 110-116 (obliczanie terminów);
+#         ustawa z dnia 18 stycznia 1951 r. o dniach wolnych od pracy (t.j. Dz. U. z 2025 r. poz. 296).
+
+[terminy]
+cykl_oceny_miesiace = 24                    # art. 81 ust. 4 u.s.c.
+termin_kryteriow_dni = 30                   # § 7 pkt 1 rozp.
+termin_kryteriow_po_negatywnej_dni = 7      # § 7 pkt 2 rozp.
+ponowna_ocena_po_negatywnej_miesiace = 6    # art. 81 ust. 9 u.s.c.
+min_miesiecy_do_zmiany_terminu = 6          # art. 81 ust. 6 i ust. 8 in fine u.s.c.
+prog_nieobecnosci_miesiace = 1              # art. 81 ust. 7 u.s.c.
+zmiana_stanowiska_najwczesniej_dni_przed = 7 # § 9 ust. 2 rozp.
+zmiana_stanowiska_najpozniej_dni_po = 30    # § 9 ust. 1 i 2 rozp.
+sprzeciw_dni = 7                            # art. 83 ust. 1 u.s.c.
+rozpatrzenie_sprzeciwu_dni = 14             # art. 83 ust. 3 u.s.c.
+odwolanie_do_sadu_dni = 14                  # art. 83 ust. 5 u.s.c.
+stopien_obligatoryjny_dni = 30              # art. 89 ust. 2 u.s.c.
+przypomnienia_dni_przed = [30, 14, 3]       # decyzja projektowa (przepisy nie określają)
+
+[kalendarz]
+sobota_konczy_termin_jak_dzien_wolny = true # art. 115 Kodeksu cywilnego
+# Ciągłość nieobecności (art. 81 ust. 7 u.s.c.): sobota między okresami nieobecności nie przerywa ciągłości,
+# tak jak niedziela i święto - dokument KPRM „liczenie terminów” (przykład 17-18.10.2026) i Poradnik KPRM s. 12
+# (dni, które wg rozkładu czasu pracy nie są dniami pracy, nie przerywają nieobecności).
+sobota_nie_przerywa_ciaglosci_nieobecnosci = true
+
+# Rozstrzygnięcia zespołu z 21.11.2026 w miejscach, w których źródła KPRM są rozbieżne albo przepisy milczą.
+# Zmiana rozstrzygnięcia = zmiana wartości tutaj, bez zmiany kodu.
+[interpretacje]
+# Przy pierwszej ocenie 6 miesięcy z art. 81 ust. 6 i 8 u.s.c. liczy się od:
+#   "nawiazanie_stosunku_pracy" - warunki brzegowe przypadków użycia KPRM (przyjęte),
+#   "zapoznanie_z_kryteriami"   - Poradnik KPRM s. 10 i § 9 ust. 1 rozp.
+pierwsza_ocena_6_miesiecy_od = "nawiazanie_stosunku_pracy"
+# Ponowna ocena po negatywnej (art. 81 ust. 9 u.s.c.): true = pierwszy dzień roboczy po upływie 6 miesięcy,
+# false = pierwszy dzień po upływie 6 miesięcy, także wolny (przykład z Poradnika KPRM s. 13).
+ponowna_ocena_w_dniu_roboczym = true
+# Prezentacja średniej (rozp. nie określa precyzji); zaokrąglenie arytmetyczne. Poziom ustala się z dokładnej średniej.
+miejsca_po_przecinku_sredniej = 1
+
+[ocena]
+skala = [1, 3, 5, 7, 9]                     # § 11 ust. 1 pkt 1 rozp.
+max_kryteriow_dodatkowych = 3               # § 5 ust. 2 rozp.
+max_stopien_sluzbowy = 9                    # art. 86 ust. 1 u.s.c. (dziewięć stopni służbowych)
+ocena_czastkowa_wykluczajaca_pozytywna = 1  # § 11 ust. 1 pkt 3 i 4 rozp. (ocena cząstkowa „znacznie poniżej oczekiwań”)
+stopien_obligatoryjny_liczba_ocen = 2       # art. 89 ust. 2 u.s.c. („dwie kolejne następujące po sobie” oceny)
+
+# Ogólny poziom spełniania kryteriów - § 11 ust. 1 pkt 2 rozp. (przedziały lewostronnie otwarte, pierwszy domknięty)
+[[ocena.poziomy]]
+nazwa = "znacznie poniżej oczekiwań"
+do = 2
+pozytywny = false
+
+[[ocena.poziomy]]
+nazwa = "poniżej oczekiwań"
+do = 4
+pozytywny = false
+
+[[ocena.poziomy]]
+nazwa = "na poziomie oczekiwań"
+do = 6
+pozytywny = true
+
+[[ocena.poziomy]]
+nazwa = "powyżej oczekiwań"
+do = 8
+pozytywny = true
+najwyzszy = true
+
+[[ocena.poziomy]]
+nazwa = "znacznie powyżej oczekiwań"
+do = 9
+pozytywny = true
+najwyzszy = true
+
+# Kto podlega ocenie okresowej - art. 81 ust. 1 u.s.c. (urzędnik SC oraz pracownik SC zatrudniony na czas
+# nieokreślony); Poradnik KPRM s. 7 (nie podlegają m.in. umowy na czas określony i wyższe stanowiska w SC).
+[zatrudnienie]
+podlega_ocenie = ["mianowanie", "umowa_na_czas_nieokreslony"]
+nie_podlega_ocenie = ["umowa_na_czas_okreslony", "wyzsze_stanowisko"]
+
+# Wykaz kryteriów oceny - załącznik nr 1 do rozp.
+[kryteria]
+katalog = [
+    "Komunikacja",
+    "Kreatywność",
+    "Negocjowanie",
+    "Organizacja pracy i orientacja na osiąganie celów",
+    "Orientacja na klienta/interesanta",
+    "Podejmowanie decyzji i odpowiedzialność",
+    "Radzenie sobie w sytuacjach kryzysowych",
+    "Rzetelność",
+    "Myślenie analityczne",
+    "Wykorzystywanie wiedzy i doskonalenie zawodowe",
+    "Współpraca",
+    "Wystąpienia publiczne",
+    "Zarządzanie ludźmi",
+    "Zarządzanie strategiczne",
+]
+
+# Arkusze i kryteria obowiązkowe - § 3 i § 4 rozp.
+[arkusze.A]
+opis = "stanowisko kierownika urzędu, będące stanowiskiem pracy w służbie cywilnej"
+obowiazkowe = [
+    "Zarządzanie ludźmi",
+    "Podejmowanie decyzji i odpowiedzialność",
+    "Organizacja pracy i orientacja na osiąganie celów",
+    "Współpraca",
+    "Komunikacja",
+    "Zarządzanie strategiczne",
+]
+
+[arkusze.B]
+opis = "stanowisko, na którym praca polega na bezpośrednim kierowaniu pracownikami (inne niż A)"
+obowiazkowe = [
+    "Zarządzanie ludźmi",
+    "Podejmowanie decyzji i odpowiedzialność",
+    "Organizacja pracy i orientacja na osiąganie celów",
+    "Współpraca",
+    "Komunikacja",
+]
+
+[arkusze.C]
+opis = "pozostałe stanowiska pracy"
+obowiazkowe = [
+    "Wykorzystywanie wiedzy i doskonalenie zawodowe",
+    "Rzetelność",
+    "Organizacja pracy i orientacja na osiąganie celów",
+    "Współpraca",
+    "Komunikacja",
+]
+
+# Dni ustawowo wolne od pracy (poza niedzielami) - art. 1 pkt 1 ustawy o dniach wolnych od pracy
+[[swieta.stale]]
+nazwa = "Nowy Rok"
+data = "01-01"
+
+[[swieta.stale]]
+nazwa = "Święto Trzech Króli"
+data = "01-06"
+
+[[swieta.stale]]
+nazwa = "Święto Państwowe"
+data = "05-01"
+
+[[swieta.stale]]
+nazwa = "Święto Narodowe Trzeciego Maja"
+data = "05-03"
+
+[[swieta.stale]]
+nazwa = "Wniebowzięcie Najświętszej Maryi Panny"
+data = "08-15"
+
+[[swieta.stale]]
+nazwa = "Wszystkich Świętych"
+data = "11-01"
+
+[[swieta.stale]]
+nazwa = "Narodowe Święto Niepodległości"
+data = "11-11"
+
+[[swieta.stale]]
+nazwa = "Wigilia Bożego Narodzenia"
+data = "12-24"
+od_roku = 2025   # ustawa z dnia 6 grudnia 2024 r. (Dz. U. poz. 1965), w życie od 1 lutego 2025 r.
+
+[[swieta.stale]]
+nazwa = "Boże Narodzenie (pierwszy dzień)"
+data = "12-25"
+
+[[swieta.stale]]
+nazwa = "Boże Narodzenie (drugi dzień)"
+data = "12-26"
+
+[[swieta.ruchome]]
+nazwa = "Pierwszy dzień Wielkiej Nocy"
+dni_od_wielkanocy = 0
+
+[[swieta.ruchome]]
+nazwa = "Drugi dzień Wielkiej Nocy"
+dni_od_wielkanocy = 1
+
+[[swieta.ruchome]]
+nazwa = "Pierwszy dzień Zielonych Świątek"
+dni_od_wielkanocy = 49
+
+[[swieta.ruchome]]
+nazwa = "Boże Ciało"
+dni_od_wielkanocy = 60
