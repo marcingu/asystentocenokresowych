@@ -7,7 +7,7 @@ Wymagania:
 - zał. nr 4 część I pkt 4-7 ustawy o KSC: dostęp tylko dla uprawnionych, minimalne uprawnienia, cofanie
   i zawieszanie uprawnień, modyfikacja ich zakresu.
 
-Decyzje projektowe: administrator zarządza kontami i czyta dzienniki, ale nie dostaje treści ocen; hasła nie
+Decyzje projektowe: administrator zarządza kontami i czyta dzienniki, a zaplecze nie pokazuje mu notatek ani szkiców; hasła nie
 ustala ani nie poznaje - wydaje użytkownikowi jednorazowy link; nie może zablokować samego siebie ani odebrać
 uprawnień ostatniemu czynnemu administratorowi.
 """
@@ -73,7 +73,7 @@ class DostepTest(Podstawa):
         self.assertContains(self.przegladarka.get(reverse("przepisy")), f'href="{KONTA}"')
         self.assertNotContains(klient(self.z.kadry).get(reverse("przepisy")), f'href="{KONTA}"')
 
-    def test_administrator_nie_dostaje_tresci_ocen(self):
+    def test_zaplecze_nie_pokazuje_notatek_oceniajacego(self):
         """Zarządzanie kontami nie daje wglądu w notatki ani szkice - zaplecze ich nie pokazuje."""
         ocena = self.z.ocena_z_kryteriami()
         from oceny import uslugi

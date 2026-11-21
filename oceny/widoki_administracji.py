@@ -3,6 +3,9 @@
 Każda czynność administratora trafia do dziennika zdarzeń bezpieczeństwa (§ 20 ust. 2 pkt 1 i 2 rozporządzenia
 KRI). Administrator zarządza kontami i czyta dzienniki, ale zaplecze nie pokazuje mu treści ocen, notatek ani
 szkiców. Hasła nie ustala i nie poznaje: wydaje użytkownikowi jednorazowy link do jego ustawienia.
+
+Uwaga: to ograniczenie dotyczy zaplecza. Konto administratora ma w rdzeniu rolę administratora procesu i kartę
+oceny otwiera poza zapleczem - patrz `dokumentacja/bezpieczenstwo-ksc-kri.md`, pkt 5.
 """
 
 from __future__ import annotations
