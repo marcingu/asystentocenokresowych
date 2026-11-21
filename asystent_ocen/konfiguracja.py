@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 import re
 import tomllib
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from datetime import date
 from functools import lru_cache
@@ -71,12 +73,32 @@ class Przepisy:
     rodzaje_zatrudnienia_niepodlegajace_ocenie: tuple[str, ...]  # Poradnik KPRM s. 7
 
 
+_aktywne = ContextVar("przepisy_urzedu", default=None)
+
+
+@lru_cache(maxsize=4)
+def przepisy_z_tekstu(tresc: str) -> Przepisy:
+    return _zbuduj_przepisy(tomllib.loads(tresc), "przepisy.toml")
+
+
+@contextmanager
+def stosuj_przepisy(tresc: str):
+    """Jeden spójny zestaw parametrów na całe żądanie, także przy równoległej edycji."""
+    token = _aktywne.set(przepisy_z_tekstu(tresc) if tresc else None)
+    try:
+        yield
+    finally:
+        _aktywne.reset(token)
+
+
 def wczytaj_przepisy(sciezka: Path | str | None = None) -> Przepisy:
     """Wczytuje przepisy z pliku TOML (domyślnie `przepisy.toml` obok modułu).
 
     Wynik jest przechowywany w pamięci podręcznej do czasu zmiany pliku (ścieżka, czas modyfikacji, rozmiar),
     więc podmiana pliku przepisów działa bez restartu aplikacji. Niepoprawny plik -> ValueError.
     """
+    if sciezka is None and (aktywne := _aktywne.get()) is not None:
+        return replace(aktywne, arkusze=dict(aktywne.arkusze))
     plik = os.path.abspath(sciezka if sciezka is not None else DOMYSLNY_PLIK)
     stan = os.stat(plik)
     wzorzec = _wczytaj_z_pliku(plik, stan.st_mtime_ns, stan.st_size)

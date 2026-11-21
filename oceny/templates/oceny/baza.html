@@ -48,7 +48,7 @@
       {% if jestem_kadry %}<a href="{% url 'kadry' %}"{% if strona == 'kadry' %} aria-current="page"{% endif %}>Kadry</a>{% endif %}
       {% if widze_statystyki %}<a href="{% url 'statystyki' %}"{% if strona == 'statystyki' %} aria-current="page"{% endif %}>Statystyki</a>{% endif %}
       <a href="{% url 'asystent' %}"{% if strona == 'asystent' %} aria-current="page"{% endif %}>Asystent AI</a>
-      <a href="{% url 'przepisy' %}"{% if strona == 'przepisy' %} aria-current="page"{% endif %}>Przepisy</a>
+      {% if jestem_administratorem or widze_statystyki %}<a href="{% url 'przepisy' %}"{% if strona == 'przepisy' %} aria-current="page"{% endif %}>Przepisy</a>{% endif %}
       {% if jestem_administratorem %}<a href="{% url 'administracja' %}"{% if strona|slice:":13" == 'administracja' %} aria-current="page"{% endif %}>Administracja</a>{% endif %}
     </nav>
     {% endwith %}
@@ -65,7 +65,7 @@
 <footer class="stopka">
   <div class="srodek">
     <p>Cyfrowy asystent ocen okresowych w służbie cywilnej. Terminy, wyniki i komunikaty wynikają z przepisów zapisanych
-      w konfiguracji systemu - <a href="{% url 'przepisy' %}">zobacz przepisy</a>. Dziś: {{ dzis|date:"d.m.Y" }}.</p>
+      w konfiguracji systemu{% if jestem_administratorem or widze_statystyki %} - <a href="{% url 'przepisy' %}">zobacz przepisy</a>{% endif %}. Dziś: {{ dzis|date:"d.m.Y" }}.</p>
     <p>Prototyp przygotowany na HackNation 2026 - nie jest serwisem urzędowym.{% if tryb_demo %} Osoby i dane w pokazie są fikcyjne.{% endif %}</p>
   </div>
 </footer>

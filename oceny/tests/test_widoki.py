@@ -100,7 +100,7 @@ class DostepTest(TestCase):
     def test_strony_nie_odwoluja_sie_do_zasobow_zewnetrznych(self):
         """System ma działać w sieci urzędu bez dostępu do internetu."""
         for adres in (reverse("zadania"), reverse("ocena", args=[self.ocena.pk]), reverse("przepisy")):
-            tresc = klient(self.z.szef).get(adres).content.decode()
+            tresc = klient(self.z.kadry).get(adres).content.decode()
             self.assertNotIn("http://", tresc, adres)
             self.assertNotIn("https://", tresc, adres)
             self.assertNotIn("<style", tresc, adres)  # polityka treści nie dopuszcza stylów w kodzie strony
@@ -303,7 +303,7 @@ class StatystykiIPrzepisyTest(TestCase):
         self.assertNotContains(odpowiedz, "Testowy")
 
     def test_strona_przepisow_pokazuje_parametry_z_konfiguracji(self):
-        odpowiedz = klient(self.z.ola).get(reverse("przepisy"))
+        odpowiedz = klient(self.z.kadry).get(reverse("przepisy"))
 
         self.assertContains(odpowiedz, "art. 81 ust. 4 u.s.c.")
         self.assertContains(odpowiedz, "przepisy.toml")

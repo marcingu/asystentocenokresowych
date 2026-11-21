@@ -143,7 +143,7 @@ class BezDecyzjiUrzeduTest(Podstawa):
         self.assertFalse(self.wpisy().exists())
 
     def test_strona_przepisow_pokazuje_funkcje_jako_wylaczona(self):
-        odpowiedz = klient(self.z.szef).get(reverse("przepisy"))
+        odpowiedz = klient(self.z.kadry).get(reverse("przepisy"))
 
         self.assertContains(odpowiedz, "PROPOZYCJA_OCENY")
         self.assertNotContains(odpowiedz, "włączona decyzją urzędu")
@@ -151,7 +151,7 @@ class BezDecyzjiUrzeduTest(Podstawa):
 
     def test_strona_przepisow_wymienia_analizy_ktore_urzad_wykonuje_przed_wlaczeniem(self):
         """Lista z konfiguracji jest jawna także wtedy, gdy żadna funkcja wysokiego ryzyka nie działa."""
-        odpowiedz = klient(self.z.szef).get(reverse("przepisy"))
+        odpowiedz = klient(self.z.kadry).get(reverse("przepisy"))
 
         self.assertContains(odpowiedz, "O włączeniu decyduje urząd")
         for warunek in WARUNKI:
@@ -276,7 +276,7 @@ class SugestiaOcenTest(Podstawa):
         self.assertEqual(bledy_dostepnosci(szef.post(self.adres).content.decode()), [])
 
     def test_strona_przepisow_pokazuje_decyzje_urzedu_i_dokumenty_analiz(self):
-        odpowiedz = klient(self.z.szef).get(reverse("przepisy"))
+        odpowiedz = klient(self.z.kadry).get(reverse("przepisy"))
 
         self.assertContains(odpowiedz, "włączona decyzją urzędu", count=1)
         self.assertContains(odpowiedz, "Zarządzenie nr 7/2026")
@@ -399,7 +399,7 @@ class BlednyPlikDecyzjiTest(Podstawa):
 
         with override_settings(ASYSTENT_DECYZJE_AI=str(KATALOG / "nie-ma-takiego-pliku.toml")):
             karta = szef.get(self.karta)
-            przepisy = szef.get(reverse("przepisy"))
+            przepisy = klient(self.z.kadry).get(reverse("przepisy"))
             odpowiedz = szef.post(self.adres)
 
         self.assertNotContains(karta, PRZYCISK)
@@ -488,7 +488,7 @@ class PokazNaDanychFikcyjnychTest(Podstawa):
         self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])
 
     def test_strona_przepisow_oznacza_wlaczenie_jako_pokazowe(self):
-        odpowiedz = klient(self.z.szef).get(reverse("przepisy"))
+        odpowiedz = klient(self.z.kadry).get(reverse("przepisy"))
 
         # pokaz włącza trzy funkcje wysokiego ryzyka: sugestię ocen cząstkowych, propozycję kierunków do IPRZ
         # i pytania do kart obserwacji radaru
@@ -506,7 +506,7 @@ class PlikPokazuPozaPokazemTest(Podstawa):
         szef = klient(self.z.szef)
 
         karta = szef.get(self.karta)
-        przepisy = szef.get(reverse("przepisy"))
+        przepisy = klient(self.z.kadry).get(reverse("przepisy"))
         odpowiedz = szef.post(self.adres)
 
         self.assertNotContains(karta, PRZYCISK)

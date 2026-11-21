@@ -80,6 +80,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "oceny.middleware.NaglowkiBezpieczenstwa",
     "oceny.middleware.BezpieczenstwoKont",
+    "oceny.middleware.PrzepisyUrzedu",
 ]
 
 ROOT_URLCONF = "serwis.urls"

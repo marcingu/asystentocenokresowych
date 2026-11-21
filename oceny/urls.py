@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_not_required
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import urzad, views, widoki_administracji, widoki_kadr, widoki_kont
+from . import panel_przepisow, urzad, views, widoki_administracji, widoki_kadr, widoki_kont
 
 urlpatterns = [
     path("administracja/urzad/", urzad.ustawienia, name="administracja_urzad"),
@@ -37,6 +37,6 @@ urlpatterns = [
     path("kadry/ezd/", views.kadry_ezd, name="kadry_ezd"),
     path("moje-dane-ezd/", views.moje_dane_ezd, name="moje_dane_ezd"),
     path("statystyki/", views.statystyki, name="statystyki"),
-    path("przepisy/", views.przepisy, name="przepisy"),
+    path("przepisy/", panel_przepisow.przepisy, name="przepisy"),
     path("asystent/", views.asystent, name="asystent"),
 ]

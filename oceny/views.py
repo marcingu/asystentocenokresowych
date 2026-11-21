@@ -14,12 +14,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from asystent_ocen.bledy import Blad, BladWalidacji
-from asystent_ocen.konfiguracja import DOMYSLNY_PLIK, wczytaj_przepisy
+from asystent_ocen.konfiguracja import wczytaj_przepisy
 from asystent_ocen.przebieg import OBSERWACJA, OSIAGNIECIE, BladEtapu, BladUprawnien, Etap, Rola
 from asystent_ocen.wynik import NEGATYWNA, POZYTYWNA
 from asystent_ocen.zgodnosc import bledy_uruchomienia_monitoringu, wczytaj_wymogi
 
-from . import drukowanie, dziennik, formularze, rejestr_ai, uprawnienia, uslugi
+from . import drukowanie, dziennik, formularze, uprawnienia, uslugi
 from .czas import dzis
 from .karta import kontekst_karty
 from .kontekst_ezd import ustalenia_rdzenia
@@ -459,21 +459,6 @@ def statystyki(request):
         "komorki": wiersze_komorek,
         "pominiete_komorki": len(komorki) - len(wiersze_komorek),
         "prog": prog,
-    })
-
-
-# --- przepisy w konfiguracji ---
-
-@require_GET
-def przepisy(request):
-    """Parametry prawne systemu - dokładnie ten plik, z którego korzysta rdzeń - i rejestr funkcji AI urzędu."""
-    wymogi, blad_decyzji_ai = rejestr_ai.stan()
-    return render(request, "oceny/przepisy.html", {
-        "plik": DOMYSLNY_PLIK.name,
-        "tresc": DOMYSLNY_PLIK.read_text(encoding="utf-8"),
-        "funkcje_ai": wymogi.funkcje_ai,
-        "blad_decyzji_ai": blad_decyzji_ai,
-        "warunki_wlaczenia": wymogi.warunki_wlaczenia,
     })
 
 

@@ -76,3 +76,18 @@ class BezpieczenstwoKont:
         if nazwa in _BEZ_DWUETAPOWEGO or request.path.startswith(f"/{settings.STATIC_URL.strip('/')}/"):
             return None
         return redirect("konto_dwuetapowe")
+
+
+class PrzepisyUrzedu:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        from asystent_ocen.konfiguracja import stosuj_przepisy
+        from .models import KonfiguracjaProcesu
+
+        if not request.user.is_authenticated:
+            return self.get_response(request)
+        request.konfiguracja = KonfiguracjaProcesu.aktualna()
+        with stosuj_przepisy(request.konfiguracja.tresc):
+            return self.get_response(request)

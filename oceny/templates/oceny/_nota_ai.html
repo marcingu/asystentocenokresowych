@@ -25,5 +25,5 @@
 </div>
 {% elif nota %}
 <p class="podpowiedz">Treść wygenerowana przez model językowy - może zawierać błędy, więc wymaga sprawdzenia. Klasyfikacja tej funkcji
-  w rejestrze funkcji AI urzędu: {{ nota.klasyfikacja }} (podstawa: strona <a href="{% url 'przepisy' %}">Przepisy</a>).</p>
+  w rejestrze funkcji AI urzędu: {{ nota.klasyfikacja }} (podstawa: {{ nota.podstawa }}).</p>
 {% endif %}

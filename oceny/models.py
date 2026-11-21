@@ -416,3 +416,19 @@ class OznaczenieUrzedu(models.Model):
     @classmethod
     def aktualne(cls):
         return cls.objects.filter(pk=1).first() or cls(pk=1, nazwa=settings.ASYSTENT_URZAD)
+
+
+class KonfiguracjaProcesu(models.Model):
+    """Aktywna kopia przepisów urzędu i wyłączenia funkcji AI. Wersja chroni przed utratą cudzych zmian."""
+    wersja = models.PositiveIntegerField(default=0)
+    tresc = models.TextField(blank=True)
+    wylaczone = models.JSONField(default=list)
+
+    @property
+    def toml(self):
+        from asystent_ocen.konfiguracja import DOMYSLNY_PLIK
+        return self.tresc or DOMYSLNY_PLIK.read_text(encoding="utf-8")
+
+    @classmethod
+    def aktualna(cls):
+        return cls.objects.filter(pk=1).first() or cls(pk=1)

@@ -8,7 +8,7 @@ Prototyp na HackNation 2026 (wyzwanie KPRM). System prowadzi ocenę okresową w 
 ./uruchom-demo.sh
 ```
 
-Skrypt tworzy środowisko Pythona, instaluje dwie zależności, zakłada bazę z fikcyjnym urzędem i uruchamia serwer pod adresem `http://127.0.0.1:8000/`. Na pasku u góry strony wybiera się osobę (oceniany, przełożony, kadry, dyrektor) - konta pokazowe nie mają haseł i działają tylko w trybie demonstracyjnym.
+Skrypt tworzy środowisko Pythona, instaluje zależności, zakłada bazę z fikcyjnym urzędem i uruchamia serwer pod adresem `http://127.0.0.1:8000/`. Na pasku u góry strony wybiera się osobę (oceniany, przełożony, kadry, dyrektor) - konta pokazowe nie mają haseł i działają tylko w trybie demonstracyjnym.
 
 Wymagany Python 3.11 lub nowszy. Wydruk PDF wymaga LibreOffice na serwerze; bez niego arkusz pobiera się jako DOCX. Asystent AI wymaga lokalnego modelu w Ollamie; bez niego reszta systemu działa bez zmian.
 
@@ -41,11 +41,13 @@ Pokaz włącza - wyłącznie na danych fikcyjnych - trzy funkcje modelu językow
 - **Radar Dobrostanu i Doceniania**: na karcie oceny pracownik i jego przełożony widzą te same karty obserwacji - fakty z systemu kadrowego i EZD RP, np. urlop zaległy z terminem z Kodeksu pracy, godziny nadliczbowe, sprawy przejęte po nieobecnych, terminowość. Karty liczy zwykły kod według progów urzędu (`asystent_ocen/radar.toml`): bez punktów, rankingu i wniosków o zdrowiu albo emocjach. Radar działa po spełnieniu tych samych warunków Kodeksu pracy co karta z EZD RP. W pokazie liczby są przykładowe - prototyp nie ma połączenia z systemem kadrowym.
 - **Pytania do kart obserwacji** (po instalacji wyłączone): model układa do każdej karty jedno pytanie otwarte dla przełożonego. Dostaje same karty, bez danych osobowych; pytanie o zdrowie, emocje albo sprawy prywatne jest odrzucane. To funkcja wysokiego ryzyka - włącza ją decyzja urzędu.
 
-Testy: 749 testów rdzenia i 411 testów aplikacji.
+Testy: 749 testów rdzenia i 416 testów aplikacji.
 
 ## Założenia
 
-- **Prawo w konfiguracji, nie w kodzie.** Parametry przepisów są w `asystent_ocen/przepisy.toml`, wymogi zgodności w `asystent_ocen/zgodnosc.toml`. Zmiana przepisu to zmiana pliku. Aplikacja pokazuje ten plik na stronie „Przepisy”.
+- **Prawo w konfiguracji, nie w kodzie.** Parametry przepisów są w `asystent_ocen/przepisy.toml`, wymogi zgodności w `asystent_ocen/zgodnosc.toml`. Informatyk (konto administratora) edytuje TOML na stronie „Przepisy”. Po zapisie aplikacja WWW stosuje kopię z bazy zamiast zmieniać plik pakietu. Kadry i dyrektor generalny mają podgląd. Dziennik przechowuje autora, czas i różnice treści. Nie podawaj w TOML sekretów ani danych osób.
+- **Przełączniki AI** w tym samym panelu pozwalają wyłączać i ponownie włączać funkcje dopuszczone przez rejestr i decyzje urzędu. Przełącznik nie zastępuje decyzji wymaganej przy wysokim ryzyku.
+- **Ewidencja pracowników:** kadry dodają i edytują pracownika, przypisują przełożonego, rodzaj zatrudnienia i arkusz A/B/C. Nowy arkusz obowiązuje od kolejnego cyklu; konta do logowania zakłada administrator.
 - **Ocenę wystawia człowiek.** Po instalacji dozwolone są tylko funkcje AI spoza wysokiego ryzyka: odpowiedzi na pytania o procedurę, ułożenie notatek oceniającego w projekt uzasadnienia, pytania do rozmowy oceniającej i korekta językowa (ta ostatnia jest w rdzeniu, bez przycisku w aplikacji). Sugestia ocen cząstkowych i propozycja kierunków do IPRZ są w rejestrze (`zgodnosc.toml`) funkcjami wysokiego ryzyka i są wyłączone. Funkcji zakazanych nie włącza nic. Model nie dostaje danych z EZD RP.
 - **O funkcji wysokiego ryzyka decyduje urząd.** Najpierw wykonuje analizy i czynności z listy w `zgodnosc.toml`: ocenę skutków dla praw podstawowych, ocenę skutków dla ochrony danych, powierzenie nadzoru, poinformowanie pracowników i rejestrację w bazie danych UE. Potem zapisuje decyzję - organ, datę i dokument każdej pozycji - w pliku wskazanym zmienną `ASYSTENT_DECYZJE_AI` (wzór: `decyzje-ai-wzor.toml`). Bez kompletnej decyzji system funkcji nie uruchomi, a usunięcie wpisu wyłącza ją od razu. System nie ocenia treści analiz - odpowiada za nie urząd. Lista to minimum, nie pełny katalog obowiązków z AI Act i RODO.
 - **Dane zostają w urzędzie.** Model językowy działa lokalnie, a strony nie pobierają niczego z internetu (wymusza to polityka treści w nagłówkach odpowiedzi).

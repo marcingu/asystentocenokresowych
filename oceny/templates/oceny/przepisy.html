@@ -2,8 +2,10 @@
 {% block tytul %}Przepisy{% endblock %}
 {% block tresc %}
 <h1>Przepisy, na których działa system</h1>
-<p>Wszystkie terminy, skale, progi i wykazy kryteriów są zapisane w jednym pliku konfiguracji: <code>{{ plik }}</code>.
-  Zmiana przepisów oznacza zmianę tego pliku - bez zmiany programu. Przy każdej wartości podana jest podstawa prawna.</p>
+{% if edycja %}{% include "oceny/_administracja_menu.html" with zakladka="przepisy" %}
+<p>Panel informatyka. Zmiany obowiązują od następnego żądania i są rejestrowane w <a href="{% url 'administracja_dziennik' %}">dzienniku zdarzeń</a>.</p>
+{% else %}<p>Tylko podgląd. Konfigurację zmienia informatyk.</p>{% endif %}
+<p>Parametry procesu oceny pochodzą z <code>{{ plik }}</code>. Po pierwszej edycji aplikacja korzysta z kopii TOML zapisanej w bazie urzędu. Plik dostarczony z programem pozostaje bez zmian.</p>
 
 <section class="karta" aria-labelledby="n-ai">
   <h2 id="n-ai">Rejestr funkcji AI</h2>
@@ -18,7 +20,7 @@
   <div class="przewijana" role="region" aria-labelledby="t-funkcje-ai" tabindex="0">
   <table class="tabela">
     <caption class="ukryte" id="t-funkcje-ai">Funkcje modelu językowego: klasyfikacja, podstawa i stan</caption>
-    <thead><tr><th scope="col">Funkcja</th><th scope="col">Klasyfikacja</th><th scope="col">Podstawa</th><th scope="col">Stan</th></tr></thead>
+    <thead><tr><th scope="col">Funkcja</th><th scope="col">Klasyfikacja</th><th scope="col">Podstawa</th><th scope="col">Stan</th>{% if edycja %}<th scope="col">Zmiana</th>{% endif %}</tr></thead>
     <tbody>
       {% for funkcja in funkcje_ai %}
       <tr>
@@ -26,6 +28,12 @@
         <td>{{ funkcja.klasyfikacja }}</td>
         <td>{{ funkcja.podstawa }}</td>
         <td>{% if funkcja.wlaczona and funkcja.decyzja_pokazowa %}<span class="stan stan-pilne">włączona w pokazie</span>{% elif funkcja.wlaczona and funkcja.decyzja_wlaczenia %}<span class="stan stan-pilne">włączona decyzją urzędu</span>{% elif funkcja.wlaczona %}<span class="stan stan-w_terminie">włączona</span>{% else %}<span class="stan stan-bez_terminu">wyłączona</span>{% endif %}</td>
+        {% if edycja %}<td>{% if funkcja.kod in przelaczalne %}
+          <form method="post">{% csrf_token %}
+            <input type="hidden" name="akcja" value="opcja"><input type="hidden" name="wersja" value="{{ wersja }}">
+            <input type="hidden" name="kod" value="{{ funkcja.kod }}">
+            <button type="submit" class="przycisk przycisk-drugi" name="stan" value="{% if funkcja.wlaczona %}wylacz{% else %}wlacz{% endif %}">{% if funkcja.wlaczona %}Wyłącz{% else %}Włącz{% endif %}<span class="ukryte">: {{ funkcja.opis }}</span></button>
+          </form>{% else %}Niedostępna w tej konfiguracji{% endif %}</td>{% endif %}
       </tr>
       {% endfor %}
     </tbody>
@@ -53,6 +61,12 @@
 
 <section class="karta" aria-labelledby="n-plik">
   <h2 id="n-plik">Plik {{ plik }}</h2>
-  <pre class="konfiguracja" tabindex="0">{{ tresc }}</pre>
+  {% if edycja %}<form method="post" class="formularz">{% csrf_token %}
+    <input type="hidden" name="akcja" value="toml"><input type="hidden" name="wersja" value="{{ wersja }}">
+    <label for="tresc-toml">Treść przepisów (TOML), wersja {{ wersja }}</label>
+    <p id="opis-toml" class="podpowiedz">Nie wpisuj danych osobowych ani sekretów. Dziennik przechowuje dodane i usunięte linie.</p>
+    <textarea id="tresc-toml" name="tresc" rows="22" maxlength="65536" aria-describedby="opis-toml" required spellcheck="false">{{ tresc }}</textarea>
+    <button type="submit" class="przycisk">Sprawdź i zapisz TOML</button>
+  </form>{% else %}<pre class="konfiguracja" tabindex="0">{{ tresc }}</pre>{% endif %}
 </section>
 {% endblock %}

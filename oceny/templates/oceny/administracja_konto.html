@@ -57,7 +57,7 @@
     {% for pole in formularz %}
     {% if pole.name == 'administrator' %}
     <div class="pole-wyboru">{{ pole }} <label for="{{ pole.id_for_label }}">{{ pole.label }}</label></div>
-    <p class="podpowiedz">Administrator zarządza kontami i czyta dzienniki. Nie dostaje przez to wglądu w treść ocen.</p>
+    <p class="podpowiedz">Administrator zarządza kontami i czyta dzienniki. Konto administratora ma również dostęp do kart ocen.</p>
     {% else %}
     <label for="{{ pole.id_for_label }}">{{ pole.label }}{% if not pole.field.required %} <span class="wymagane">nieobowiązkowe</span>{% endif %}</label>
     {{ pole }}

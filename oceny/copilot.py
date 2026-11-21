@@ -148,7 +148,9 @@ def kierunki_iprz_dostepne() -> bool:
 def odpowiedz(pytanie: str) -> dict:
     """Odpowiedź na pytanie o procedurę: tekst, przepisy podane modelowi i ostrzeżenia kontroli odpowiedzi."""
     try:
-        wynik = odpowiedz_na_pytanie(pytanie, model=model())
+        wynik = odpowiedz_na_pytanie(pytanie, model=model(), wymogi=rejestr_ai.wymogi())
+    except BladZgodnosci:
+        return {"blad": FUNKCJA_WYLACZONA}
     except BladModelu:
         return {"blad": MODEL_NIEDOSTEPNY}
     return {"odpowiedz": wynik}
@@ -157,7 +159,9 @@ def odpowiedz(pytanie: str) -> dict:
 def korekta(tekst: str, osoby: list[str]) -> dict:
     """Propozycja poprawek językowych tekstu oceniającego. Treść merytoryczna zostaje jego."""
     try:
-        wynik = popraw_jezyk(tekst, model=model(), osoby=osoby)
+        wynik = popraw_jezyk(tekst, model=model(), osoby=osoby, wymogi=rejestr_ai.wymogi())
+    except BladZgodnosci:
+        return {"blad": FUNKCJA_WYLACZONA}
     except BladModelu:
         return {"blad": MODEL_NIEDOSTEPNY}
     return {"korekta": wynik}
@@ -169,7 +173,7 @@ def projekt_uzasadnienia(notatki: list[str], osoby: list[str]) -> dict:
     Zwraca słownik z kluczem „projekt” (wynik rdzenia, także odmowa przy braku notatek) albo „blad” (komunikat).
     """
     try:
-        wynik = zredaguj_notatki(notatki, model=model(), osoby=osoby)
+        wynik = zredaguj_notatki(notatki, model=model(), osoby=osoby, wymogi=rejestr_ai.wymogi())
     except BladZgodnosci:
         return {"blad": FUNKCJA_WYLACZONA}
     except BladModelu:

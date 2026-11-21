@@ -149,7 +149,9 @@ class PrzegladStronDemoTest(TestCase):
                 self.assertEqual(odpowiedz.status_code, 404, konto.username)
                 continue
             self.assertEqual(odpowiedz.status_code, 302, konto.username)
-            for nazwa in ("zadania", "przepisy", "asystent"):
+            ma_podglad = konto.username in ("administrator", "kadry", "dyrektor")
+            self.assertEqual(klient.get(reverse("przepisy")).status_code, 200 if ma_podglad else 403)
+            for nazwa in ("zadania", "asystent"):
                 self.assertEqual(klient.get(reverse(nazwa)).status_code, 200, f"{konto.username}: {nazwa}")
 
     def test_kazda_karta_oceny_otwiera_sie_dla_kazdej_strony_procesu(self):
