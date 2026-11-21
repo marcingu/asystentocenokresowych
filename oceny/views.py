@@ -129,6 +129,19 @@ def _szkic(request, wybrana: Ocena):
     messages.success(request, "Szkic oceny został zapisany. Widzi go tylko oceniający.")
 
 
+def _projekt_uzasadnienia(request, wybrana: Ocena):
+    """HR Copilot: projekt uzasadnienia z notatek oceniającego. Odpowiedź modelu nie jest zapisywana -
+    istnieje tylko na tej stronie, dopóki oceniający sam nie przeniesie jej do formularza."""
+    from . import copilot  # import przy użyciu - moduł AI nie jest potrzebny do pracy reszty systemu
+
+    # Najpierw szkic: dane wpisane w formularzu nie przepadają, gdy strona wraca z projektem.
+    uslugi.zapisz_szkic(wybrana, request.user, formularze.czesc_II(request.POST, wybrana.proces()))
+    wynik = uslugi.projekt_uzasadnienia(wybrana, request.user, redaktor=copilot.projekt_uzasadnienia)
+    kontekst = kontekst_karty(wybrana, request.user, dzis())
+    kontekst["projekt_ai"] = wynik
+    return render(request, "oceny/ocena.html", kontekst)
+
+
 def _sporzadz_ocene(request, wybrana: Ocena):
     szkic = formularze.czesc_II(request.POST, wybrana.proces())
     # Najpierw szkic: po błędzie walidacji wpisane dane zostają w formularzu.
@@ -196,6 +209,7 @@ CZYNNOSCI = {
     "wniosek-o-termin": _wniosek_o_termin,
     "rozpatrz-wniosek": _rozpatrz_wniosek,
     "szkic": _szkic,
+    "projekt-uzasadnienia": _projekt_uzasadnienia,
     "sporzadz-ocene": _sporzadz_ocene,
     "potwierdz-zapoznanie": _potwierdz_zapoznanie,
     "fikcja-zapoznania": _fikcja_zapoznania,

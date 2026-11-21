@@ -46,4 +46,28 @@
       if (pole) { pole.value = przycisk.textContent.trim(); pole.focus(); }
     });
   });
+
+  // Przycisk wywołujący model w formularzu, który ma też inne przyciski: komunikat tylko po jego kliknięciu.
+  Array.prototype.forEach.call(document.querySelectorAll("button[data-czekanie]"), function (przycisk) {
+    przycisk.addEventListener("click", function () {
+      var komunikat = document.getElementById(przycisk.getAttribute("data-czekanie"));
+      if (komunikat) { komunikat.hidden = false; }
+    });
+  });
+
+  // Projekt przygotowany przez model trafia do formularza dopiero po decyzji człowieka - i nadal nie jest zapisany.
+  Array.prototype.forEach.call(document.querySelectorAll("button[data-wstaw-z]"), function (przycisk) {
+    przycisk.addEventListener("click", function () {
+      var zrodlo = document.getElementById(przycisk.getAttribute("data-wstaw-z"));
+      var cel = document.getElementById(przycisk.getAttribute("data-wstaw-do"));
+      if (!zrodlo || !cel) { return; }
+      var dotychczas = cel.value.replace(/\s+$/, "");
+      cel.value = dotychczas ? dotychczas + "\n\n" + zrodlo.value : zrodlo.value;
+      cel.focus();
+    });
+  });
+
+  // Po powrocie strony z projektem (albo komunikatem asystenta) pokazujemy od razu to miejsce.
+  var projekt = document.getElementById("projekt-ai");
+  if (projekt && projekt.scrollIntoView) { projekt.scrollIntoView({ block: "center" }); }
 })();

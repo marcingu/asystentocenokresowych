@@ -1,14 +1,17 @@
-"""Asystent AI - wyłącznie dwie funkcje dopuszczone w rejestrze `zgodnosc.toml`.
+"""Asystent AI - wyłącznie funkcje dopuszczone w rejestrze `zgodnosc.toml`.
 
 - PYTANIA_O_PROCEDURE: odpowiedź na pytanie o procedurę oceny okresowej, oparta wyłącznie na fragmentach
   przepisów z `baza_wiedzy.json` dobranych do pytania,
 - KOREKTA_JEZYKOWA_UZASADNIENIA: propozycja poprawek językowych tekstu napisanego przez oceniającego;
-  propozycję przyjmuje albo odrzuca człowiek.
+  propozycję przyjmuje albo odrzuca człowiek,
+- REDAKCJA_NOTATEK_OCENIAJACEGO: projekt tekstu uzasadnienia ułożony z notatek napisanych przez oceniającego;
+  model nie dostaje ocen cząstkowych, wyniku oceny ani danych z EZD RP, a projekt przyjmuje, zmienia albo
+  odrzuca człowiek.
 
-Model językowy nie ocenia pracownika, nie proponuje ocen i nie pisze uzasadnień (załącznik III pkt 4 lit. b
-rozporządzenia (UE) 2024/1689 - klasyfikacja i podstawy są w rejestrze funkcji AI). Każde wywołanie przechodzi
-przez bramkę `wymagaj_dozwolonej_funkcji_ai`. Do modelu nie trafiają numery PESEL, adresy e-mail, numery
-telefonów ani wskazane imiona i nazwiska (moduł `anonimizacja`).
+Model językowy nie ocenia pracownika i nie proponuje ocen, a treść uzasadnienia pochodzi od oceniającego
+(załącznik III pkt 4 lit. b rozporządzenia (UE) 2024/1689 - klasyfikacja i podstawy są w rejestrze funkcji AI).
+Każde wywołanie przechodzi przez bramkę `wymagaj_dozwolonej_funkcji_ai`. Do modelu nie trafiają numery PESEL,
+adresy e-mail, numery telefonów ani wskazane imiona i nazwiska (moduł `anonimizacja`).
 
 Odpowiedź modelu nie jest źródłem prawa: wynik zawsze wskazuje przepisy przekazane modelowi, a ostrzeżenia
 sygnalizują oznaki zmyślenia (przepis albo liczba spoza podanych fragmentów, brak podstawy prawnej).
@@ -33,6 +36,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from .anonimizacja import anonimizuj, przywroc
+from .konfiguracja import wczytaj_przepisy
 from .zgodnosc import Wymogi, rejestr_funkcji_ai, wymagaj_dozwolonej_funkcji_ai
 
 FUNKCJA_PYTANIA = "PYTANIA_O_PROCEDURE"
@@ -281,7 +285,7 @@ def _tresc_odmowy(wymogi: Wymogi | None) -> str:
     )
     tresc = (
         "Na to pytanie nie odpowiem: asystent AI nie ocenia pracowników, nie proponuje ocen ani decyzji kadrowych "
-        "i nie pisze uzasadnień. Ocena należy do oceniającego."
+        "i nie pisze uzasadnień za oceniającego. Ocena należy do oceniającego."
     )
     if podstawa:
         tresc += f" Podstawa: {podstawa}"
@@ -441,6 +445,180 @@ def popraw_jezyk(
             "Propozycja ma wyraźnie inną długość niż oryginał - model mógł dodać albo usunąć treść."
         )
     return KorektaAI(oryginal=oryginal, propozycja=propozycja, ostrzezenia=tuple(ostrzezenia))
+
+
+# --- redakcja notatek oceniającego ---
+
+FUNKCJA_REDAKCJI = "REDAKCJA_NOTATEK_OCENIAJACEGO"
+ODMOWA_BRAK_NOTATEK = "brak_notatek"
+
+ZASADY_REDAKCJI = (
+    "Układasz notatki przełożonego w projekt uzasadnienia oceny okresowej. Każdą notatkę zamień na pełne zdanie "
+    "w stylu urzędowym, w tej samej kolejności. Korzystaj wyłącznie z informacji z notatek: nie dodawaj faktów, "
+    "liczb, dat, określeń, przykładów, wniosków ani zapowiedzi dalszych działań, których w notatkach nie ma. "
+    "Liczby i daty przepisz cyframi. Jeżeli notatka nie wskazuje, czy chodzi o kobietę, czy o mężczyznę, pisz "
+    "bezosobowo. Nie proponuj ocen, punktów ani poziomu spełniania kryteriów i nie oceniaj pracownika własnymi "
+    "słowami - ocenę ustala wyłącznie oceniający. Nie pisz nagłówka, wstępu ani podsumowania i nie zostawiaj pól "
+    "do uzupełnienia. Zwróć sam tekst projektu."
+)
+# O znacznikach model dowiaduje się tylko wtedy, gdy notatki je zawierają - inaczej wymyśla własne pola.
+_O_ZNACZNIKACH = "Znaczniki w nawiasach kwadratowych oznaczają ukryte dane osobowe - przepisz je bez zmian."
+
+# Przykłady oczekiwanej postaci projektu: zdanie za notatkę, bez nagłówka i bez dopowiedzeń. Dane są zmyślone.
+_WZOR_REDAKCJI = (
+    {
+        "role": "user",
+        "content": "Notatki:\n- prowadzi rejestr umów na bieżąco, bez zaległości\n- marzec 2025: nowy wzór "
+        "zestawienia kwartalnego, używa go cały wydział\n- 2 razy sprawozdanie po terminie (3 i 5 dni)",
+    },
+    {
+        "role": "assistant",
+        "content": "Prowadzi rejestr umów na bieżąco, bez zaległości. W marcu 2025 r. opracowano nowy wzór "
+        "zestawienia kwartalnego, z którego korzysta cały wydział. Sprawozdanie przekazano po terminie 2 razy, "
+        "z opóźnieniem 3 i 5 dni.",
+    },
+)
+_WZOR_REDAKCJI_ZE_ZNACZNIKIEM = (
+    {
+        "role": "user",
+        "content": "Notatki:\n- [OSOBA_1] zastępował kierownika referatu przez 6 tygodni\n- terminowość ok\n"
+        f"- kontakt z klientami: 1 skarga, niezasadna\n\n{_O_ZNACZNIKACH}",
+    },
+    {
+        "role": "assistant",
+        "content": "[OSOBA_1] zastępował kierownika referatu przez 6 tygodni. Zadania wykonuje terminowo. "
+        "W kontaktach z klientami odnotowano 1 skargę, która okazała się niezasadna.",
+    },
+)
+# Projekt dłuższy niż dwukrotność notatek (z zapasem na bardzo krótkie notatki) to oznaka dopisanej treści.
+_MAX_STOSUNEK_REDAKCJI = 2.0
+_ZAPAS_ZNAKOW_REDAKCJI = 100
+_POLE_W_NAWIASIE = re.compile(r"\[[^\[\]\n]{1,60}\]")
+_DATA_DZIENNA = re.compile(r"(?<!\d)(\d{1,2})\.(\d{1,2})\.(\d{4})(?!\d)")
+
+# Wzorce na tekście bez znaków diakrytycznych. Nazwy poziomów oceny dochodzą z konfiguracji przepisów.
+_WZORCE_OCENY_W_PROJEKCIE = tuple(
+    re.compile(wzorzec)
+    for wzorzec in (
+        r"\bocen\w*\s+(?:pozytywn|negatywn)\w*",
+        r"\bzasluguj\w*\s+na\s+(?:\w+\s+)?ocen\w*",
+        r"\b(?:proponuj|rekomenduj|sugeruj|wnioskuj)\w*\s+(?:o\s+)?(?:\w+\s+)?ocen\w*",
+        r"\b\d+\s*(?:punkt\w*|pkt)\b",
+    )
+)
+
+
+@dataclass(frozen=True)
+class RedakcjaAI:
+    """Projekt tekstu ułożony z notatek oceniającego - do przyjęcia, zmiany albo odrzucenia przez człowieka."""
+
+    propozycja: str
+    odmowa: bool = False
+    powod: str = ""  # przy odmowie: ODMOWA_BRAK_NOTATEK
+    ostrzezenia: tuple[str, ...] = ()
+
+
+def _sformulowania_o_ocenie(projekt: str, notatki: str) -> list[str]:
+    """Fragmenty projektu, które brzmią jak ocena albo poziom spełniania kryteriów, a nie pochodzą z notatek."""
+    tekst = _normalizuj(projekt)
+    znane = _normalizuj(notatki)
+    zakresy = [dopasowanie.span() for wzorzec in _WZORCE_OCENY_W_PROJEKCIE for dopasowanie in wzorzec.finditer(tekst)]
+    # Nazwy poziomów są w konfiguracji przepisów (§ 11 ust. 1 pkt 1 rozp.) - zmiana skali nie wymaga zmiany kodu.
+    for poziom in wczytaj_przepisy().poziomy:
+        zakresy.extend(dopasowanie.span() for dopasowanie in re.finditer(re.escape(_normalizuj(poziom.nazwa)), tekst))
+    fragmenty: list[str] = []
+    przyjete: list[tuple[int, int]] = []
+    # Dłuższe dopasowanie od tego samego miejsca najpierw: „znacznie poniżej oczekiwań” przed „poniżej oczekiwań”.
+    for poczatek, koniec in sorted(set(zakresy), key=lambda zakres: (zakres[0], -zakres[1])):
+        if any(p <= poczatek and koniec <= k for p, k in przyjete):
+            continue
+        przyjete.append((poczatek, koniec))
+        if tekst[poczatek:koniec] in znane:
+            continue  # to słowa oceniającego, nie modelu
+        # Cytat z oryginału, o ile normalizacja nie zmieniła długości tekstu (np. wielokropek jako jeden znak).
+        fragment = projekt[poczatek:koniec] if len(projekt) == len(tekst) else tekst[poczatek:koniec]
+        if fragment not in fragmenty:
+            fragmenty.append(fragment)
+    return fragmenty
+
+
+def _ostrzezenia_do_redakcji(projekt: str, notatki: str, notatki_bez_danych: str) -> tuple[str, ...]:
+    """Oznaki, że projekt wychodzi poza notatki albo je gubi. Brak ostrzeżeń nie dowodzi wierności projektu.
+
+    `notatki_bez_danych` to notatki po anonimizacji: numer PESEL albo telefonu z notatek nie musi być w projekcie.
+    """
+    ostrzezenia = []
+    pola = [pole for pole in dict.fromkeys(_POLE_W_NAWIASIE.findall(projekt)) if pole not in notatki]
+    if pola:
+        ostrzezenia.append(
+            f"Projekt zawiera pole w nawiasie kwadratowym, którego nie ma w notatkach ({', '.join(pola)}) - "
+            "model zostawił miejsce do uzupełnienia zamiast treści."
+        )
+    w_projekcie = list(dict.fromkeys(re.findall(r"\d+", _POLE_W_NAWIASIE.sub(" ", projekt))))
+    znane_liczby = set(_liczby(notatki))
+    obce_liczby = [liczba for liczba in w_projekcie if liczba not in znane_liczby]
+    if obce_liczby:
+        ostrzezenia.append(
+            f"Projekt zawiera liczbę, której nie ma w notatkach ({', '.join(obce_liczby)}) - sprawdź, skąd pochodzi."
+        )
+    # Liczby wielocyfrowe z notatek powinny zostać w projekcie. Jednocyfrową model może zapisać słownie,
+    # a numer miesiąca w dacie dziennej - nazwą miesiąca.
+    wymagane = re.findall(r"\d+", _DATA_DZIENNA.sub(r"\1 \3", _POLE_W_NAWIASIE.sub(" ", notatki_bez_danych)))
+    pominiete = [liczba for liczba in dict.fromkeys(wymagane) if len(liczba) > 1 and liczba not in w_projekcie]
+    if pominiete:
+        ostrzezenia.append(
+            f"W projekcie brakuje liczby z notatek ({', '.join(pominiete)}) - sprawdź, czy model nie pominął "
+            "albo nie zmienił faktu."
+        )
+    o_ocenie = _sformulowania_o_ocenie(projekt, notatki)
+    if o_ocenie:
+        cytaty = ", ".join(f"„{fragment}”" for fragment in o_ocenie)
+        ostrzezenia.append(
+            f"Projekt zawiera sformułowanie o ocenie albo poziomie spełniania kryteriów ({cytaty}), którego nie ma "
+            "w notatkach - ocenę i poziom ustala wyłącznie oceniający."
+        )
+    if len(projekt) > _MAX_STOSUNEK_REDAKCJI * len(notatki) + _ZAPAS_ZNAKOW_REDAKCJI:
+        ostrzezenia.append(
+            "Projekt jest wyraźnie dłuższy niż notatki - model mógł dopisać treść, której w nich nie ma."
+        )
+    return tuple(ostrzezenia)
+
+
+def zredaguj_notatki(
+    notatki: Iterable[str], *, model: Model, wymogi: Wymogi | None = None, osoby: Sequence[str] = ()
+) -> RedakcjaAI:
+    """Projekt tekstu uzasadnienia ułożony z notatek napisanych przez oceniającego.
+
+    Funkcja nie przyjmuje ocen cząstkowych, wyniku oceny ani danych o pracy z EZD RP: model dostaje wyłącznie
+    notatki, bez danych osobowych (`osoby` to imiona i nazwiska do ukrycia). Projekt przyjmuje, zmienia albo
+    odrzuca oceniający. Ostrzeżenia wskazują oznaki wyjścia poza notatki albo zgubienia ich treści: pole do
+    uzupełnienia, liczbę spoza notatek, pominiętą liczbę z notatek, sformułowanie o ocenie albo poziomie, tekst
+    wyraźnie dłuższy niż notatki.
+    Brak notatek -> odmowa bez wywołania modelu. Funkcja wyłączona w rejestrze -> BladZgodnosci.
+    Niedostępny model -> BladModelu.
+    """
+    wymagaj_dozwolonej_funkcji_ai(FUNKCJA_REDAKCJI, wymogi)
+    if isinstance(notatki, str):
+        notatki = [notatki]
+    tresci = [str(notatka).strip() for notatka in notatki if str(notatka or "").strip()]
+    if not tresci:
+        return RedakcjaAI(propozycja="", odmowa=True, powod=ODMOWA_BRAK_NOTATEK)
+    zrodlo = "\n".join(f"- {tresc}" for tresc in tresci)
+    zanonimizowane = anonimizuj(zrodlo, osoby)
+    ze_znacznikami = bool(zanonimizowane.mapa)
+    polecenie = f"Notatki:\n{zanonimizowane.tekst}"
+    if ze_znacznikami:
+        polecenie += f"\n\n{_O_ZNACZNIKACH}"
+    wiadomosci = [
+        {"role": "system", "content": ZASADY_REDAKCJI},
+        *(_WZOR_REDAKCJI_ZE_ZNACZNIKIEM if ze_znacznikami else ()),
+        *_WZOR_REDAKCJI,
+        {"role": "user", "content": polecenie},
+    ]
+    projekt = przywroc(_zapytaj(model, wiadomosci), zanonimizowane.mapa)
+    return RedakcjaAI(
+        propozycja=projekt, ostrzezenia=_ostrzezenia_do_redakcji(projekt, zrodlo, zanonimizowane.tekst)
+    )
 
 
 class KlientOllama:

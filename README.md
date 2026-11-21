@@ -23,14 +23,15 @@ Opcje: `./uruchom-demo.sh --od-nowa` buduje bazę pokazową od początku, `./uru
 - **Role i poufność**: oceniany, oceniający, kadry, dyrektor, administrator. Notatki i szkic oceny widzi tylko oceniający. Statystyki są zbiorcze, bez nazwisk.
 - **Wydruk arkusza** zgodnego ze wzorem z rozporządzenia (PDF do podpisu, DOCX) i terminy do kalendarza (iCalendar).
 - **Asystent AI** na lokalnym modelu PLLuM: odpowiada na pytania o procedurę, wskazuje przepisy i ostrzega, gdy odpowiedź modelu powołuje przepis albo liczbę spoza źródeł.
-- **Integracja z EZD RP** (tylko odczyt) i wskaźniki pracy liczone jawnymi regułami - w rdzeniu; karta w aplikacji w budowie.
+- **Projekt uzasadnienia z notatek**: na karcie oceny model układa notatki przełożonego w tekst uzasadnienia. Dostaje wyłącznie notatki - bez ocen cząstkowych i danych z EZD RP. Projekt jest oznaczony jako tekst AI, nie zapisuje się sam, a do formularza przenosi go oceniający.
+- **Kontekst z EZD RP**: karta faktów o sprawach ocenianego za okres oceny (liczba spraw, terminowość, akceptacje pism), jawna dla obu stron, bez punktów i rankingów. Włącza ją komórka kadr po spełnieniu warunków Kodeksu pracy. W pokazie karta działa na danych przykładowych; klient Integrator API jest w rdzeniu, przetestowany na atrapie i jeszcze niepodłączony do karty.
 
-Testy: 556 testów rdzenia i 116 testów aplikacji.
+Testy: 577 testów rdzenia i 150 testów aplikacji.
 
 ## Założenia
 
 - **Prawo w konfiguracji, nie w kodzie.** Parametry przepisów są w `asystent_ocen/przepisy.toml`, wymogi zgodności w `asystent_ocen/zgodnosc.toml`. Zmiana przepisu to zmiana pliku. Aplikacja pokazuje ten plik na stronie „Przepisy”.
-- **AI nie ocenia pracownika.** Rejestr funkcji AI w `zgodnosc.toml` dopuszcza odpowiedzi na pytania o procedurę i korektę językową. Funkcji wysokiego ryzyka nie da się włączyć w tej wersji.
+- **AI nie ocenia pracownika.** Rejestr funkcji AI w `zgodnosc.toml` dopuszcza odpowiedzi na pytania o procedurę, korektę językową i ułożenie notatek oceniającego w projekt uzasadnienia. Model nie dostaje ocen ani danych z EZD RP. Funkcji wysokiego ryzyka nie da się włączyć w tej wersji.
 - **Dane zostają w urzędzie.** Model językowy działa lokalnie, a strony nie pobierają niczego z internetu (wymusza to polityka treści w nagłówkach odpowiedzi).
 - **Tylko licencje permisywne.** Django (BSD-3-Clause), python-docx (MIT), model PLLuM-12B-chat (Apache-2.0).
 

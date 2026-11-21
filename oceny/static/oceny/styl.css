@@ -174,9 +174,12 @@ summary { cursor: pointer; color: var(--granat); font-weight: 600; }
 .fakty { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .6rem; margin: .6rem 0; padding: 0; list-style: none; }
 .fakt { border: 1px solid var(--linia); border-radius: 4px; padding: .6rem .8rem; background: #f8f9fb; }
 .fakt strong { display: block; font-size: 1.3rem; color: var(--granat); }
-.propozycja-ai { border: 2px dashed var(--granat); border-radius: 4px; padding: .8rem 1rem; margin: .8rem 0; background: #f6f9ff; }
-.propozycja-ai h3 { margin-top: 0; }
 .czekanie { color: var(--granat); font-weight: 600; }
+.copilot { border: 1px dashed var(--granat); border-radius: 4px; padding: .5rem .8rem .7rem; margin: .3rem 0; display: grid; gap: .35rem; }
+.projekt-ai { background: var(--niebieski-tlo); border-left: 5px solid var(--granat); border-radius: 4px; padding: .6rem .9rem; margin: .3rem 0; display: grid; gap: .35rem; }
+.projekt-ai p { margin: 0; }
+.formularz .projekt-ai textarea { background: #fff; }
+.etykieta-ai { display: inline-block; background: var(--granat); color: #fff; border-radius: 3px; padding: 0 .4rem; font-size: .75rem; font-weight: 700; letter-spacing: .05em; }
 
 @media print {
   .demo, .naglowek nav, .uzytkownik, .stopka, .przycisk, form, details { display: none !important; }

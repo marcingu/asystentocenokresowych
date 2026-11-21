@@ -22,7 +22,7 @@ from .formularze import nazwy_kryteriow
 from .kontekst_ezd import karta_kontekstu
 from .models import Ocena, WniosekOTermin
 from .uprawnienia import role_uzytkownika
-from .uslugi import CZYNNOSC_NOTATKA
+from .uslugi import CZYNNOSC_NOTATKA, CZYNNOSC_PROJEKT_AI
 from .zadania import opisy_skutkow, zadania_oceny
 
 
@@ -253,8 +253,13 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
             if kadry or oceniajacy or (oceniany and dokument.adresat == Rola.OCENIANY)
         ],
         # Wpisy o notatkach widzi tylko oceniający - inni nie dowiadują się nawet, że notatki powstają.
+        # Praca nad oceną jest niejawna do jej sporządzenia, więc ślad użycia asystenta AI strony widzą potem.
         "zdarzenia": [
-            zdarzenie for zdarzenie in ocena.zdarzenia.all() if oceniajacy or zdarzenie.czynnosc != CZYNNOSC_NOTATKA
+            zdarzenie for zdarzenie in ocena.zdarzenia.all()
+            if oceniajacy or not (
+                zdarzenie.czynnosc == CZYNNOSC_NOTATKA
+                or (zdarzenie.czynnosc == CZYNNOSC_PROJEKT_AI and etap == Etap.OCENIANIE)
+            )
         ],
         "sprzeciwy": sprzeciwy,
         "sprzeciw_w_toku": sprzeciw_w_toku,
@@ -270,8 +275,15 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
     if oceniajacy and etap in (Etap.KRYTERIA_DO_WYZNACZENIA, Etap.KRYTERIA_DO_POTWIERDZENIA):
         kontekst["formularz_kryteriow"] = formularz_kryteriow(proces, ustawowy["data"])
     if oceniajacy and etap == Etap.OCENIANIE:
+        from . import copilot  # import przy użyciu - moduł AI nie jest potrzebny do pracy reszty systemu
+
         kontekst["formularz_oceny"] = formularz_oceny(ocena, proces, dzien)
         kontekst["mozna_zmienic_termin"] = True
+        kontekst["copilot"] = {
+            "dostepny": copilot.redakcja_notatek_dostepna(),
+            "liczba_notatek": len(proces.notatki),
+            "model": settings.ASYSTENT_MODEL,
+        }
     if oceniajacy:
         # Notatki z obserwacji widzi wyłącznie oceniający (decyzja zespołu z 21.11.2026).
         kontekst["notatki"] = sorted(proces.notatki, key=lambda notatka: notatka.data, reverse=True)

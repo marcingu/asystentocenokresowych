@@ -64,6 +64,13 @@ podstawa = "Art. 6 ust. 3 lit. b AI Act - poprawa wyniku zakończonej uprzednio 
 wlaczona = true
 
 [[funkcje_ai]]
+kod = "REDAKCJA_NOTATEK_OCENIAJACEGO"
+opis = "Ułożenie notatek napisanych przez oceniającego w projekt tekstu uzasadnienia. Model nie dostaje ocen cząstkowych, wyniku oceny ani danych z EZD RP i nie proponuje ocen; projekt przyjmuje, zmienia albo odrzuca oceniający."
+klasyfikacja = "wyjatek_art_6_ust_3"
+podstawa = "Art. 6 ust. 3 lit. d AI Act - zadanie przygotowawcze w kontekście oceny dokonywanej przez człowieka (motyw 53: przetwarzanie tekstów). Funkcja porządkuje tekst napisany przez oceniającego i nie ocenia czynników osobowych, więc nie profiluje (art. 4 pkt 4 RODO; art. 6 ust. 3 akapit trzeci AI Act). Kwalifikacja robocza z 21.11.2026 - do potwierdzenia przez prawnika przed wdrożeniem. Dostawca dokumentuje ocenę i rejestruje system: art. 6 ust. 4 i art. 49 ust. 2 AI Act."
+wlaczona = true
+
+[[funkcje_ai]]
 kod = "PROPOZYCJA_OCENY"
 opis = "Propozycja ocen cząstkowych, poziomu lub treści uzasadnienia na podstawie danych o pracy pracownika."
 klasyfikacja = "wysokie_ryzyko"

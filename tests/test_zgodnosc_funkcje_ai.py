@@ -22,6 +22,7 @@ from asystent_ocen.zgodnosc import (
 KLASYFIKACJE = {
     "PYTANIA_O_PROCEDURE": "poza_zalacznikiem_III",
     "KOREKTA_JEZYKOWA_UZASADNIENIA": "wyjatek_art_6_ust_3",
+    "REDAKCJA_NOTATEK_OCENIAJACEGO": "wyjatek_art_6_ust_3",
     "PROPOZYCJA_OCENY": "wysokie_ryzyko",
     "PODSUMOWANIE_PRACY_PRACOWNIKA": "wysokie_ryzyko",
     "REKOMENDACJA_KADROWA": "wysokie_ryzyko",
@@ -46,9 +47,22 @@ def test_kazda_funkcja_ai_ma_opis_i_podstawe_klasyfikacji():
 
 def test_wlaczone_sa_tylko_funkcje_spoza_wysokiego_ryzyka():
     """Ocena wydajności i zachowania pracownika to zał. III pkt 4 lit. b AI Act, a ocena efektów pracy jest
-    profilowaniem (art. 4 pkt 4 RODO), więc wyjątek z art. 6 ust. 3 nie działa - takich funkcji nie włączamy."""
+    profilowaniem (art. 4 pkt 4 RODO), więc wyjątek z art. 6 ust. 3 nie działa - takich funkcji nie włączamy.
+
+    Redakcja notatek oceniającego (moduł HR Copilot z architektury zespołu) jest włączona jako zadanie
+    przygotowawcze: model składa w tekst notatki napisane przez człowieka, bez ocen i bez danych z EZD RP.
+    """
     wlaczone = {f.kod for f in rejestr_funkcji_ai() if f.wlaczona}
-    assert wlaczone == {"PYTANIA_O_PROCEDURE", "KOREKTA_JEZYKOWA_UZASADNIENIA"}
+    assert wlaczone == {"PYTANIA_O_PROCEDURE", "KOREKTA_JEZYKOWA_UZASADNIENIA", "REDAKCJA_NOTATEK_OCENIAJACEGO"}
+
+
+@pytest.mark.decyzja_projektowa
+def test_redakcja_notatek_ma_w_rejestrze_opisane_granice():
+    """Kwalifikacja robocza z 21.11.2026 (art. 6 ust. 3 lit. d AI Act: „zadania przygotowawcze w kontekście oceny”)
+    - do potwierdzenia przez prawnika przed wdrożeniem produkcyjnym."""
+    funkcja = next(f for f in rejestr_funkcji_ai() if f.kod == "REDAKCJA_NOTATEK_OCENIAJACEGO")
+    assert "6 ust. 3 lit. d" in funkcja.podstawa
+    assert "EZD RP" in funkcja.opis and "ocen" in funkcja.opis
 
 
 @pytest.mark.parametrize("klasyfikacja", ["wysokie_ryzyko", "zakazana"])
@@ -76,7 +90,9 @@ def test_powtorzony_kod_funkcji_jest_odrzucany():
         sprawdz_rejestr_funkcji_ai([funkcja(), funkcja()])
 
 
-@pytest.mark.parametrize("kod", ["PYTANIA_O_PROCEDURE", "KOREKTA_JEZYKOWA_UZASADNIENIA"])
+@pytest.mark.parametrize(
+    "kod", ["PYTANIA_O_PROCEDURE", "KOREKTA_JEZYKOWA_UZASADNIENIA", "REDAKCJA_NOTATEK_OCENIAJACEGO"]
+)
 def test_dozwolona_funkcja_ai_jest_zwracana(kod):
     assert wymagaj_dozwolonej_funkcji_ai(kod).kod == kod
 

@@ -155,6 +155,34 @@
     <label for="uzasadnienie">Uzasadnienie przyznanej oceny {% if f.podglad and f.podglad.ocena == 'NEGATYWNA' %}<span class="wymagane">wymagane przy ocenie negatywnej (§ 11 ust. 3 rozp.)</span>{% endif %}</label>
     <textarea name="uzasadnienie" id="uzasadnienie" rows="5">{{ f.uzasadnienie }}</textarea>
 
+    {% if copilot.dostepny %}
+    <div class="copilot">
+      <p class="podpowiedz"><span class="etykieta-ai">AI</span> Asystent ułoży projekt uzasadnienia z Twoich notatek z okresu oceny
+        (liczba notatek: {{ copilot.liczba_notatek }}). Lokalny model językowy dostaje wyłącznie notatki - bez ocen cząstkowych,
+        wyniku i danych z EZD RP. Projekt nie zapisuje się sam.</p>
+      <button type="submit" formaction="{% url 'czynnosc' ocena.pk 'projekt-uzasadnienia' %}" class="przycisk przycisk-drugi" data-czekanie="czekanie-projekt">Ułóż projekt uzasadnienia z moich notatek</button>
+      <p class="czekanie" id="czekanie-projekt" hidden role="status">Model pracuje lokalnie - projekt będzie gotowy za kilka-kilkanaście sekund...</p>
+    </div>
+    {% endif %}
+    {% if projekt_ai.blad %}
+    <p class="komunikat komunikat-error" id="projekt-ai" role="alert">{{ projekt_ai.blad }}</p>
+    {% elif projekt_ai.projekt.odmowa %}
+    <p class="komunikat komunikat-info" id="projekt-ai" role="status">Nie ma jeszcze notatek z okresu oceny, więc asystent nie ma z czego
+      ułożyć projektu. Dodaj notatki w panelu „Moje notatki z okresu oceny” albo napisz uzasadnienie samodzielnie.</p>
+    {% elif projekt_ai.projekt %}
+    <div class="projekt-ai" id="projekt-ai" role="status">
+      <p><span class="etykieta-ai">AI</span> <strong>Projekt przygotowany przez model językowy</strong> ({{ copilot.model }}) - do sprawdzenia i poprawienia.</p>
+      <label for="projekt-ai-tekst" class="ukryte">Projekt uzasadnienia przygotowany przez model językowy</label>
+      <textarea id="projekt-ai-tekst" rows="6" readonly>{{ projekt_ai.projekt.propozycja }}</textarea>
+      {% for ostrzezenie in projekt_ai.projekt.ostrzezenia %}
+      <p class="komunikat komunikat-warning"><strong>Kontrola projektu:</strong> {{ ostrzezenie }}</p>
+      {% endfor %}
+      <button type="button" class="przycisk przycisk-drugi" data-wstaw-z="projekt-ai-tekst" data-wstaw-do="uzasadnienie">Wstaw do formularza</button>
+      <p class="podpowiedz">Projekt powstał wyłącznie z Twoich notatek i nie jest nigdzie zapisany. Model mógł zmienić sens notatki -
+        porównaj tekst z notatkami. Po wstawieniu możesz go dowolnie zmienić; za treść uzasadnienia odpowiada oceniający.</p>
+    </div>
+    {% endif %}
+
     <label for="wnioski_iprz">Wnioski dotyczące indywidualnego programu rozwoju zawodowego <span class="wymagane">wymagane</span></label>
     <textarea name="wnioski_iprz" id="wnioski_iprz" rows="4">{{ f.wnioski_iprz }}</textarea>
 

@@ -27,6 +27,7 @@ from .uprawnienia import czy_kadry, pracownik_uzytkownika, role_uzytkownika
 
 UWZGLEDNIENIA_SPRZECIWU = (Sprzeciw.ZMIANA, Sprzeciw.PONOWNE_SPORZADZENIE)
 CZYNNOSC_NOTATKA = "notatka"
+CZYNNOSC_PROJEKT_AI = "projekt uzasadnienia ułożony przez model językowy"
 
 
 # --- narzędzia wspólne ---
@@ -315,6 +316,31 @@ def zapisz_szkic(ocena: Ocena, uzytkownik, szkic: dict) -> None:
         biezaca.szkic = szkic
         biezaca.save(update_fields=["szkic", "zmieniono"])
     ocena.refresh_from_db()
+
+
+def projekt_uzasadnienia(ocena: Ocena, uzytkownik, *, redaktor, data: date | None = None) -> dict:
+    """Projekt uzasadnienia ułożony przez model językowy z notatek oceniającego (HR Copilot).
+
+    `redaktor(notatki, osoby)` zwraca słownik z kluczem „projekt” (wynik rdzenia) albo „blad” (komunikat) -
+    w aplikacji jest nim `copilot.projekt_uzasadnienia`. Model dostaje wyłącznie notatki: bez ocen cząstkowych,
+    szkicu, wyniku i danych z EZD RP. Projekt nie jest zapisywany - do formularza przenosi go oceniający.
+    W dzienniku zostaje ślad użycia funkcji, bez treści. Model pracuje kilka-kilkanaście sekund, dlatego
+    wywołanie nie jest objęte transakcją.
+    """
+    data = data or dzis()
+    biezaca = Ocena.objects.select_related("oceniany").get(pk=ocena.pk)
+    _wymagaj_roli(uzytkownik, biezaca, Rola.OCENIAJACY)
+    if biezaca.etap != Etap.OCENIANIE.name:
+        raise BladEtapu("Projekt uzasadnienia można przygotować tylko na etapie dokonywania oceny.")
+    notatki = [notatka.tresc for notatka in sorted(biezaca.proces().notatki, key=lambda notatka: notatka.data)]
+    oceniany = biezaca.oceniany
+    wynik = redaktor(notatki, [oceniany.imie_i_nazwisko, oceniany.imie, oceniany.nazwisko])
+    projekt = wynik.get("projekt")
+    if projekt is not None and not projekt.odmowa:
+        _zapisz_zdarzenie(
+            biezaca, uzytkownik, CZYNNOSC_PROJEKT_AI, data, "tekst do decyzji oceniającego - nie jest zapisywany"
+        )
+    return wynik
 
 
 def potwierdz_zapoznanie(ocena: Ocena, uzytkownik, *, data: date | None = None) -> None:

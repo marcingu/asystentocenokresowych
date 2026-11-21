@@ -10,7 +10,7 @@ Oznaczenia: **[F]** fakt sprawdzony w tekście źródła, **[W]** wniosek zespo�
 1. **Art. 22[3] Kodeksu pracy.** [F] Brzmienie przytoczone przez Marcina jest zgodne z obowiązującym. [W] Zestawianie danych o pracy konkretnej osoby z EZD RP traktujemy ostrożnie jako „inną formę monitoringu” (§ 4), więc przed uruchomieniem urząd musi spełnić wymogi z art. 22[2] § 6-8 KP.
 2. **Otwarte ryzyko.** [?] Art. 22[3] § 4 dopuszcza inne formy monitoringu tylko dla celów z § 1 (organizacja pracy, właściwe użytkowanie narzędzi pracy). „Ocena okresowa” nie jest tam wymieniona. Do rozstrzygnięcia przez prawnika (pkt 7).
 3. **AI Act.** [W] Założenie „decyzję w 100% podejmuje dyrektor, więc to nie jest system wysokiego ryzyka” nie wystarcza. O klasyfikacji decyduje przeznaczenie systemu AI, a nie to, kto podpisuje decyzję. System AI, który ocenia wydajność lub zachowanie pracownika, mieści się w załączniku III pkt 4 lit. b, a ponieważ taka ocena jest profilowaniem, wyjątek z art. 6 ust. 3 nie działa.
-4. **Projekt.** [W] AI nie ocenia. Terminy, średnie, skutki i wskaźniki z EZD RP liczy zwykły kod - to nie jest system AI. Model językowy dostaje wyłącznie zadania spoza oceny osoby: pytania o procedurę i korektę językową tekstu napisanego przez oceniającego.
+4. **Projekt.** [W] AI nie ocenia. Terminy, średnie, skutki i wskaźniki z EZD RP liczy zwykły kod - to nie jest system AI. Model językowy dostaje wyłącznie zadania spoza oceny osoby: pytania o procedurę, korektę językową tekstu napisanego przez oceniającego i ułożenie jego własnych notatek w projekt uzasadnienia (kwalifikacja robocza - pkt 7.6).
 5. **Daty.** [F] Wymogi dla systemów wysokiego ryzyka z załącznika III stosuje się od 2.12.2027. Zakazy z art. 5 obowiązują od 2.02.2025.
 6. **API EZD RP.** [F] Da się pobrać daty i terminy spraw oraz historię akceptacji dokumentów. [F] Nie ma pola o wyniku odwołania - potrzebny rejestr własny urzędu albo wpis ręczny.
 
@@ -107,6 +107,7 @@ Kierunek ten potwierdza projekt wytycznych Komisji Europejskiej do art. 6 (AI Ac
 | Karta faktów z EZD RP: liczby spraw, mediana czasu, terminowość, akceptacje, odwołania | nie | poza AI Act; podlega RODO i KP | jest |
 | Pytania o procedurę i przepisy (model odpowiada z przekazanych fragmentów przepisów) | tak | poza załącznikiem III; przejrzystość z art. 50 ust. 1 | włączona |
 | Korekta językowa uzasadnienia napisanego przez oceniającego | tak | wyjątek z art. 6 ust. 3 lit. b (motyw 53); dokumentacja oceny i rejestracja - art. 6 ust. 4, art. 49 ust. 2 | włączona |
+| Ułożenie notatek oceniającego w projekt uzasadnienia (HR Copilot z architektury zespołu); model nie dostaje ocen cząstkowych, wyniku ani danych z EZD RP | tak | [W] wyjątek z art. 6 ust. 3 lit. d (zadania przygotowawcze; motyw 53: przetwarzanie tekstów); bez oceny, prognozy albo osądu o osobie nie ma profilowania (projekt wytycznych, pkt 112). [?] Kwalifikacja robocza - pkt 7.6 | włączona |
 | Propozycja ocen cząstkowych, poziomu lub uzasadnienia z danych o pracy | tak | wysokie ryzyko | zablokowana |
 | Podsumowanie albo interpretacja wskaźników pracy osoby przez model | tak | wysokie ryzyko | zablokowana |
 | Rekomendacja zwolnienia, awansu, nagrody; ranking pracowników | tak | wysokie ryzyko; dodatkowo art. 22 RODO | zablokowana |
@@ -148,8 +149,9 @@ Ograniczenia: [F] wyszukiwanie spraw wymaga uprawnienia `Sprawy.Podglad`, a wyni
 | Rejestr funkcji AI z klasyfikacją; wysokie ryzyko i funkcje zakazane nie do włączenia | `tests/test_zgodnosc_funkcje_ai.py` |
 | Zamknięta lista jawnych wskaźników z listą spraw źródłowych; bez oceny zbiorczej i rankingu; minimalna liczność 5 | `tests/test_wskazniki_pracy.py` |
 | Klient EZD RP tylko do odczytu, bez treści pism; wynik odwołań z rejestru własnego | `tests/test_ezdrp_api.py` |
+| Projekt uzasadnienia z notatek: model dostaje wyłącznie notatki (bez ocen, szkicu, wyniku i danych z EZD RP), projekt nie jest zapisywany, a kontrola oznacza pola do uzupełnienia, liczby spoza notatek, pominięte liczby i sformułowania o ocenie | `tests/test_redakcja_notatek.py`, `oceny/tests/test_copilot.py` |
 
-Poza testami: model PLLuM-12B-chat-2512 działa lokalnie (licencja Apache-2.0 według karty modelu na Hugging Face, sprawdzone 21.11.2026), więc dane nie opuszczają urzędu.
+Poza testami: model PLLuM-12B-chat-2512 działa lokalnie (licencja Apache-2.0 według karty modelu na Hugging Face, sprawdzone 21.11.2026), więc dane nie opuszczają urzędu. W próbach z 21.11.2026 model układał notatki wiernie co do liczb, ale potrafił zmienić sens zdania (np. podmiot) - tego kontrola automatyczna nie wykrywa, dlatego projekt zawsze sprawdza oceniający.
 
 ## 7. Do rozstrzygnięcia
 
@@ -158,6 +160,7 @@ Poza testami: model PLLuM-12B-chat-2512 działa lokalnie (licencja Apache-2.0 we
 3. Kto będzie dostawcą w rozumieniu AI Act po przeniesieniu praw do rozwiązania na KPRM.
 4. Czy korekta językowa uzasadnienia na pewno mieści się w art. 6 ust. 3 lit. b i kogo obciąża rejestracja z art. 49 ust. 2.
 5. Czy urzędy prowadzą w EZD RP rejestr odwołań z wynikiem.
+6. Czy ułożenie notatek oceniającego w projekt uzasadnienia mieści się w art. 6 ust. 3 lit. d (albo b) AI Act. Model nie ocenia i nie dostaje ocen ani danych z EZD RP, ale jego tekst po akceptacji oceniającego trafia do arkusza. Do rozstrzygnięcia funkcję można wyłączyć jedną zmianą w `zgodnosc.toml`.
 
 ## 8. Źródła
 
