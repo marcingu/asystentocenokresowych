@@ -20,7 +20,7 @@ class TylkoOdczyt(admin.ModelAdmin):
 @admin.register(Pracownik)
 class PracownikAdmin(admin.ModelAdmin):
     list_display = ("nazwisko", "imie", "stanowisko", "komorka", "rodzaj_zatrudnienia", "przelozony", "rola_kadry")
-    list_filter = ("rodzaj_zatrudnienia", "komorka", "rola_kadry", "rola_dyrektor")
+    list_filter = ("rodzaj_zatrudnienia", "wydzial", "rola_kadry", "rola_dyrektor")
     search_fields = ("nazwisko", "imie", "stanowisko")
     autocomplete_fields = ("przelozony",)
 

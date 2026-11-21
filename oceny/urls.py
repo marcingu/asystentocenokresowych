@@ -4,9 +4,10 @@ from django.contrib.auth.decorators import login_not_required
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import panel_przepisow, urzad, views, widoki_administracji, widoki_kadr, widoki_kont
+from . import panel_przepisow, urzad, views, widoki_administracji, widoki_kadr, widoki_kont, wydzialy
 
 urlpatterns = [
+    path("administracja/wydzialy/", wydzialy.struktura, name="wydzialy"),
     path("administracja/urzad/", urzad.ustawienia, name="administracja_urzad"),
     path("logowanie/", login_not_required(widoki_kont.Logowanie.as_view()), name="logowanie"),
     path("logowanie/kod/", widoki_kont.logowanie_kod, name="logowanie_kod"),

@@ -13,7 +13,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from oceny import dziennik
-from oceny.models import Ocena, Pracownik, ZdarzenieBezpieczenstwa
+from oceny.models import Ocena, Pracownik, Wydzial, ZdarzenieBezpieczenstwa
 
 from .dostepnosc_html import bledy_dostepnosci
 from .pomocnicze import Zespol
@@ -26,8 +26,8 @@ LISTA = reverse("kadry")
 def dane(**zmiany) -> dict:
     podstawa = {
         "imie": "Jan", "nazwisko": "Nowicki", "stanowisko": "inspektor", "opis_stanowiska": "Prowadzenie spraw wydziału.",
-        "komorka": "Wydział Organizacyjny", "rodzaj_zatrudnienia": "umowa_na_czas_nieokreslony", "arkusz": "C",
-        "przelozony": "", "data_zatrudnienia": "2026-11-02", "rok_mianowania": "", "stopien_sluzbowy": "",
+        "wydzial": str(Wydzial.objects.get(nazwa="Wydział Organizacyjny").pk), "rodzaj_zatrudnienia": "umowa_na_czas_nieokreslony", "arkusz": "C",
+        "przelozony": "", "data_zatrudnienia": "2026-11-02", "data_mianowania": "", "stopien_sluzbowy": "",
         "data_stopnia": "", "identyfikator_ezd": "",
     }
     podstawa.update(zmiany)
@@ -145,7 +145,7 @@ class ZmianaTest(Podstawa):
         ola = self.z.ola
         self.kadry.post(self.edycja(ola), dane(
             imie=ola.imie, nazwisko=ola.nazwisko, stanowisko=ola.stanowisko, opis_stanowiska=ola.opis_stanowiska,
-            komorka=ola.komorka, przelozony=str(self.z.szef.pk), data_zatrudnienia=ola.data_zatrudnienia.isoformat(),
+            wydzial=str(ola.wydzial_id), przelozony=str(self.z.szef.pk), data_zatrudnienia=ola.data_zatrudnienia.isoformat(),
         ))
 
         self.assertEqual(self.wpisy(dziennik.PRACOWNIK_ZMIENIONY).count(), 0)
@@ -169,3 +169,30 @@ class ZmianaTest(Podstawa):
 
         self.assertEqual(Ocena.objects.get(pk=ocena.pk).proces().arkusz, "C")
         self.assertContains(odpowiedz, "od kolejnego cyklu oceny")
+
+
+class MianowanieTest(Podstawa):
+    def test_pelna_data_ustawia_mianowanie_bez_javascript(self):
+        wynik = self.kadry.post(NOWY, dane(data_mianowania="2026-11-15", stopien_sluzbowy="2", data_stopnia="2026-11-16"))
+        self.assertEqual(wynik.status_code, 302)
+        osoba = Pracownik.objects.get(nazwisko="Nowicki")
+        self.assertTrue(osoba.urzednik)
+        self.assertEqual(osoba.data_mianowania.isoformat(), "2026-11-15")
+        self.assertEqual(osoba.stopien_sluzbowy, 2)
+        self.assertEqual(osoba.wydzial_id, self.z.ola.wydzial_id)
+
+    def test_brak_stopnia_lub_daty_stopnia_blokuje_zapis(self):
+        for stopien, data in (("", ""), ("2", ""), ("", "2026-11-16"), ("10", "2026-11-16"), ("0", "2026-11-16")):
+            wynik = self.kadry.post(NOWY, dane(data_mianowania="2026-11-15", stopien_sluzbowy=stopien, data_stopnia=data))
+            self.assertContains(wynik, 'role="alert"')
+        self.assertFalse(Pracownik.objects.filter(nazwisko="Nowicki").exists())
+
+    def test_wybor_mianowania_bez_daty_nie_wystarcza(self):
+        self.assertContains(self.kadry.post(NOWY, dane(rodzaj_zatrudnienia="mianowanie", stopien_sluzbowy="1", data_stopnia="2026-11-02")), 'role="alert"')
+        self.assertFalse(Pracownik.objects.filter(nazwisko="Nowicki").exists())
+
+    def test_etykiety_i_pole_daty(self):
+        wynik = self.kadry.get(NOWY)
+        self.assertContains(wynik, "Data rozpoczęcia zatrudnienia")
+        self.assertContains(wynik, 'type="date" name="data_mianowania"')
+        self.assertNotContains(wynik, 'name="rok_mianowania"')

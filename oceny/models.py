@@ -34,6 +34,18 @@ def rodzaje_zatrudnienia() -> list[tuple[str, str]]:
     return [(kod, NAZWY_RODZAJOW_ZATRUDNIENIA.get(kod, kod)) for kod in kody]
 
 
+class Wydzial(models.Model):
+    nazwa = models.CharField("nazwa wydziału", max_length=160, unique=True)
+
+    class Meta:
+        ordering = ["nazwa"]
+        verbose_name = "wydział"
+        verbose_name_plural = "wydziały"
+
+    def __str__(self):
+        return self.nazwa
+
+
 class Pracownik(models.Model):
     uzytkownik = models.OneToOneField(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="pracownik",
@@ -43,7 +55,9 @@ class Pracownik(models.Model):
     nazwisko = models.CharField("nazwisko", max_length=120)
     stanowisko = models.CharField("stanowisko", max_length=160)
     opis_stanowiska = models.TextField("opis stanowiska pracy", blank=True)
-    komorka = models.CharField("komórka organizacyjna", max_length=160, blank=True)
+    komorka_archiwalna = models.CharField("dawna nazwa komórki", max_length=160, blank=True, editable=False)
+    wydzial = models.ForeignKey(Wydzial, verbose_name="komórka organizacyjna", on_delete=models.PROTECT,
+                                null=True, blank=True, related_name="pracownicy")
     # Dopuszczalne wartości pochodzą z przepisy.toml i są sprawdzane w clean() - bez `choices`, żeby zmiana
     # przepisów nie wymagała migracji bazy.
     rodzaj_zatrudnienia = models.CharField("rodzaj zatrudnienia", max_length=40)
@@ -53,8 +67,10 @@ class Pracownik(models.Model):
         "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="podwladni",
         verbose_name="bezpośredni przełożony",
     )
-    data_zatrudnienia = models.DateField("zatrudnienie na czas nieokreślony albo mianowanie")
-    rok_mianowania = models.PositiveSmallIntegerField("rok mianowania", null=True, blank=True)
+    data_zatrudnienia = models.DateField("data rozpoczęcia zatrudnienia")
+    # Starsze wpisy zawierają tylko rok. Nie uzupełniamy nieznanego dnia ani miesiąca.
+    rok_mianowania = models.PositiveSmallIntegerField("historyczny rok mianowania", null=True, blank=True, editable=False)
+    data_mianowania = models.DateField("data mianowania", null=True, blank=True)
     stopien_sluzbowy = models.PositiveSmallIntegerField("stopień służbowy", null=True, blank=True)
     data_stopnia = models.DateField("data przyznania stopnia służbowego", null=True, blank=True)
     identyfikator_ezd = models.CharField("identyfikator stanowiska w EZD RP", max_length=80, blank=True)
@@ -69,6 +85,10 @@ class Pracownik(models.Model):
 
     def __str__(self) -> str:
         return self.imie_i_nazwisko
+
+    @property
+    def komorka(self) -> str:
+        return self.wydzial.nazwa if self.wydzial_id else ""
 
     @property
     def imie_i_nazwisko(self) -> str:
@@ -109,6 +129,23 @@ class Pracownik(models.Model):
         return self.oceny.order_by("-poczatek_cyklu", "-pk").first()
 
     def clean(self) -> None:
+        if self.data_mianowania:
+            self.rodzaj_zatrudnienia = MIANOWANIE
+        if self.urzednik:
+            bledy = {}
+            if not self.data_mianowania:
+                bledy["data_mianowania"] = "Podaj pełną datę mianowania."
+            maksimum = wczytaj_przepisy().max_stopien_sluzbowy
+            if self.stopien_sluzbowy is None or not 1 <= self.stopien_sluzbowy <= maksimum:
+                bledy["stopien_sluzbowy"] = f"Podaj stopień służbowy od 1 do {maksimum}."
+            if not self.data_stopnia:
+                bledy["data_stopnia"] = "Podaj datę przyznania stopnia służbowego."
+            elif self.data_mianowania and self.data_stopnia < self.data_mianowania:
+                bledy["data_stopnia"] = "Data stopnia nie może być wcześniejsza niż mianowanie."
+            if bledy:
+                raise ValidationError(bledy)
+        elif self.stopien_sluzbowy is not None or self.data_stopnia:
+            raise ValidationError("Dane stopnia służbowego wymagają podania daty mianowania.")
         znane = [kod for kod, _ in rodzaje_zatrudnienia()]
         if self.rodzaj_zatrudnienia not in znane:
             raise ValidationError({"rodzaj_zatrudnienia": f"Nieznany rodzaj zatrudnienia (dopuszczalne: {', '.join(znane)})."})

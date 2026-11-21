@@ -16,7 +16,7 @@
     {% if pole.widget_type == 'checkbox' %}
     <div class="pole-wyboru">{{ pole }} <label for="{{ pole.id_for_label }}">{{ pole.label }}</label></div>
     {% else %}
-    <label for="{{ pole.id_for_label }}">{{ pole.label }}{% if not pole.field.required %} (nieobowiązkowe){% endif %}</label>
+    <label for="{{ pole.id_for_label }}">{{ pole.label }}{% if pole.name == 'data_mianowania' or pole.name == 'data_stopnia' or pole.name == 'stopien_sluzbowy' %} (wymagane przy mianowaniu){% elif not pole.field.required %} (nieobowiązkowe){% endif %}</label>
     {{ pole }}
     {% endif %}
     {% if pole.help_text %}<p class="podpowiedz" id="{{ pole.auto_id }}_helptext">{{ pole.help_text }}</p>{% endif %}

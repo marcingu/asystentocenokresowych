@@ -16,7 +16,7 @@ from asystent_ocen.kalendarz import czy_dzien_ustawowo_wolny, dodaj_miesiace
 from asystent_ocen.kryteria import kryteria_obowiazkowe
 
 from . import uslugi
-from .models import Pracownik, UstaleniaMonitoringu
+from .models import Pracownik, UstaleniaMonitoringu, Wydzial
 
 WYDZIAL = "Wydział Organizacyjny"
 KADRY = "Biuro Kadr i Szkoleń"
@@ -43,7 +43,8 @@ def _osoba(login: str, imie: str, nazwisko: str, stanowisko: str, komorka: str, 
     }
     dane.update(pola)
     return Pracownik.objects.create(
-        uzytkownik=konto, imie=imie, nazwisko=nazwisko, stanowisko=stanowisko, komorka=komorka,
+        uzytkownik=konto, imie=imie, nazwisko=nazwisko, stanowisko=stanowisko,
+        wydzial=Wydzial.objects.get_or_create(nazwa=komorka)[0],
         opis_stanowiska=opis, **dane,
     )
 
@@ -86,7 +87,7 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
         "naczelnik", "Tomasz", "Wiśniewski", "naczelnik wydziału", WYDZIAL,
         "Kierowanie pracą wydziału, nadzór nad terminowością i jakością załatwianych spraw.",
         rodzaj_zatrudnienia="mianowanie", kieruje_pracownikami=True, przelozony=dyrektor,
-        data_zatrudnienia=dodaj_miesiace(dzien, -120), rok_mianowania=dzien.year - 9, stopien_sluzbowy=5,
+        data_zatrudnienia=dodaj_miesiace(dzien, -120), data_mianowania=dodaj_miesiace(dzien, -108), stopien_sluzbowy=5,
         data_stopnia=dodaj_miesiace(dzien, -40),
     )
 
@@ -100,7 +101,7 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
         "anna", "Anna", "Nowak", "starszy specjalista",
         "Prowadzenie spraw z zakresu skarg i wniosków oraz organizacji pracy wydziału.",
         rodzaj_zatrudnienia="mianowanie", data_zatrudnienia=dodaj_miesiace(poczatek_poprzedniej, -30),
-        rok_mianowania=poczatek_poprzedniej.year - 1, stopien_sluzbowy=2,
+        data_mianowania=dodaj_miesiace(poczatek_poprzedniej, -12), stopien_sluzbowy=2,
         data_stopnia=dodaj_miesiace(poczatek_poprzedniej, -6),
     )
     dodatkowe_anny = ["Orientacja na klienta/interesanta", "Myślenie analityczne"]
@@ -172,7 +173,7 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
         "marek", "Marek", "Kamiński", "starszy inspektor",
         "Prowadzenie postępowań administracyjnych i przygotowywanie projektów decyzji.",
         rodzaj_zatrudnienia="mianowanie", data_zatrudnienia=dodaj_miesiace(poczatek_marka, -40),
-        rok_mianowania=poczatek_marka.year - 1, stopien_sluzbowy=1, data_stopnia=dodaj_miesiace(poczatek_marka, -8),
+        data_mianowania=dodaj_miesiace(poczatek_marka, -12), stopien_sluzbowy=1, data_stopnia=dodaj_miesiace(poczatek_marka, -8),
     )
     dodatkowe_marka = ["Podejmowanie decyzji i odpowiedzialność"]
     ocena_marka = _do_oceniania(marek, kadry, naczelnik, poczatek=poczatek_marka, dodatkowe=dodatkowe_marka)

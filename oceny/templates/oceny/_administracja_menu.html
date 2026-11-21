@@ -4,4 +4,5 @@
   <a href="{% url 'administracja_dziennik' %}?dziennik=proces"{% if zakladka == 'proces' %} aria-current="page"{% endif %}>Czynności w procesie oceny</a>
   <a href="{% url 'administracja_urzad' %}"{% if zakladka == 'urzad' %} aria-current="page"{% endif %}>Oznaczenie urzędu</a>
   <a href="{% url 'przepisy' %}"{% if zakladka == 'przepisy' %} aria-current="page"{% endif %}>Konfiguracja procesu</a>
+  <a href="{% url 'wydzialy' %}"{% if zakladka == 'wydzialy' %} aria-current="page"{% endif %}>Wydziały urzędu</a>
 </nav>

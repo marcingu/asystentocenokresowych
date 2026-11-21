@@ -1,0 +1,32 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Wydziały urzędu{% endblock %}
+{% block tresc %}
+<h1>Wydziały urzędu</h1>
+{% include "oceny/_administracja_menu.html" with zakladka="wydzialy" %}
+<p>Kadry wybierają komórkę organizacyjną pracownika z tej listy. Zmiana nazwy wydziału nie zmienia przypisania pracowników.</p>
+<section class="karta" aria-labelledby="nowy-wydzial">
+  <h2 id="nowy-wydzial">Dodaj wydział</h2>
+  <form method="post" class="formularz">{% csrf_token %}
+    <label for="nazwa-nowa">Nazwa nowego wydziału</label>
+    <input id="nazwa-nowa" name="nazwa" maxlength="160" required>
+    <button type="submit" name="akcja" value="dodaj" class="przycisk">Dodaj wydział</button>
+  </form>
+</section>
+<h2>Obecna struktura</h2>
+{% for wpis in wydzialy %}
+<section class="karta" aria-labelledby="wydzial-{{ wpis.pk }}">
+  <h3 id="wydzial-{{ wpis.pk }}">{{ wpis.nazwa }}</h3>
+  <form method="post" class="formularz">{% csrf_token %}
+    <input type="hidden" name="pk" value="{{ wpis.pk }}">
+    <label for="nazwa-{{ wpis.pk }}">Nazwa wydziału</label>
+    <input id="nazwa-{{ wpis.pk }}" name="nazwa" value="{{ wpis.nazwa }}" maxlength="160" required>
+    <button type="submit" name="akcja" value="zmien" class="przycisk przycisk-drugi">Zapisz nazwę</button>
+  </form>
+  <p>Liczba przypisanych pracowników: {{ wpis.liczba }}.</p>
+  {% if not wpis.liczba %}<form method="post">{% csrf_token %}
+    <input type="hidden" name="pk" value="{{ wpis.pk }}">
+    <button type="submit" name="akcja" value="usun" class="przycisk przycisk-drugi" data-potwierdz="Usunąć pusty wydział?">Usuń pusty wydział</button>
+  </form>{% endif %}
+</section>
+{% empty %}<p>Lista jest pusta. Dodaj pierwszy wydział, aby kadry mogły przypisać do niego pracownika.</p>{% endfor %}
+{% endblock %}

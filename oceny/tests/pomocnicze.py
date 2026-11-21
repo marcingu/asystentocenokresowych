@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 
 from asystent_ocen.kryteria import kryteria_dodatkowe_do_wyboru, kryteria_obowiazkowe
 from oceny import uslugi
-from oceny.models import Pracownik
+from oceny.models import Pracownik, Wydzial
 
 POCZATEK = date(2024, 11, 21)
 DZIEN_KRYTERIOW = date(2024, 12, 2)
@@ -29,6 +29,8 @@ def pracownik(login: str, **pola) -> Pracownik:
         "data_zatrudnienia": POCZATEK,
     }
     dane.update(pola)
+    nazwa = dane.pop("komorka")
+    dane["wydzial"] = Wydzial.objects.get_or_create(nazwa=nazwa)[0] if nazwa else None
     return Pracownik.objects.create(uzytkownik=uzytkownik, **dane)
 
 

@@ -18,6 +18,22 @@
   listy.forEach(function (lista) { lista.addEventListener("change", odswiezListy); });
   odswiezListy();
 
+  // W formularzu kadr data mianowania automatycznie wybiera rodzaj zatrudnienia.
+  var mianowanie = document.getElementById("id_data_mianowania");
+  var rodzaj = document.getElementById("id_rodzaj_zatrudnienia");
+  if (mianowanie && rodzaj) {
+    function odswiezMianowanie() {
+      if (mianowanie.value) { rodzaj.value = "mianowanie"; }
+      var wymagane = rodzaj.value === "mianowanie";
+      mianowanie.required = wymagane;
+      document.getElementById("id_stopien_sluzbowy").required = wymagane;
+      document.getElementById("id_data_stopnia").required = wymagane;
+    }
+    mianowanie.addEventListener("input", odswiezMianowanie);
+    rodzaj.addEventListener("change", odswiezMianowanie);
+    odswiezMianowanie();
+  }
+
   // Czynności, których nie da się cofnąć, wymagają potwierdzenia.
   Array.prototype.forEach.call(document.querySelectorAll("[data-potwierdz]"), function (przycisk) {
     przycisk.addEventListener("click", function (zdarzenie) {

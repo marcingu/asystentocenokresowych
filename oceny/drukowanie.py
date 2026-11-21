@@ -59,7 +59,8 @@ def dane_arkusza(ocena: Ocena) -> DaneArkusza:
         miejscowosc_ocenianego=settings.ASYSTENT_MIEJSCOWOSC,
         poprzednia_ocena=poprzednia_ocena(ocena) if proces.urzednik else None,
         urzad_ma_dyrektora_generalnego=not settings.ASYSTENT_BEZ_DYREKTORA_GENERALNEGO,
-        rok_mianowania=oceniany.rok_mianowania if proces.urzednik else None,
+        rok_mianowania=(oceniany.data_mianowania.year if oceniany.data_mianowania else oceniany.rok_mianowania)
+        if proces.urzednik else None,
         posiadany_stopien=oceniany.stopien_sluzbowy if proces.urzednik else None,
         data_przyznania_stopnia=oceniany.data_stopnia if proces.urzednik else None,
     )

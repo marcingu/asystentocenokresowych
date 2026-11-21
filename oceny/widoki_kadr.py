@@ -38,15 +38,15 @@ class FormularzPracownika(forms.ModelForm):
     class Meta:
         model = Pracownik
         fields = (
-            "imie", "nazwisko", "stanowisko", "opis_stanowiska", "komorka", "rodzaj_zatrudnienia", "arkusz",
-            "przelozony", "data_zatrudnienia", "rok_mianowania", "stopien_sluzbowy", "data_stopnia",
+            "imie", "nazwisko", "stanowisko", "opis_stanowiska", "wydzial", "rodzaj_zatrudnienia", "arkusz",
+            "przelozony", "data_zatrudnienia", "data_mianowania", "stopien_sluzbowy", "data_stopnia",
             "identyfikator_ezd", "klauzula_ezd_potwierdzona",
         )
         labels = {
             "imie": "Imię", "nazwisko": "Nazwisko", "stanowisko": "Stanowisko", "opis_stanowiska": "Opis stanowiska pracy",
-            "komorka": "Komórka organizacyjna", "przelozony": "Bezpośredni przełożony",
-            "data_zatrudnienia": "Zatrudnienie na czas nieokreślony albo mianowanie - data",
-            "rok_mianowania": "Rok mianowania", "stopien_sluzbowy": "Stopień służbowy",
+            "wydzial": "Komórka organizacyjna", "przelozony": "Bezpośredni przełożony",
+            "data_zatrudnienia": "Data rozpoczęcia zatrudnienia",
+            "data_mianowania": "Data mianowania", "stopien_sluzbowy": "Stopień służbowy",
             "data_stopnia": "Data przyznania stopnia służbowego",
             "identyfikator_ezd": "Identyfikator stanowiska w EZD RP",
             "klauzula_ezd_potwierdzona": "Pracownikowi przekazano informację o danych z EZD RP",
@@ -54,18 +54,24 @@ class FormularzPracownika(forms.ModelForm):
         help_texts = {
             "przelozony": "Bezpośredni przełożony jest oceniającym w kolejnym cyklu oceny.",
             "data_zatrudnienia": "Od tego dnia liczy się pierwszy okres oceny.",
+            "data_mianowania": "Data mianowania ustawia rodzaj zatrudnienia na mianowanie. Wypełnij wtedy także stopień służbowy i datę jego przyznania.",
             "stopien_sluzbowy": "Wypełnij dla urzędnika służby cywilnej.",
             "klauzula_ezd_potwierdzona": "Bez tej informacji system nie pokazuje danych z EZD RP (art. 22[2] § 8 w zw. z art. 22[3] § 3 i 4 KP).",
         }
         widgets = {
             "opis_stanowiska": forms.Textarea(attrs={"rows": 3}),
             "data_zatrudnienia": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+            "data_mianowania": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
             "data_stopnia": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["rodzaj_zatrudnienia"].choices = rodzaje_zatrudnienia()
+        self.fields["wydzial"].empty_label = "- wybierz wydział -"
+        self.fields["wydzial"].required = True
+        if self.instance.rok_mianowania and not self.instance.data_mianowania:
+            self.fields["data_mianowania"].help_text += f" Dotychczas zapisano tylko rok: {self.instance.rok_mianowania}."
         pozostali = Pracownik.objects.all()
         if self.instance.pk:
             pozostali = pozostali.exclude(pk=self.instance.pk)
@@ -78,6 +84,10 @@ class FormularzPracownika(forms.ModelForm):
         arkusz = self.cleaned_data["arkusz"]
         osoba.kierownik_urzedu = arkusz == "A"  # § 3 ust. 2 rozp.
         osoba.kieruje_pracownikami = arkusz in ("A", "B")  # § 3 ust. 3 rozp.
+        if osoba.data_mianowania:
+            osoba.rok_mianowania = osoba.data_mianowania.year
+        elif not osoba.urzednik:
+            osoba.rok_mianowania = None
         if commit:
             osoba.save()
         return osoba
