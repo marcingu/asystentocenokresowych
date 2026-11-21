@@ -1,0 +1,310 @@
+{
+ "opis": "Fragmenty przepisów o ocenach okresowych w służbie cywilnej - jedyna podstawa odpowiedzi asystenta AI. Pole `tresc` to brzmienie przepisu. Pole `hasla` to słowa pomocnicze do wyszukiwania: nie są treścią przepisu i nie trafiają do modelu.",
+ "akty": {
+  "u.s.c.": "ustawa z dnia 21 listopada 2008 r. o służbie cywilnej (t.j. Dz. U. z 2026 r. poz. 590)",
+  "rozp.": "rozporządzenie Prezesa Rady Ministrów z dnia 4 kwietnia 2016 r. w sprawie warunków i sposobu przeprowadzania ocen okresowych urzędników służby cywilnej i pracowników służby cywilnej (Dz. U. poz. 470)"
+ },
+ "fragmenty": [
+  {
+   "id": "usc-art-81-ust-1",
+   "zrodlo": "art. 81 ust. 1 u.s.c.",
+   "tytul": "Ocena okresowa",
+   "hasla": "kto podlega ocenie okresowej, kogo się ocenia, kto ocenia, bezpośredni przełożony, umowa na czas nieokreślony, umowa na czas określony, mianowanie",
+   "tresc": "Urzędnik służby cywilnej oraz pracownik służby cywilnej zatrudniony na podstawie umowy o pracę na czas nieokreślony podlega ocenie okresowej dokonywanej przez bezpośredniego przełożonego."
+  },
+  {
+   "id": "usc-art-81-ust-3",
+   "zrodlo": "art. 81 ust. 3 u.s.c.",
+   "tytul": "Ocena okresowa",
+   "hasla": "czego dotyczy ocena, forma pisemna, opis stanowiska pracy, zapoznanie z oceną",
+   "tresc": "Ocena okresowa dotyczy wykonywania obowiązków wynikających z opisu zajmowanego stanowiska pracy. Ocenę okresową sporządza się na piśmie i niezwłocznie zapoznaje z nią ocenionego."
+  },
+  {
+   "id": "usc-art-81-ust-4",
+   "zrodlo": "art. 81 ust. 4 u.s.c.",
+   "tytul": "Ocena okresowa",
+   "hasla": "jak często, co ile, częstotliwość, cykl oceny, dwa lata, termin oceny okresowej",
+   "tresc": "Ocenę okresową sporządza się co 24 miesiące."
+  },
+  {
+   "id": "usc-art-81-ust-5",
+   "zrodlo": "art. 81 ust. 5 u.s.c.",
+   "tytul": "Ocena okresowa",
+   "hasla": "wnioski do IPRZ, indywidualny program rozwoju zawodowego, szkolenia",
+   "tresc": "Ocena okresowa zawiera wnioski dotyczące indywidualnego programu rozwoju zawodowego."
+  },
+  {
+   "id": "usc-art-81-ust-6",
+   "zrodlo": "art. 81 ust. 6 u.s.c.",
+   "tytul": "Ocena okresowa",
+   "hasla": "zmiana stanowiska pracy, istotna zmiana zakresu obowiązków, awans, przeniesienie, pierwsza ocena",
+   "tresc": "Ocena okresowa jest sporządzana w razie zmiany stanowiska pracy, wiążącej się z istotną zmianą zakresu obowiązków, jeżeli od dnia sporządzenia ostatniej oceny okresowej upłynęło więcej niż 6 miesięcy. W przypadku osób ocenianych po raz pierwszy, ocenę sporządza się, jeżeli okres podlegający ocenie jest dłuższy niż 6 miesięcy."
+  },
+  {
+   "id": "usc-art-81-ust-7",
+   "zrodlo": "art. 81 ust. 7 u.s.c.",
+   "tytul": "Ocena okresowa",
+   "hasla": "nieobecność, zwolnienie lekarskie, choroba, urlop macierzyński, urlop rodzicielski, urlop wychowawczy, przesunięcie terminu, przesuwa się termin, przedłużenie terminu oceny",
+   "tresc": "W razie usprawiedliwionej nieobecności ocenianego w pracy, trwającej dłużej niż miesiąc, termin, o którym mowa w ust. 4, ulega przedłużeniu o czas tej nieobecności."
+  },
+  {
+   "id": "usc-art-81-ust-8",
+   "zrodlo": "art. 81 ust. 8 u.s.c.",
+   "tytul": "Ocena okresowa",
+   "hasla": "zmiana terminu oceny, przesunięcie terminu, wniosek ocenianego o zmianę terminu, zmiana oceniającego, nowy przełożony, przewidywana nieobecność",
+   "tresc": "Oceniający może zmienić termin oceny, o którym mowa w ust. 4, w przypadku: 1) zmiany na stanowisku oceniającego w trakcie okresu, w którym oceniany podlega ocenie, 2) przewidywanej, dłuższej, usprawiedliwionej nieobecności w pracy ocenianego, która może uniemożliwić przeprowadzenie oceny, 3) przewidywanej, dłuższej, usprawiedliwionej nieobecności w pracy oceniającego, która może utrudnić przeprowadzenie oceny, 4) złożenia przez ocenianego wniosku o zmianę terminu przeprowadzenia oceny - jeżeli od dnia sporządzenia ostatniej oceny okresowej upłynęło więcej niż 6 miesięcy, a w przypadku osób ocenianych po raz pierwszy, jeżeli okres podlegający ocenie jest dłuższy niż 6 miesięcy."
+  },
+  {
+   "id": "usc-art-81-ust-9",
+   "zrodlo": "art. 81 ust. 9 u.s.c.",
+   "tytul": "Ocena okresowa",
+   "hasla": "ocena negatywna, co dalej po ocenie negatywnej, ponowna ocena, następna ocena, kolejna ocena po negatywnej",
+   "tresc": "W razie uzyskania negatywnej oceny okresowej oceniany podlega ponownej ocenie po upływie 6 miesięcy od dnia zapoznania się z oceną."
+  },
+  {
+   "id": "usc-art-82",
+   "zrodlo": "art. 82 u.s.c.",
+   "tytul": "Rozporządzenie określające warunki i sposób przeprowadzania ocen okresowych",
+   "hasla": "delegacja ustawowa, podstawa wydania rozporządzenia",
+   "tresc": "Prezes Rady Ministrów określi, w drodze rozporządzenia, warunki i sposób przeprowadzania ocen okresowych, w tym kryteria, wzór arkusza, skalę ocen i tryb sporządzanej przez bezpośredniego przełożonego oceny okresowej, kierując się potrzebą stałego doskonalenia jakości wykonywania obowiązków przez ocenianego oraz zapewnienia obiektywizmu dokonywanych ocen okresowych."
+  },
+  {
+   "id": "usc-art-83-ust-1",
+   "zrodlo": "art. 83 ust. 1 u.s.c.",
+   "tytul": "Sprzeciw od oceny okresowej",
+   "hasla": "sprzeciw, odwołanie od oceny, nie zgadzam się z oceną, co mogę zrobić, co dalej po ocenie negatywnej, zaskarżenie oceny, termin na sprzeciw, do kogo sprzeciw",
+   "tresc": "Od oceny okresowej służy, w terminie 7 dni od dnia zapoznania się z oceną, sprzeciw do dyrektora generalnego urzędu."
+  },
+  {
+   "id": "usc-art-83-ust-3",
+   "zrodlo": "art. 83 ust. 3 u.s.c.",
+   "tytul": "Sprzeciw od oceny okresowej",
+   "hasla": "rozpatrzenie sprzeciwu, ile czasu na rozpatrzenie sprzeciwu, termin dla dyrektora generalnego",
+   "tresc": "Sprzeciw rozpatruje się w terminie 14 dni od dnia wniesienia."
+  },
+  {
+   "id": "usc-art-83-ust-4",
+   "zrodlo": "art. 83 ust. 4 u.s.c.",
+   "tytul": "Sprzeciw od oceny okresowej",
+   "hasla": "uwzględnienie sprzeciwu, zmiana oceny, ponowne sporządzenie oceny, ocena sporządzona po raz drugi",
+   "tresc": "W razie uwzględnienia sprzeciwu ocenę okresową zmienia się albo sporządza po raz drugi. Od oceny okresowej sporządzonej po raz drugi przysługuje sprzeciw na zasadach określonych w ust. 1 i 3."
+  },
+  {
+   "id": "usc-art-83-ust-5",
+   "zrodlo": "art. 83 ust. 5 u.s.c.",
+   "tytul": "Sprzeciw od oceny okresowej",
+   "hasla": "sąd pracy, odwołanie do sądu, nieuwzględnienie sprzeciwu, odrzucenie sprzeciwu, brak odpowiedzi na sprzeciw",
+   "tresc": "W razie nierozpatrzenia sprzeciwu w terminie albo nieuwzględnienia sprzeciwu od oceny okresowej, oceniany może, w terminie 14 dni od dnia doręczenia decyzji albo od dnia upływu terminu, o którym mowa w ust. 3, odwołać się do sądu pracy."
+  },
+  {
+   "id": "usc-art-89-ust-1",
+   "zrodlo": "art. 89 ust. 1 u.s.c.",
+   "tytul": "Otrzymanie kolejnego stopnia służbowego",
+   "hasla": "stopień służbowy, wniosek o stopień, awans urzędnika, ocena pozytywna, umotywowany wniosek przełożonego",
+   "tresc": "Urzędnik służby cywilnej może otrzymać kolejny stopień służbowy po uzyskaniu pozytywnej oceny, o której mowa w art. 81, jeżeli zawiera ona umotywowany wniosek bezpośredniego przełożonego o przyznanie urzędnikowi służby cywilnej kolejnego stopnia służbowego."
+  },
+  {
+   "id": "usc-art-89-ust-2",
+   "zrodlo": "art. 89 ust. 2 u.s.c.",
+   "tytul": "Otrzymanie kolejnego stopnia służbowego",
+   "hasla": "obligatoryjny stopień służbowy, dwie oceny pozytywne z rzędu, po dwóch ocenach, najwyższe poziomy, znacznie powyżej oczekiwań",
+   "tresc": "Urzędnik służby cywilnej, który od otrzymania ostatniego stopnia służbowego uzyskał dwie kolejne następujące po sobie pozytywne oceny okresowe na jednym z dwóch najwyższych poziomów przewidzianych w skali ocen, otrzymuje kolejny stopień służbowy w terminie 30 dni od dnia zapoznania urzędnika służby cywilnej z oceną okresową."
+  },
+  {
+   "id": "usc-art-71-ust-1-pkt-1",
+   "zrodlo": "art. 71 ust. 1 pkt 1 u.s.c.",
+   "tytul": "Rozwiązanie stosunku pracy z urzędnikiem służby cywilnej (wyciąg)",
+   "hasla": "zwolnienie urzędnika, wypowiedzenie, dwie oceny negatywne z rzędu, druga ocena negatywna, konsekwencje oceny negatywnej",
+   "tresc": "Rozwiązanie stosunku pracy z urzędnikiem służby cywilnej następuje, z zachowaniem trzymiesięcznego okresu wypowiedzenia, w razie: 1) dwukrotnej, następującej po sobie, negatywnej oceny, o której mowa w art. 81 ust. 1; (…)"
+  },
+  {
+   "id": "usc-art-108",
+   "zrodlo": "art. 108 u.s.c.",
+   "tytul": "Indywidualny program rozwoju zawodowego",
+   "hasla": "IPRZ, szkolenia, rozwój zawodowy, ścieżka awansu",
+   "tresc": "1. Bezpośredni przełożony ustala, odrębnie dla każdego członka korpusu służby cywilnej, z wyjątkiem osób zajmujących wyższe stanowiska w służbie cywilnej, indywidualny program rozwoju zawodowego, stanowiący podstawę do kierowania członka korpusu służby cywilnej na szkolenia, biorąc pod uwagę w szczególności: 1) wnioski zawarte w ocenie okresowej członka korpusu służby cywilnej; 2) planowaną ścieżkę awansu stanowiskowego i finansowego członka korpusu służby cywilnej; 3) plany i możliwości rozwoju zawodowego członka korpusu służby cywilnej; 4) potrzeby i możliwości urzędu w zakresie zatrudnienia. 2. Program, o którym mowa w ust. 1, jest akceptowany przez osobę kierującą komórką organizacyjną i zatwierdzany przez dyrektora generalnego urzędu. 3. Prezes Rady Ministrów może określić, w drodze zarządzenia, szczegółowy sposób ustalania indywidualnego programu rozwoju zawodowego członka korpusu służby cywilnej."
+  },
+  {
+   "id": "rozp-par-1",
+   "zrodlo": "§ 1 rozp.",
+   "tytul": "",
+   "hasla": "zakres rozporządzenia, czego dotyczy rozporządzenie",
+   "tresc": "Rozporządzenie określa warunki i sposób przeprowadzania oceny okresowej urzędnika służby cywilnej i pracownika służby cywilnej, zwanych dalej „ocenianym”, w tym kryteria oceniania, wzory arkuszy oceny okresowej, skalę ocen i tryb sporządzania oceny okresowej."
+  },
+  {
+   "id": "rozp-par-2",
+   "zrodlo": "§ 2 rozp.",
+   "tytul": "",
+   "hasla": "kto ocenia, oceniający, bezpośredni przełożony, kryteria obowiązkowe i dodatkowe, wykaz kryteriów",
+   "tresc": "1. Bezpośredni przełożony ocenianego, zwany dalej „oceniającym”, dokonuje oceny okresowej, zwanej dalej „oceną”, stosując kryteria oceny odpowiednie dla stanowiska pracy zajmowanego przez ocenianego. 2. Kryteria oceny dzielą się na kryteria obowiązkowe i kryteria dodatkowe, które oceniający może wybrać, jeżeli jest to uzasadnione ze względu na charakter obowiązków wynikających z opisu stanowiska pracy zajmowanego przez ocenianego. 3. Wykaz kryteriów oceny jest określony w załączniku nr 1 do rozporządzenia."
+  },
+  {
+   "id": "rozp-par-3",
+   "zrodlo": "§ 3 rozp.",
+   "tytul": "",
+   "hasla": "który arkusz, arkusz A, arkusz B, arkusz C, kierownik urzędu, naczelnik wydziału, dyrektor departamentu, kierownik komórki, szeregowy pracownik, wzór arkusza",
+   "tresc": "1. Ocenę sporządza się na arkuszu oceny, zwanym dalej „arkuszem”, odpowiednim dla stanowiska pracy zajmowanego przez ocenianego. 2. Arkusz A, którego wzór jest określony w załączniku nr 2 do rozporządzenia, służy do sporządzenia oceny zatrudnionego na stanowisku kierownika urzędu, które jest stanowiskiem pracy w służbie cywilnej. 3. Arkusz B, którego wzór jest określony w załączniku nr 3 do rozporządzenia, służy do sporządzenia oceny zatrudnionego na stanowisku, na którym praca polega na bezpośrednim kierowaniu pracownikami, innym niż stanowisko wymienione w ust. 2. 4. Arkusz C, którego wzór jest określony w załączniku nr 4 do rozporządzenia, służy do sporządzenia oceny zatrudnionego na innym stanowisku pracy niż stanowiska wymienione w ust. 2 i 3."
+  },
+  {
+   "id": "rozp-par-4",
+   "zrodlo": "§ 4 rozp.",
+   "tytul": "",
+   "hasla": "jakie kryteria obowiązkowe, lista kryteriów obowiązkowych dla arkusza A B C, kierownik urzędu, kierownik komórki",
+   "tresc": "1. Ocenianego zatrudnionego na stanowisku, o którym mowa w § 3 ust. 2, ocenia się, stosując następujące kryteria obowiązkowe: 1) zarządzanie ludźmi; 2) podejmowanie decyzji i odpowiedzialność; 3) organizacja pracy i orientacja na osiąganie celów; 4) współpraca; 5) komunikacja; 6) zarządzanie strategiczne. 2. Ocenianego zatrudnionego na stanowisku, o którym mowa w § 3 ust. 3, ocenia się, stosując następujące kryteria obowiązkowe: 1) zarządzanie ludźmi; 2) podejmowanie decyzji i odpowiedzialność; 3) organizacja pracy i orientacja na osiąganie celów; 4) współpraca; 5) komunikacja. 3. Ocenianego zatrudnionego na stanowisku, o którym mowa w § 3 ust. 4, ocenia się, stosując następujące kryteria obowiązkowe: 1) wykorzystywanie wiedzy i doskonalenie zawodowe; 2) rzetelność; 3) organizacja pracy i orientacja na osiąganie celów; 4) współpraca; 5) komunikacja."
+  },
+  {
+   "id": "rozp-par-5",
+   "zrodlo": "§ 5 rozp.",
+   "tytul": "",
+   "hasla": "rozmowa na początku okresu oceny, wybór kryteriów dodatkowych, ile kryteriów dodatkowych, cele, oczekiwania, część I arkusza",
+   "tresc": "1. Oceniający przeprowadza z ocenianym rozmowę, podczas której omawia się: 1) główne obowiązki wynikające z opisu stanowiska pracy zajmowanego przez ocenianego; 2) kryteria obowiązkowe i kryteria dodatkowe, jeżeli są wybierane przez oceniającego; 3) oczekiwania oceniającego co do sposobu spełniania kryteriów oceny przez ocenianego; 4) cele do osiągnięcia w okresie, w którym oceniany podlega ocenie, jeżeli ich określenie jest uzasadnione ze względu na charakter obowiązków wynikających z opisu stanowiska pracy zajmowanego przez ocenianego, a także sposób realizacji wyznaczonych celów. 2. Oceniający może wybrać z wykazu kryteriów oceny nie więcej niż 3 kryteria dodatkowe, najistotniejsze ze względu na charakter obowiązków wynikających z opisu stanowiska pracy zajmowanego przez ocenianego. 3. Po przeprowadzeniu rozmowy, o której mowa w ust. 1, oceniający wpisuje do części I arkusza kryteria dodatkowe, jeżeli zostały wybrane, oraz termin sporządzenia oceny na piśmie."
+  },
+  {
+   "id": "rozp-par-6",
+   "zrodlo": "§ 6 rozp.",
+   "tytul": "",
+   "hasla": "zapoznanie z kryteriami, potwierdzenie podpisem, kopia części I arkusza, akta osobowe",
+   "tresc": "1. Oceniający zapoznaje ocenianego z kryteriami oceny i terminem sporządzenia oceny na piśmie. 2. Oceniany potwierdza podpisem przeprowadzenie z nim rozmowy, o której mowa w § 5 ust. 1, oraz zapoznanie się z kryteriami oceny i terminem sporządzenia oceny na piśmie. 3. Po dokonaniu czynności, o której mowa w ust. 2, oryginał arkusza niezwłocznie włącza się do akt osobowych ocenianego, a kopię części I arkusza oceniający doręcza ocenianemu."
+  },
+  {
+   "id": "rozp-par-7",
+   "zrodlo": "§ 7 rozp.",
+   "tytul": "",
+   "hasla": "termin rozmowy i zapoznania z kryteriami, kiedy wyznaczyć kryteria, kiedy zapoznać z kryteriami, ile czasu na wyznaczenie kryteriów, ile czasu ma przełożony, nowy pracownik, nowe kryteria po ocenie, co dalej po ocenie negatywnej",
+   "tresc": "Czynności, o których mowa w § 5 i § 6, dokonuje się w terminie: 1) 30 dni od dnia sporządzenia na piśmie poprzedniej oceny lub od dnia zatrudnienia ocenianego na czas nieokreślony; 2) 7 dni od dnia sporządzenia na piśmie negatywnej oceny."
+  },
+  {
+   "id": "rozp-par-8",
+   "zrodlo": "§ 8 rozp.",
+   "tytul": "",
+   "hasla": "zawiadomienie o zmianie terminu oceny, pisemne zawiadomienie, nowy termin",
+   "tresc": "W razie zmiany terminu oceny w przypadkach, o których mowa w art. 81 ust. 8 ustawy z dnia 21 listopada 2008 r. o służbie cywilnej, oceniający niezwłocznie zawiadamia pisemnie ocenianego o nowym terminie sporządzenia oceny na piśmie. Kopię pisma dołącza się do arkusza."
+  },
+  {
+   "id": "rozp-par-9",
+   "zrodlo": "§ 9 rozp.",
+   "tytul": "",
+   "hasla": "zmiana stanowiska w okresie oceny, ponowne ustalenie kryteriów, zmiana oceniającego, nowy przełożony",
+   "tresc": "1. W przypadku gdy w okresie 6 miesięcy od dnia ustalenia kryteriów oceny sporządzanej po raz pierwszy albo od dnia sporządzenia ostatniej oceny następuje zmiana stanowiska pracy zajmowanego przez ocenianego, wiążąca się z istotną zmianą zakresu obowiązków, w terminie 30 dni od zmiany stanowiska pracy ponownie dokonuje się czynności, o których mowa w § 5 i § 6; termin sporządzenia oceny nie ulega zmianie. 2. W przypadku, o którym mowa w art. 81 ust. 6 ustawy z dnia 21 listopada 2008 r. o służbie cywilnej, ocenę sporządza się nie wcześniej niż w terminie 7 dni przed zmianą stanowiska pracy wiążącą się z istotną zmianą zakresu obowiązków albo nie później niż w terminie 30 dni od tej zmiany. 3. W przypadku zmiany na stanowisku oceniającego w trakcie okresu, w którym oceniany podlega ocenie, ocena jest sporządzana na podstawie wybranych wcześniej kryteriów."
+  },
+  {
+   "id": "rozp-par-10",
+   "zrodlo": "§ 10 rozp.",
+   "tytul": "",
+   "hasla": "rozmowa oceniająca, przebieg rozmowy, o czym jest rozmowa przed oceną, rozwój zawodowy",
+   "tresc": "Przed sporządzeniem oceny na piśmie oceniający przeprowadza z ocenianym rozmowę oceniającą, podczas której omawia z nim: 1) główne obowiązki wykonywane przez ocenianego w okresie, w którym podlegał ocenie, oraz sposób ich realizacji, z uwzględnieniem spełniania przez ocenianego ustalonych kryteriów oceny; 2) sposób realizowania przez ocenianego celów do osiągnięcia w okresie, w którym oceniany podlegał ocenie, jeżeli cele te zostały wyznaczone; 3) kierunki dalszego rozwoju zawodowego i potrzeby ocenianego w zakresie podnoszenia kwalifikacji i doskonalenia umiejętności."
+  },
+  {
+   "id": "rozp-par-11",
+   "zrodlo": "§ 11 rozp.",
+   "tytul": "",
+   "hasla": "sporządzenie oceny, skala ocen, punkty, oceny cząstkowe, średnia arytmetyczna, poziomy, kiedy ocena pozytywna, kiedy ocena negatywna, uzasadnienie oceny, kiedy uzasadnienie obowiązkowe, wniosek o stopień, część III arkusza, jak liczy się ocenę",
+   "tresc": "1. Sporządzenie oceny na piśmie polega na: 1) przyznaniu ocen cząstkowych odpowiednio do poziomu spełniania przez ocenianego każdego z kryteriów obowiązkowych i kryteriów dodatkowych, jeżeli zostały wybrane, w trakcie wykonywania przez ocenianego głównych obowiązków wynikających z opisu stanowiska pracy zajmowanego przez ocenianego, według skali ocen: a) znacznie poniżej oczekiwań – 1 punkt, b) poniżej oczekiwań – 3 punkty, c) na poziomie oczekiwań – 5 punktów, d) powyżej oczekiwań – 7 punktów, e) znacznie powyżej oczekiwań – 9 punktów; 2) ustaleniu ogólnego poziomu spełniania kryteriów oceny – przez wyliczenie średniej arytmetycznej z ocen cząstkowych – według skali ocen: a) znacznie poniżej oczekiwań – od 1 punktu do 2 punktów, b) poniżej oczekiwań – powyżej 2 punktów do 4 punktów, c) na poziomie oczekiwań – powyżej 4 punktów do 6 punktów, d) powyżej oczekiwań – powyżej 6 punktów do 8 punktów, e) znacznie powyżej oczekiwań – powyżej 8 punktów do 9 punktów; 3) przyznaniu oceny pozytywnej – w przypadku ustalenia ogólnego poziomu spełniania kryteriów oceny na poziomie znacznie powyżej oczekiwań, powyżej oczekiwań albo na poziomie oczekiwań, pod warunkiem nieuzyskania przez ocenianego żadnej z ocen cząstkowych na poziomie znacznie poniżej oczekiwań; 4) przyznaniu oceny negatywnej – w przypadku ustalenia ogólnego poziomu spełniania kryteriów oceny na poziomie poniżej oczekiwań albo znacznie poniżej oczekiwań, a także w przypadku uzyskania przez ocenianego co najmniej jednej oceny cząstkowej na poziomie znacznie poniżej oczekiwań; 5) wpisaniu do arkusza wniosków dotyczących indywidualnego programu rozwoju zawodowego ocenianego. 2. Sporządzając ocenę na piśmie, oceniający bierze pod uwagę wnioski z rozmowy oceniającej. 3. Oceniający sporządza uzasadnienie przyznanej oceny w przypadku przyznania oceny negatywnej. 4. Oceniający może sporządzić uzasadnienie przyznanej oceny w przypadku przyznania oceny pozytywnej. 5. W przypadku przyznania oceny pozytywnej ocenianemu będącemu urzędnikiem służby cywilnej oceniający może sporządzić umotywowany wniosek o przyznanie ocenianemu kolejnego stopnia służbowego, wypełniając część III arkusza."
+  },
+  {
+   "id": "rozp-par-12",
+   "zrodlo": "§ 12 rozp.",
+   "tytul": "",
+   "hasla": "zapoznanie z oceną, kopia arkusza, akta osobowe, doręczenie oceny",
+   "tresc": "1. Oceniający niezwłocznie zapoznaje ocenianego z oceną sporządzoną na piśmie. 2. Po dokonaniu czynności, o której mowa w ust. 1, oryginał arkusza włącza się do akt osobowych ocenianego, a kopię arkusza oceniający doręcza ocenianemu."
+  },
+  {
+   "id": "rozp-zal-1-kryterium-1",
+   "zrodlo": "załącznik nr 1 do rozp., kryterium „Komunikacja”",
+   "tytul": "Kryterium oceny: Komunikacja",
+   "hasla": "definicja kryterium, co oznacza kryterium, opis kryterium",
+   "tresc": "Komunikacja - opis kryterium: 1) Koncentrowanie się na wypowiedzi rozmówcy i dbanie o wzajemne zrozumienie. 2) Wypowiadanie się w sposób jasny i precyzyjny, dostosowany do sytuacji i rozmówcy (dobieranie stylu, języka i treści). 3) Formułowanie jasnych i precyzyjnych wypowiedzi pisemnych dostosowanych do sytuacji i odbiorcy (dobieranie stylu, języka i treści). 4) Przedstawianie przekonujących argumentów odpowiednio do sytuacji."
+  },
+  {
+   "id": "rozp-zal-1-kryterium-2",
+   "zrodlo": "załącznik nr 1 do rozp., kryterium „Kreatywność”",
+   "tytul": "Kryterium oceny: Kreatywność",
+   "hasla": "definicja kryterium, co oznacza kryterium, opis kryterium",
+   "tresc": "Kreatywność - opis kryterium: 1) Proponowanie lub tworzenie nowych rozwiązań. 2) Nieschematyczne podejście do zadań."
+  },
+  {
+   "id": "rozp-zal-1-kryterium-3",
+   "zrodlo": "załącznik nr 1 do rozp., kryterium „Negocjowanie”",
+   "tytul": "Kryterium oceny: Negocjowanie",
+   "hasla": "definicja kryterium, co oznacza kryterium, opis kryterium",
+   "tresc": "Negocjowanie - opis kryterium: 1) Przygotowywanie się do negocjacji, w szczególności opracowanie projektu stanowiska, zakresu możliwych ustępstw i argumentacji. 2) Stosowanie technik i strategii negocjacyjnych. 3) Osiągnięcie efektu negocjacji akceptowanego przez przełożonych."
+  },
+  {
+   "id": "rozp-zal-1-kryterium-4",
+   "zrodlo": "załącznik nr 1 do rozp., kryterium „Organizacja pracy i orientacja na osiąganie celów”",
+   "tytul": "Kryterium oceny: Organizacja pracy i orientacja na osiąganie celów",
+   "hasla": "definicja kryterium, co oznacza kryterium, opis kryterium",
+   "tresc": "Organizacja pracy i orientacja na osiąganie celów - opis kryterium: 1) Określanie sposobu realizacji zadań/celów. 2) Realizowanie zadań/celów w kolejności uwzględniającej ich wagę i pilność (ustalanie priorytetów działania). 3) Dobieranie niezbędnych zasobów umożliwiających realizację zadań/celów. 4) Dostosowywanie się do zmieniających się okoliczności. 5) Wytrwałość i zaangażowanie w realizację zadań/celów."
+  },
+  {
+   "id": "rozp-zal-1-kryterium-5",
+   "zrodlo": "załącznik nr 1 do rozp., kryterium „Orientacja na klienta/interesanta”",
+   "tytul": "Kryterium oceny: Orientacja na klienta/interesanta",
+   "hasla": "definicja kryterium, co oznacza kryterium, opis kryterium",
+   "tresc": "Orientacja na klienta/interesanta - opis kryterium: 1) Taktowne zachowanie, wyrażające szacunek i zrozumienie dla drugiej osoby. 2) Reagowanie na potrzeby klienta/interesanta, w szczególności rozpoznawanie jego potrzeb i proponowanie rozwiązań."
+  },
+  {
+   "id": "rozp-zal-1-kryterium-6",
+   "zrodlo": "załącznik nr 1 do rozp., kryterium „Podejmowanie decyzji i odpowiedzialność”",
+   "tytul": "Kryterium oceny: Podejmowanie decyzji i odpowiedzialność",
+   "hasla": "definicja kryterium, co oznacza kryterium, opis kryterium",
+   "tresc": "Podejmowanie decyzji i odpowiedzialność - opis kryterium: 1) Wypracowywanie alternatywnych rozwiązań na podstawie analizy informacji, w szczególności potencjalnego ryzyka. 2) Podejmowanie decyzji (decyzyjność). 3) Przyjmowanie odpowiedzialności za efekty podjętych decyzji."
+  },
+  {
+   "id": "rozp-zal-1-kryterium-7",
+   "zrodlo": "załącznik nr 1 do rozp., kryterium „Radzenie sobie w sytuacjach kryzysowych”",
+   "tytul": "Kryterium oceny: Radzenie sobie w sytuacjach kryzysowych",
+   "hasla": "definicja kryterium, co oznacza kryterium, opis kryterium",
+   "tresc": "Radzenie sobie w sytuacjach kryzysowych - opis kryterium: 1) Rozpoznawanie sytuacji kryzysowych i informowanie o nich zainteresowanych. 2) Podejmowanie działań mających na celu rozwiązanie kryzysu. 3) Wyciąganie wniosków z sytuacji kryzysowych."
+  },
+  {
+   "id": "rozp-zal-1-kryterium-8",
+   "zrodlo": "załącznik nr 1 do rozp., kryterium „Rzetelność”",
+   "tytul": "Kryterium oceny: Rzetelność",
+   "hasla": "definicja kryterium, co oznacza kryterium, opis kryterium",
+   "tresc": "Rzetelność - opis kryterium: 1) Wykonywanie zadań zgodnie z obowiązującymi standardami (przepisami, zasadami, procedurami) oraz dbałość o jakość rezultatów. 2) Dotrzymywanie zobowiązań (realizacja zadań) w wyznaczonym czasie."
+  },
+  {
+   "id": "rozp-zal-1-kryterium-9",
+   "zrodlo": "załącznik nr 1 do rozp., kryterium „Myślenie analityczne”",
+   "tytul": "Kryterium oceny: Myślenie analityczne",
+   "hasla": "definicja kryterium, co oznacza kryterium, opis kryterium",
+   "tresc": "Myślenie analityczne - opis kryterium: 1) Rozróżnianie informacji istotnych i nieistotnych. 2) Dostrzeganie zależności między informacjami. 3) Formułowanie wniosków."
+  },
+  {
+   "id": "rozp-zal-1-kryterium-10",
+   "zrodlo": "załącznik nr 1 do rozp., kryterium „Wykorzystywanie wiedzy i doskonalenie zawodowe”",
+   "tytul": "Kryterium oceny: Wykorzystywanie wiedzy i doskonalenie zawodowe",
+   "hasla": "definicja kryterium, co oznacza kryterium, opis kryterium",
+   "tresc": "Wykorzystywanie wiedzy i doskonalenie zawodowe - opis kryterium: 1) Wykorzystywanie wiedzy przy realizacji zadań na zajmowanym stanowisku pracy. 2) Doskonalenie wiedzy i umiejętności niezbędnych do wykonywania zadań na zajmowanym stanowisku pracy, w szczególności wyszukiwanie i pozyskiwanie wiedzy, korzystanie z dobrych praktyk i doświadczeń innych. 3) Korzystanie z dostępnych źródeł informacji, rozwiązań i technologii."
+  },
+  {
+   "id": "rozp-zal-1-kryterium-11",
+   "zrodlo": "załącznik nr 1 do rozp., kryterium „Współpraca”",
+   "tytul": "Kryterium oceny: Współpraca",
+   "hasla": "definicja kryterium, co oznacza kryterium, opis kryterium",
+   "tresc": "Współpraca - opis kryterium: 1) Włączanie się w działania realizowane razem z innymi osobami, jeśli istnieje taka możliwość. 2) Dbanie o przepływ informacji. 3) Dbanie o dobrą atmosferę i otwartość we współpracy. 4) Dostrzeganie wkładu pracy innych osób. 5) Branie pod uwagę zdania innych osób. 6) Dzielenie się wiedzą i doświadczeniem."
+  },
+  {
+   "id": "rozp-zal-1-kryterium-12",
+   "zrodlo": "załącznik nr 1 do rozp., kryterium „Wystąpienia publiczne”",
+   "tytul": "Kryterium oceny: Wystąpienia publiczne",
+   "hasla": "definicja kryterium, co oznacza kryterium, opis kryterium",
+   "tresc": "Wystąpienia publiczne - opis kryterium: 1) Wykorzystywanie różnych środków przekazu (np. narzędzi multimedialnych) i dbałość o sposób prezentacji (w tym autoprezentacji). 2) Nawiązywanie i utrzymywanie kontaktu z audytorium. 3) Zarządzanie czasem wystąpienia, w szczególności przestrzeganie ram czasowych, elastyczne reagowanie na potrzeby audytorium. 4) Radzenie sobie ze stresem i emocjami, w szczególności wywołanymi krytyką i trudnymi pytaniami."
+  },
+  {
+   "id": "rozp-zal-1-kryterium-13",
+   "zrodlo": "załącznik nr 1 do rozp., kryterium „Zarządzanie ludźmi”",
+   "tytul": "Kryterium oceny: Zarządzanie ludźmi",
+   "hasla": "definicja kryterium, co oznacza kryterium, opis kryterium",
+   "tresc": "Zarządzanie ludźmi - opis kryterium: 1) Przydzielanie zakresu odpowiedzialności, zadań i uprawnień pracownikom (delegowanie zadań). 2) Monitorowanie realizacji zadań oraz w razie potrzeby podejmowanie działań korygujących lub zapobiegawczych. 3) Motywowanie pracowników. 4) Udzielanie pracownikom informacji zwrotnej opartej na ocenie ich zaangażowania i sposobu realizacji zadań. 5) Rozwiązywanie konfliktów. 6) Wspieranie pracowników w rozwoju zawodowym, w szczególności identyfikowanie potrzeb rozwojowych, proponowanie działań rozwojowych oraz monitorowanie ich realizacji."
+  },
+  {
+   "id": "rozp-zal-1-kryterium-14",
+   "zrodlo": "załącznik nr 1 do rozp., kryterium „Zarządzanie strategiczne”",
+   "tytul": "Kryterium oceny: Zarządzanie strategiczne",
+   "hasla": "definicja kryterium, co oznacza kryterium, opis kryterium",
+   "tresc": "Zarządzanie strategiczne - opis kryterium: 1) Tworzenie wizji oraz wyznaczanie celów strategicznych w oparciu o całościowe i perspektywiczne widzenie organizacji, otoczenia oraz strategie rozwoju. 2) Formułowanie celów operacyjnych na podstawie celów strategicznych. 3) Analiza ryzyka planowanych działań o charakterze strategicznym."
+  }
+ ]
+}
