@@ -14,7 +14,7 @@ from __future__ import annotations
 from datetime import date
 from fractions import Fraction
 
-from .przebieg import Dokument, Etap, Notatka, ProcesOceny, Rola
+from .przebieg import OBSERWACJA, Dokument, Etap, Notatka, ProcesOceny, Rola
 from .walidacja import Formularz
 from .wynik import WynikOceny
 
@@ -71,7 +71,8 @@ def proces_do_slownika(proces: ProcesOceny) -> dict:
         "fikcje_stwierdzil": None if proces.fikcje_stwierdzil is None else Rola(proces.fikcje_stwierdzil).value,
         "oceny_anulowane": [_wynik_do_slownika(wynik) for wynik in proces.oceny_anulowane],
         "notatki": [
-            {"data": _data_do_napisu(notatka.data), "tresc": notatka.tresc} for notatka in proces.notatki
+            {"data": _data_do_napisu(notatka.data), "tresc": notatka.tresc, "rodzaj": notatka.rodzaj}
+            for notatka in proces.notatki
         ],
         "dokumenty": [
             {
@@ -139,7 +140,13 @@ def proces_ze_slownika(dane: dict) -> ProcesOceny:
         zapoznanie_fikcyjne=dane["zapoznanie_fikcyjne"],
         fikcje_stwierdzil=None if dane["fikcje_stwierdzil"] is None else Rola(dane["fikcje_stwierdzil"]),
         oceny_anulowane=[_wynik_ze_slownika(wynik) for wynik in dane["oceny_anulowane"]],
-        notatki=[Notatka(data=_napis_do_daty(notatka["data"]), tresc=notatka["tresc"]) for notatka in dane["notatki"]],
+        # Zapisy sprzed wprowadzenia rodzajów notatek nie mają pola `rodzaj` - ich notatki są obserwacjami.
+        notatki=[
+            Notatka(
+                data=_napis_do_daty(notatka["data"]), tresc=notatka["tresc"], rodzaj=notatka.get("rodzaj", OBSERWACJA)
+            )
+            for notatka in dane["notatki"]
+        ],
         dokumenty=[
             Dokument(
                 rodzaj=dokument["rodzaj"],

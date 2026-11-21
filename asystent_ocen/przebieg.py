@@ -6,9 +6,11 @@ OCENIANY, ADMIN. Harmonogram (SCHEDULER) jest realizowany przez moduł `przypomn
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field, replace
 from datetime import date
 from enum import Enum
+from fractions import Fraction
 
 from .bledy import Blad, BladWalidacji
 from .konfiguracja import Przepisy, _ustal_przepisy
@@ -41,10 +43,34 @@ class BladEtapu(Exception):
     """Czynność niedozwolona na obecnym etapie procesu."""
 
 
+# Rodzaje notatek oceniającego. Żadna nie jest częścią arkusza i żadnej nie widzi oceniany.
+OBSERWACJA = "obserwacja"
+OSIAGNIECIE = "osiagniecie"  # dodatkowe osiągnięcie pracownika - ponad zwykłe obowiązki
+EGZAMIN = "egzamin"  # wynik egzaminu ze służby przygotowawczej (art. 36 ust. 5 u.s.c.), najwyżej jeden wpis
+# Rodzaje wpisywane jako tekst; wynik egzaminu ma własną czynność z kontrolą punktów.
+RODZAJE_WPISYWANE = (OBSERWACJA, OSIAGNIECIE)
+
+_ETAPY_NOTATEK = (Etap.KRYTERIA_DO_WYZNACZENIA, Etap.KRYTERIA_DO_POTWIERDZENIA, Etap.OCENIANIE, Etap.OCENA_DO_ZAPOZNANIA)
+_LICZBA_PUNKTOW = re.compile(r"\d{1,4}(?:[.,]\d{1,2})?")
+
+
+def _punkty(napis: object) -> Fraction | None:
+    """Liczba punktów z formularza („42”, „42,5”); None, gdy napis nie jest nieujemną liczbą."""
+    tekst = str(napis or "").strip()
+    return Fraction(tekst.replace(",", ".")) if _LICZBA_PUNKTOW.fullmatch(tekst) else None
+
+
+def _punkty_slownie(wartosc: Fraction) -> str:
+    if wartosc.denominator == 1:
+        return str(wartosc.numerator)
+    return f"{float(wartosc):.2f}".rstrip("0").replace(".", ",")
+
+
 @dataclass
 class Notatka:
     data: date
     tresc: str
+    rodzaj: str = OBSERWACJA
 
 
 @dataclass
@@ -220,19 +246,70 @@ class ProcesOceny:
 
     # --- notatki z obserwacji ---
 
-    def dodaj_notatke(self, rola: Rola, tresc: str, data: date) -> None:
-        """Robocza notatka oceniającego z obserwacji pracy ocenianego (nie jest częścią arkusza)."""
+    def dodaj_notatke(self, rola: Rola, tresc: str, data: date, rodzaj: str = OBSERWACJA) -> None:
+        """Robocza notatka oceniającego: obserwacja pracy ocenianego albo jego dodatkowe osiągnięcie
+        (nie jest częścią arkusza)."""
         self._wymagaj_roli(rola, Rola.OCENIAJACY, czynnosc="dodanie notatki z obserwacji")
-        self._wymagaj_etapu(
-            Etap.KRYTERIA_DO_WYZNACZENIA,
-            Etap.KRYTERIA_DO_POTWIERDZENIA,
-            Etap.OCENIANIE,
-            Etap.OCENA_DO_ZAPOZNANIA,
-            czynnosc="dodanie notatki z obserwacji",
-        )
+        self._wymagaj_etapu(*_ETAPY_NOTATEK, czynnosc="dodanie notatki z obserwacji")
+        if rodzaj not in RODZAJE_WPISYWANE:
+            raise BladWalidacji(
+                [Blad("NIEZNANY_RODZAJ_NOTATKI", "Notatka może być obserwacją albo dodatkowym osiągnięciem pracownika.")]
+            )
         if not str(tresc or "").strip():
             raise BladWalidacji([Blad("PUSTA_NOTATKA", "Notatka nie może być pusta.")])
-        self.notatki.append(Notatka(data=data, tresc=tresc))
+        self.notatki.append(Notatka(data=data, tresc=tresc, rodzaj=rodzaj))
+
+    def zapisz_egzamin(
+        self,
+        rola: Rola,
+        *,
+        punkty: str,
+        data: date,
+        punkty_max: str = "",
+        poprawkowy: bool = False,
+        data_egzaminu: date | None = None,
+        uwagi: str = "",
+    ) -> None:
+        """Wynik zdanego egzaminu ze służby przygotowawczej (art. 36 ust. 5 u.s.c.) jako notatka oceniającego.
+
+        Zakres i warunki zaliczenia egzaminu określa dyrektor generalny urzędu, dlatego rdzeń nie zna skali
+        punktów ani progu: sprawdza tylko, czy punkty są liczbami, i zapisuje wynik. Ponowny zapis zastępuje
+        poprzedni wpis - egzamin jest jeden.
+        """
+        czynnosc = "zapisanie wyniku egzaminu ze służby przygotowawczej"
+        self._wymagaj_roli(rola, Rola.OCENIAJACY, czynnosc=czynnosc)
+        self._wymagaj_etapu(*_ETAPY_NOTATEK, czynnosc=czynnosc)
+        podstawa = "art. 36 ust. 5 u.s.c."
+        uzyskane = _punkty(punkty)
+        podano_maksimum = bool(str(punkty_max or "").strip())
+        maksimum = _punkty(punkty_max) if podano_maksimum else None
+        bledy: list[Blad] = []
+        if not str(punkty or "").strip():
+            bledy.append(Blad("BRAK_PUNKTOW_EGZAMINU", "Podaj liczbę punktów uzyskanych na egzaminie.", podstawa))
+        elif uzyskane is None or (podano_maksimum and not maksimum):
+            bledy.append(Blad(
+                "NIEPOPRAWNE_PUNKTY_EGZAMINU",
+                "Punkty z egzaminu podaj liczbą, np. 42 albo 42,5; liczba punktów możliwych musi być większa od zera.",
+                podstawa,
+            ))
+        elif maksimum is not None and uzyskane > maksimum:
+            bledy.append(Blad(
+                "PUNKTY_EGZAMINU_PONAD_MAKSIMUM",
+                "Liczba punktów uzyskanych nie może być większa niż liczba punktów możliwych do uzyskania.",
+                podstawa,
+            ))
+        if data_egzaminu is not None and data_egzaminu > data:
+            bledy.append(Blad("DATA_EGZAMINU_Z_PRZYSZLOSCI", "Dzień egzaminu nie może być późniejszy niż dzień wpisu."))
+        if bledy:
+            raise BladWalidacji(bledy)
+        zdany = "zdany" + (f" {data_egzaminu:%d.%m.%Y}" if data_egzaminu else "")
+        wynik = _punkty_slownie(uzyskane) + (f" z {_punkty_slownie(maksimum)}" if maksimum is not None else "") + " pkt"
+        termin = "po egzaminie poprawkowym" if poprawkowy else "w pierwszym terminie"
+        tresc = f"Egzamin ze służby przygotowawczej: {zdany}, {wynik}, {termin}."
+        if str(uwagi or "").strip():
+            tresc += " " + str(uwagi).strip()
+        self.notatki = [notatka for notatka in self.notatki if notatka.rodzaj != EGZAMIN]
+        self.notatki.append(Notatka(data=data, tresc=tresc, rodzaj=EGZAMIN))
 
     def notatki_z_okresu(self, rola: Rola, od: date, do: date) -> list[Notatka]:
         """Notatki oceniającego z okresu od-do (włącznie), chronologicznie. Oceniany nie ma do nich wglądu

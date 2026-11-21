@@ -12,7 +12,7 @@ from django.conf import settings
 from asystent_ocen import terminy
 from asystent_ocen.konfiguracja import wczytaj_przepisy
 from asystent_ocen.kryteria import kryteria_dodatkowe_do_wyboru, kryteria_obowiazkowe
-from asystent_ocen.przebieg import Etap, ProcesOceny, Rola
+from asystent_ocen.przebieg import EGZAMIN, OBSERWACJA, OSIAGNIECIE, Etap, ProcesOceny, Rola
 from asystent_ocen.stopnie import kolejny_stopien_slownie, komunikat_dla_stopnia
 from asystent_ocen.walidacja import Formularz, bledy_przed_zatwierdzeniem, pouczenie_o_sprzeciwie
 from asystent_ocen.wynik import NEGATYWNA, bledy_ocen_czastkowych, formatuj_srednia, oblicz_wynik
@@ -285,9 +285,14 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
             "model": settings.ASYSTENT_MODEL,
         }
     if oceniajacy:
-        # Notatki z obserwacji widzi wyłącznie oceniający (decyzja zespołu z 21.11.2026).
-        kontekst["notatki"] = sorted(proces.notatki, key=lambda notatka: notatka.data, reverse=True)
+        # Notatki widzi wyłącznie oceniający (decyzja zespołu z 21.11.2026): obserwacje, dodatkowe osiągnięcia
+        # pracownika i - przy pierwszej ocenie - wynik egzaminu ze służby przygotowawczej.
+        notatki = sorted(proces.notatki, key=lambda notatka: notatka.data, reverse=True)
+        kontekst["notatki"] = [notatka for notatka in notatki if notatka.rodzaj == OBSERWACJA]
+        kontekst["osiagniecia"] = [notatka for notatka in notatki if notatka.rodzaj == OSIAGNIECIE]
+        kontekst["egzamin"] = next((notatka for notatka in notatki if notatka.rodzaj == EGZAMIN), None)
         kontekst["mozna_dodac_notatke"] = not zakonczona
+        kontekst["mozna_zapisac_egzamin"] = not zakonczona and ocena.pierwsza
     if oceniany and etap == Etap.KRYTERIA_DO_POTWIERDZENIA:
         kontekst["mozna_potwierdzic_kryteria"] = True
     if oceniany and etap == Etap.OCENIANIE and not kontekst["wniosek_oczekuje"]:

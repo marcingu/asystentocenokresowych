@@ -64,6 +64,19 @@ class DaneDemoTest(TestCase):
         self.assertGreaterEqual(len(biezaca.proces().notatki), 3)
         self.assertNotIn("STOPIEN_OBLIGATORYJNY", {s.kod for s in skutki_oceny_zakonczonej(biezaca.poprzednia)})
 
+    def test_notatki_pokazowe_obejmuja_osiagniecia_i_wyniki_egzaminu(self):
+        """Pokaz ma dodatkowe osiągnięcie u bohaterki oraz egzamin ze służby przygotowawczej u dwóch nowych osób:
+        zdany w pierwszym terminie i po egzaminie poprawkowym."""
+        zaladuj()
+
+        def notatki(login: str, rodzaj: str) -> list[str]:
+            proces = Pracownik.objects.get(uzytkownik__username=login).biezaca_ocena().proces()
+            return [notatka.tresc for notatka in proces.notatki if notatka.rodzaj == rodzaj]
+
+        self.assertEqual(len(notatki("anna", "osiagniecie")), 1)
+        self.assertIn("w pierwszym terminie", notatki("katarzyna", "egzamin")[0])
+        self.assertIn("po egzaminie poprawkowym", notatki("piotr", "egzamin")[0])
+
     def test_ustalenia_dotyczace_danych_z_ezd_rp_sa_wpisane(self):
         zaladuj()
         ustalenia = UstaleniaMonitoringu.pobierz()

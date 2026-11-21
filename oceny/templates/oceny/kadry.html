@@ -5,6 +5,36 @@
 <p class="podpowiedz">Arkusz wynika ze stanowiska (§ 3 rozp.), a obowiązek oceny - z rodzaju zatrudnienia (art. 81 ust. 1 u.s.c.).
   Nieobecność dłuższa niż miesiąc przedłuża termin oceny (art. 81 ust. 7 u.s.c.) - system przelicza terminy sam.</p>
 <p><a href="{% url 'kadry_ezd' %}" class="przycisk przycisk-drugi">Dane z EZD RP - ustalenia pracodawcy</a></p>
+
+<form method="get" action="{% url 'kadry' %}" class="formularz filtry" role="search" aria-label="Wyszukiwanie i filtry listy pracowników">
+  <div class="wiersz-pol">
+    <div><label for="q">Szukaj</label>
+      <input type="search" name="q" id="q" value="{{ filtry.q }}" maxlength="100" placeholder="nazwisko, imię, stanowisko"></div>
+    <div><label for="komorka">Komórka organizacyjna</label>
+      <select name="komorka" id="komorka">
+        <option value="">wszystkie</option>
+        {% for nazwa in komorki %}<option value="{{ nazwa }}"{% if nazwa == filtry.komorka %} selected{% endif %}>{{ nazwa }}</option>{% endfor %}
+      </select></div>
+    <div><label for="status">Status oceny</label>
+      <select name="status" id="status">
+        <option value="">wszystkie</option>
+        {% for kod, opis in statusy %}<option value="{{ kod }}"{% if kod == filtry.status %} selected{% endif %}>{{ opis }}</option>{% endfor %}
+      </select></div>
+    <div><label for="sort">Kolejność</label>
+      <select name="sort" id="sort">
+        {% for kod, opis in sortowania %}<option value="{{ kod }}"{% if kod == filtry.sort %} selected{% endif %}>{{ opis }}</option>{% endfor %}
+      </select></div>
+  </div>
+  <div class="przyciski">
+    <button type="submit" class="przycisk">Pokaż</button>
+    {% if filtrowanie_aktywne %}<a href="{% url 'kadry' %}" class="przycisk przycisk-drugi">Wyczyść filtry</a>{% endif %}
+  </div>
+</form>
+<p class="podpowiedz" role="status">Pokazano {{ wiersze|length }} z {{ wszystkich }} pracowników.</p>
+
+{% if not wiersze %}
+<p class="pusto">Żaden pracownik nie spełnia podanych warunków.</p>
+{% else %}
 <table class="tabela">
   <caption class="ukryte">Pracownicy urzędu i stan ich ocen okresowych</caption>
   <thead>
@@ -48,4 +78,5 @@
     {% endfor %}
   </tbody>
 </table>
+{% endif %}
 {% endblock %}

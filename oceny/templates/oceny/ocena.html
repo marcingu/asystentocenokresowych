@@ -455,16 +455,55 @@
   {% if mozna_dodac_notatke %}
   <form method="post" action="{% url 'czynnosc' ocena.pk 'notatka' %}" class="formularz">
     {% csrf_token %}
-    <label for="tresc_notatki">Nowa notatka</label>
+    <label for="rodzaj_notatki">Rodzaj wpisu</label>
+    <select name="rodzaj" id="rodzaj_notatki">
+      <option value="obserwacja">obserwacja z pracy</option>
+      <option value="osiagniecie">dodatkowe osiągnięcie pracownika</option>
+    </select>
+    <label for="tresc_notatki">Treść</label>
     <textarea name="tresc" id="tresc_notatki" rows="3" required></textarea>
-    <button type="submit" class="przycisk przycisk-drugi">Zapisz notatkę</button>
+    <button type="submit" class="przycisk przycisk-drugi">Zapisz wpis</button>
   </form>
   {% endif %}
+
+  <h3>Dodatkowe osiągnięcia ({{ osiagniecia|length }})</h3>
+  {% for notatka in osiagniecia %}
+  <p class="wpis-maly wpis-osiagniecie"><strong>{{ notatka.data|date:"d.m.Y" }}</strong> {{ notatka.tresc }}</p>
+  {% empty %}
+  <p class="pusto">Brak wpisów. Zapisuj tu to, co pracownik zrobił ponad zwykłe obowiązki.</p>
+  {% endfor %}
+
+  <h3>Obserwacje ({{ notatki|length }})</h3>
   {% for notatka in notatki %}
   <p class="wpis-maly"><strong>{{ notatka.data|date:"d.m.Y" }}</strong> {{ notatka.tresc }}</p>
   {% empty %}
   <p class="pusto">Brak notatek.</p>
   {% endfor %}
+
+  {% if egzamin or mozna_zapisac_egzamin %}
+  <h3>Egzamin ze służby przygotowawczej</h3>
+  {% if egzamin %}<p class="wpis-maly"><strong>{{ egzamin.data|date:"d.m.Y" }}</strong> {{ egzamin.tresc }}</p>{% endif %}
+  {% if mozna_zapisac_egzamin %}
+  <details>
+    <summary>{% if egzamin %}Zmień wynik egzaminu{% else %}Wpisz wynik egzaminu{% endif %}</summary>
+    <form method="post" action="{% url 'czynnosc' ocena.pk 'egzamin' %}" class="formularz">
+      {% csrf_token %}
+      <label for="egzamin_punkty">Liczba punktów uzyskanych</label>
+      <input type="text" inputmode="decimal" name="punkty" id="egzamin_punkty" required>
+      <label for="egzamin_punkty_max">Liczba punktów możliwych do uzyskania</label>
+      <input type="text" inputmode="decimal" name="punkty_max" id="egzamin_punkty_max">
+      <label for="egzamin_data">Dzień egzaminu</label>
+      <input type="date" name="data_egzaminu" id="egzamin_data" max="{{ dzis_iso }}">
+      <label class="pole-wyboru"><input type="checkbox" name="poprawkowy" value="1"> Zdany w terminie poprawkowym</label>
+      <label for="egzamin_uwagi">Uwagi, np. wynik pierwszego podejścia</label>
+      <input type="text" name="uwagi" id="egzamin_uwagi" maxlength="300">
+      <button type="submit" class="przycisk przycisk-drugi">Zapisz wynik egzaminu</button>
+    </form>
+  </details>
+  <p class="podpowiedz">Pole pomocnicze przy pierwszej ocenie pracownika. Zakres i warunki zaliczenia egzaminu określa
+    dyrektor generalny urzędu (art. 36 ust. 5 u.s.c.), dlatego system zapisuje wynik i go nie ocenia.</p>
+  {% endif %}
+  {% endif %}
 </section>
 {% endif %}
 

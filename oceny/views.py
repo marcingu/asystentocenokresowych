@@ -18,7 +18,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from asystent_ocen.bledy import Blad, BladWalidacji
 from asystent_ocen.konfiguracja import DOMYSLNY_PLIK, wczytaj_przepisy
-from asystent_ocen.przebieg import BladEtapu, BladUprawnien, Etap, Rola
+from asystent_ocen.przebieg import OBSERWACJA, OSIAGNIECIE, BladEtapu, BladUprawnien, Etap, Rola
 from asystent_ocen.wynik import NEGATYWNA, POZYTYWNA
 from asystent_ocen.zgodnosc import bledy_uruchomienia_monitoringu, rejestr_funkcji_ai, wczytaj_wymogi
 
@@ -27,6 +27,7 @@ from .czas import dzis
 from .karta import kontekst_karty
 from .kontekst import konta_demo
 from .kontekst_ezd import ustalenia_rdzenia
+from .lista_kadr import lista_pracownikow
 from .models import Ocena, Pracownik, Sprzeciw, UstaleniaMonitoringu
 from .zadania import zadania_uzytkownika
 
@@ -100,8 +101,22 @@ def _potwierdz_kryteria(request, wybrana: Ocena):
 
 
 def _notatka(request, wybrana: Ocena):
-    uslugi.dodaj_notatke(wybrana, request.user, tresc=formularze.tekst(request.POST, "tresc"))
-    messages.success(request, "Notatka została zapisana. Widzi ją tylko oceniający.")
+    rodzaj = request.POST.get("rodzaj") or OBSERWACJA
+    uslugi.dodaj_notatke(wybrana, request.user, tresc=formularze.tekst(request.POST, "tresc"), rodzaj=rodzaj)
+    co = "Dodatkowe osiągnięcie zostało zapisane" if rodzaj == OSIAGNIECIE else "Notatka została zapisana"
+    messages.success(request, f"{co}. Widzi je tylko oceniający.")
+
+
+def _egzamin(request, wybrana: Ocena):
+    uslugi.zapisz_egzamin(
+        wybrana, request.user,
+        punkty=formularze.tekst(request.POST, "punkty"),
+        punkty_max=formularze.tekst(request.POST, "punkty_max"),
+        poprawkowy=bool(request.POST.get("poprawkowy")),
+        data_egzaminu=formularze.data_lub_none(request.POST, "data_egzaminu"),
+        uwagi=formularze.tekst(request.POST, "uwagi"),
+    )
+    messages.success(request, "Wynik egzaminu ze służby przygotowawczej został zapisany w notatkach. Widzi go tylko oceniający.")
 
 
 def _zmien_termin(request, wybrana: Ocena):
@@ -205,6 +220,7 @@ CZYNNOSCI = {
     "wyznacz-kryteria": _wyznacz_kryteria,
     "potwierdz-kryteria": _potwierdz_kryteria,
     "notatka": _notatka,
+    "egzamin": _egzamin,
     "zmien-termin": _zmien_termin,
     "wniosek-o-termin": _wniosek_o_termin,
     "rozpatrz-wniosek": _rozpatrz_wniosek,
@@ -286,19 +302,7 @@ def _wymagaj_kadr(request) -> None:
 @require_GET
 def kadry(request):
     _wymagaj_kadr(request)
-    dzien = dzis()
-    wiersze = []
-    osoby = Pracownik.objects.select_related("przelozony").prefetch_related("oceny", "nieobecnosci")
-    for osoba in osoby:
-        biezaca = max(osoba.oceny.all(), key=lambda o: (o.poczatek_cyklu, o.pk), default=None)
-        wiersze.append({
-            "osoba": osoba,
-            "ocena": biezaca,
-            "po_terminie": bool(biezaca and biezaca.termin and not biezaca.zakonczona and biezaca.termin < dzien),
-            "mozna_rozpoczac": osoba.podlega_ocenie and biezaca is None,
-            "nieobecnosci": list(osoba.nieobecnosci.all()),
-        })
-    return render(request, "oceny/kadry.html", {"wiersze": wiersze})
+    return render(request, "oceny/kadry.html", lista_pracownikow(request.GET, dzis()))
 
 
 @require_POST

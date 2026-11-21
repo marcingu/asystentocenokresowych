@@ -130,6 +130,9 @@ meter { width: 100%; min-width: 120px; height: 1rem; }
 .pole-wyboru { display: flex; gap: .5rem; align-items: center; }
 .pole-wyboru input { width: 1.2rem; height: 1.2rem; accent-color: var(--granat); }
 .wiersz-pol { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .6rem; }
+.filtry { background: var(--karta); border: 1px solid var(--linia); border-radius: 6px; padding: .6rem 1rem 1rem; margin: 1rem 0 .4rem; }
+.filtry .wiersz-pol > div { display: grid; gap: .35rem; align-content: start; }
+.filtry input[type="search"] { font: inherit; padding: .45rem .6rem; border: 1px solid #8a94a3; border-radius: 4px; width: 100%; }
 .wymagane { color: var(--czerwony); font-weight: 400; font-size: .85rem; }
 .przyciski { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
 .przycisk { display: inline-block; background: var(--granat); color: #fff; border: 2px solid var(--granat); border-radius: 4px; padding: .5rem 1rem; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; justify-self: start; }
@@ -160,6 +163,8 @@ summary { cursor: pointer; color: var(--granat); font-weight: 600; }
 .wpis { border-top: 1px solid var(--linia); padding-top: .6rem; margin-top: .6rem; }
 .wpis-maly { font-size: .9rem; border-top: 1px solid var(--linia); padding-top: .4rem; margin: .4rem 0 0; }
 .notatki { background: #fffdf3; }
+.notatki h3 { font-size: .95rem; margin: 1rem 0 .2rem; }
+.wpis-osiagniecie { border-left: 4px solid var(--zielony); padding-left: .5rem; }
 .konfiguracja { background: #10202f; color: #e6edf5; padding: 1rem; border-radius: 4px; overflow: auto; max-height: 34rem; font-size: .85rem; line-height: 1.45; }
 
 /* statystyki */

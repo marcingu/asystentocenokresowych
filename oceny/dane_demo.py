@@ -123,14 +123,15 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
     )
     uslugi.potwierdz_kryteria(biezaca, anna.uzytkownik, data=_dni(sporzadzenie_poprzedniej, 9))
     notatki = [
-        (4, "Przygotowała projekt procedury obiegu korespondencji; wdrożony bez poprawek merytorycznych."),
-        (9, "Sprawy z zakresu skarg i wniosków załatwia przed terminem; w drugim kwartale żadna nie przekroczyła terminu."),
-        (15, "Przeprowadziła szkolenie dla nowych pracowników wydziału z obsługi EZD RP."),
-        (21, "Dwa projekty pism do ministerstwa wymagały poprawek stylistycznych; merytorycznie bez uwag."),
+        (4, "obserwacja", "Przygotowała projekt procedury obiegu korespondencji; wdrożony bez poprawek merytorycznych."),
+        (9, "obserwacja", "Sprawy z zakresu skarg i wniosków załatwia przed terminem; w drugim kwartale żadna nie przekroczyła terminu."),
+        (15, "osiagniecie", "Przeprowadziła szkolenie dla nowych pracowników wydziału z obsługi EZD RP."),
+        (21, "obserwacja", "Dwa projekty pism do ministerstwa wymagały poprawek stylistycznych; merytorycznie bez uwag."),
     ]
-    for miesiac, tresc in notatki:
+    for miesiac, rodzaj, tresc in notatki:
         uslugi.dodaj_notatke(
-            biezaca, naczelnik.uzytkownik, tresc=tresc, data=_roboczy(dodaj_miesiace(sporzadzenie_poprzedniej, miesiac))
+            biezaca, naczelnik.uzytkownik, tresc=tresc, rodzaj=rodzaj,
+            data=_roboczy(dodaj_miesiace(sporzadzenie_poprzedniej, miesiac)),
         )
 
     # --- Piotr: nowy pracownik na czas nieokreślony - kryteria do wyznaczenia w 30 dni ---
@@ -140,7 +141,13 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
         "Obsługa zamówień i umów wydziału oraz prowadzenie rejestru umów.",
         data_zatrudnienia=zatrudnienie_piotra,
     )
-    uslugi.rozpocznij_cykl(piotr, kadry.uzytkownik, data=zatrudnienie_piotra)
+    ocena_piotra = uslugi.rozpocznij_cykl(piotr, kadry.uzytkownik, data=zatrudnienie_piotra)
+    # Egzamin ze służby przygotowawczej zdawał jeszcze na umowie na czas określony (art. 36 ust. 4 i 5 u.s.c.).
+    uslugi.zapisz_egzamin(
+        ocena_piotra, naczelnik.uzytkownik, punkty="31", punkty_max="50", poprawkowy=True,
+        data_egzaminu=_roboczy(dodaj_miesiace(zatrudnienie_piotra, -5)), uwagi="W pierwszym terminie 24 pkt.",
+        data=_dni(dzien, -10),
+    )
 
     # --- Katarzyna: kryteria wyznaczone, czekają na jej potwierdzenie ---
     zatrudnienie_katarzyny = _dni(dzien, -21)
@@ -150,6 +157,10 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
         data_zatrudnienia=zatrudnienie_katarzyny,
     )
     ocena_katarzyny = uslugi.rozpocznij_cykl(katarzyna, kadry.uzytkownik, data=zatrudnienie_katarzyny)
+    uslugi.zapisz_egzamin(
+        ocena_katarzyny, naczelnik.uzytkownik, punkty="44", punkty_max="50",
+        data_egzaminu=_roboczy(dodaj_miesiace(zatrudnienie_katarzyny, -6)), data=_dni(dzien, -2),
+    )
     uslugi.wyznacz_kryteria(
         ocena_katarzyny, naczelnik.uzytkownik, kryteria_dodatkowe=["Orientacja na klienta/interesanta", "Kreatywność"],
         termin=terminy.termin_oceny(zatrudnienie_katarzyny), data=_dni(dzien, -1),

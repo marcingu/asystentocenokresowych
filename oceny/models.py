@@ -183,6 +183,11 @@ class Ocena(models.Model):
         return self.etap == Etap.ZAKONCZONA.name
 
     @property
+    def pierwsza(self) -> bool:
+        """Czy to pierwsza ocena pracownika prowadzona w systemie (nie ma poprzedniej)."""
+        return self.poprzednia_id is None
+
+    @property
     def po_negatywnej(self) -> bool:
         """Czy to ponowna ocena po ocenie negatywnej (art. 81 ust. 9 u.s.c., § 7 pkt 2 rozp.)."""
         return self.poprzednia_id is not None and self.poprzednia.wynik == NEGATYWNA

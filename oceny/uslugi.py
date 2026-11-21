@@ -17,7 +17,7 @@ from django.db import transaction
 
 from asystent_ocen import terminy
 from asystent_ocen.bledy import Blad, BladWalidacji
-from asystent_ocen.przebieg import BladEtapu, BladUprawnien, Etap, Rola
+from asystent_ocen.przebieg import OBSERWACJA, BladEtapu, BladUprawnien, Etap, Rola
 from asystent_ocen.zgodnosc import UstaleniaMonitoringu as UstaleniaRdzenia
 from asystent_ocen.zgodnosc import bledy_uruchomienia_monitoringu
 
@@ -164,11 +164,43 @@ def potwierdz_kryteria(ocena: Ocena, uzytkownik, *, data: date | None = None) ->
 
 # --- okres oceny: notatki, terminy, nieobecności ---
 
-def dodaj_notatke(ocena: Ocena, uzytkownik, *, tresc: str, data: date | None = None) -> None:
-    """Notatka oceniającego. Jej treść nie trafia do dziennika zdarzeń."""
+def dodaj_notatke(
+    ocena: Ocena, uzytkownik, *, tresc: str, rodzaj: str = OBSERWACJA, data: date | None = None
+) -> None:
+    """Notatka oceniającego: obserwacja albo dodatkowe osiągnięcie pracownika. Treść nie trafia do dziennika."""
     data = data or dzis()
     with _czynnosc(ocena, uzytkownik, Rola.OCENIAJACY, CZYNNOSC_NOTATKA, data) as (_, proces):
-        proces.dodaj_notatke(Rola.OCENIAJACY, tresc, data)
+        proces.dodaj_notatke(Rola.OCENIAJACY, tresc, data, rodzaj=rodzaj)
+
+
+def zapisz_egzamin(
+    ocena: Ocena,
+    uzytkownik,
+    *,
+    punkty: str,
+    punkty_max: str = "",
+    poprawkowy: bool = False,
+    data_egzaminu: date | None = None,
+    uwagi: str = "",
+    data: date | None = None,
+) -> None:
+    """Wynik egzaminu ze służby przygotowawczej w notatkach oceniającego - tylko przy pierwszej ocenie pracownika.
+
+    Egzamin kończy służbę przygotowawczą na początku pracy w służbie cywilnej (art. 36 ust. 5 u.s.c.), więc przy
+    kolejnych ocenach nie ma czego wpisywać. Wynik nie trafia do dziennika ani do arkusza.
+    """
+    data = data or dzis()
+    with _czynnosc(ocena, uzytkownik, Rola.OCENIAJACY, CZYNNOSC_NOTATKA, data) as (biezaca, proces):
+        if not biezaca.pierwsza:
+            raise BladWalidacji([Blad(
+                "EGZAMIN_TYLKO_PRZY_PIERWSZEJ_OCENIE",
+                "Wynik egzaminu ze służby przygotowawczej zapisuje się przy pierwszej ocenie pracownika.",
+                "art. 36 ust. 5 u.s.c.",
+            )])
+        proces.zapisz_egzamin(
+            Rola.OCENIAJACY, punkty=punkty, punkty_max=punkty_max, poprawkowy=poprawkowy,
+            data_egzaminu=data_egzaminu, uwagi=uwagi, data=data,
+        )
 
 
 def zmien_termin(ocena: Ocena, uzytkownik, *, nowy_termin: date, przyczyna: str, data: date | None = None) -> None:
