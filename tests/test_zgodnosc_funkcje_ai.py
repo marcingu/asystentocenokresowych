@@ -46,7 +46,7 @@ NISKIE_RYZYKO = {
     "PYTANIA_DO_ROZMOWY_OCENIAJACEJ",
 }
 # Funkcje wysokiego ryzyka, które włącza pokaz na danych fikcyjnych (decyzje-ai-pokaz.toml).
-W_POKAZIE = {SUGESTIA, "PROPOZYCJA_KIERUNKOW_IPRZ"}
+W_POKAZIE = {SUGESTIA, "PROPOZYCJA_KIERUNKOW_IPRZ", "RADAR_PYTANIA_DO_KART"}
 ORGAN = "Dyrektor Generalny Urzędu"
 DATA_DECYZJI = date(2027, 12, 6)
 # Analizy i czynności wymagane przed włączeniem funkcji wysokiego ryzyka - w kolejności z rejestru.
@@ -66,6 +66,7 @@ KLASYFIKACJE = {
     "PYTANIA_DO_ROZMOWY_OCENIAJACEJ": "wyjatek_art_6_ust_3",
     "PROPOZYCJA_OCENY": "wysokie_ryzyko",
     "PROPOZYCJA_KIERUNKOW_IPRZ": "wysokie_ryzyko",
+    "RADAR_PYTANIA_DO_KART": "wysokie_ryzyko",
     "PODSUMOWANIE_PRACY_PRACOWNIKA": "wysokie_ryzyko",
     "REKOMENDACJA_KADROWA": "wysokie_ryzyko",
     "ANALIZA_EMOCJI": "zakazana",
@@ -243,7 +244,7 @@ def test_dozwolona_funkcja_ai_jest_zwracana(kod):
 
 @pytest.mark.parametrize(
     "kod",
-    [SUGESTIA, "PROPOZYCJA_KIERUNKOW_IPRZ", "PODSUMOWANIE_PRACY_PRACOWNIKA", "REKOMENDACJA_KADROWA", "ANALIZA_EMOCJI",
+    [SUGESTIA, "PROPOZYCJA_KIERUNKOW_IPRZ", "RADAR_PYTANIA_DO_KART", "PODSUMOWANIE_PRACY_PRACOWNIKA", "REKOMENDACJA_KADROWA", "ANALIZA_EMOCJI",
      "NIEZNANA"],
 )
 def test_uzycie_niedozwolonej_albo_nieznanej_funkcji_ai_jest_blokowane(kod):

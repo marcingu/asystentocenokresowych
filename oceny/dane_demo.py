@@ -276,8 +276,13 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
         integracja_wlaczona=True,
         podstawa="Regulamin pracy urzędu, § 27a (obwieszczenie dyrektora generalnego).",
         cele="Zapewnienie organizacji pracy umożliwiającej pełne wykorzystanie czasu pracy.",
-        zakres="Liczba i terminowość spraw prowadzonych w EZD RP oraz wyniki akceptacji projektów pism.",
-        sposob="Zestawienie zbiorcze za okres oceny, bez punktacji i rankingów; jawne dla ocenianego.",
+        zakres=(
+            "Liczba i terminowość spraw prowadzonych w EZD RP oraz wyniki akceptacji projektów pism; w radarze także "
+            "urlopy, godziny nadliczbowe i zastępstwa z systemu kadrowego."
+        ),
+        sposob=(
+            "Zestawienie zbiorcze za okres oceny i karty obserwacji, bez punktacji i rankingów; jawne dla ocenianego."
+        ),
         data_poinformowania=dzien - timedelta(days=60),
     )
     _konta_do_pokazu_zaplecza()

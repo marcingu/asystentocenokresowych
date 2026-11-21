@@ -24,6 +24,8 @@ from asystent_ocen.zgodnosc import bledy_uruchomienia_monitoringu
 from .czas import dzis
 from .formularze import nazwy_kryteriow
 from .models import Nieobecnosc, Ocena, Pracownik, Sprzeciw, UstaleniaMonitoringu, WniosekOTermin, Zdarzenie
+from .radar import GOTOWY as RADAR_GOTOWY
+from .radar import radar_oceny
 from .uprawnienia import czy_kadry, pracownik_uzytkownika, role_uzytkownika
 
 UWZGLEDNIENIA_SPRZECIWU = (Sprzeciw.ZMIANA, Sprzeciw.PONOWNE_SPORZADZENIE)
@@ -32,12 +34,14 @@ CZYNNOSC_PROJEKT_AI = "projekt uzasadnienia ułożony przez model językowy"
 CZYNNOSC_SUGESTIA_AI = "sugestia ocen cząstkowych przygotowana przez model językowy"
 CZYNNOSC_ROZMOWA_AI = "pytania do rozmowy oceniającej przygotowane przez model językowy"
 CZYNNOSC_IPRZ_AI = "propozycja kierunków do IPRZ przygotowana przez model językowy"
+CZYNNOSC_RADAR_AI = "pytania do kart obserwacji radaru przygotowane przez model językowy"
 # Ślady użycia modelu językowego przy pracy nad oceną - oceniany widzi je po sporządzeniu oceny.
-CZYNNOSCI_AI = (CZYNNOSC_PROJEKT_AI, CZYNNOSC_SUGESTIA_AI, CZYNNOSC_ROZMOWA_AI, CZYNNOSC_IPRZ_AI)
+CZYNNOSCI_AI = (CZYNNOSC_PROJEKT_AI, CZYNNOSC_SUGESTIA_AI, CZYNNOSC_ROZMOWA_AI, CZYNNOSC_IPRZ_AI, CZYNNOSC_RADAR_AI)
 # Czynności, w których pracowała funkcja wysokiego ryzyka - z jej kodem w rejestrze funkcji AI.
 CZYNNOSCI_AI_WYSOKIEGO_RYZYKA = {
     CZYNNOSC_SUGESTIA_AI: "PROPOZYCJA_OCENY",
     CZYNNOSC_IPRZ_AI: "PROPOZYCJA_KIERUNKOW_IPRZ",
+    CZYNNOSC_RADAR_AI: "RADAR_PYTANIA_DO_KART",
 }
 
 
@@ -455,6 +459,33 @@ def przygotowanie_rozmowy(ocena: Ocena, uzytkownik, *, doradca, data: date | Non
                 "podpowiedź dla oceniającego - nie jest zapisywana; wnioski do IPRZ wpisuje oceniający",
             )
     return wynik
+
+
+def pytania_radaru(ocena: Ocena, uzytkownik, *, doradca, data: date | None = None) -> dict:
+    """Radar Dobrostanu i Doceniania: pytania otwarte do kart obserwacji - funkcja wysokiego ryzyka (zał. III
+    pkt 4 lit. b AI Act), którą włącza tylko decyzja urzędu.
+
+    `doradca(karty)` zwraca słownik z kluczem „propozycja” (wynik rdzenia) albo „blad” (komunikat) - w aplikacji
+    jest nim `copilot.pytania_do_kart`. Model dostaje wyłącznie karty: kod, tytuł i fakt z liczbami - bez danych
+    osobowych, notatek, ocen i szkicu. Podpowiedź nie jest zapisywana; w dzienniku zostaje ślad użycia, bez
+    treści. Wynik doradcy wraca uzupełniony o klucz „karty”. Wywołanie nie jest objęte transakcją - model
+    pracuje kilkanaście sekund.
+    """
+    data = data or dzis()
+    biezaca = Ocena.objects.select_related("oceniany").get(pk=ocena.pk)
+    _wymagaj_roli(uzytkownik, biezaca, Rola.OCENIAJACY)
+    if biezaca.etap != Etap.OCENIANIE.name:
+        raise BladEtapu("Pytania do kart obserwacji można przygotować tylko na etapie dokonywania oceny")
+    radar = radar_oceny(biezaca, data)
+    if radar.stan != RADAR_GOTOWY or not radar.karty:
+        raise BladEtapu("Radar nie ma kart obserwacji, do których można ułożyć pytania")
+    wynik = doradca(radar.karty)
+    if wynik.get("propozycja") is not None:
+        _zapisz_zdarzenie(
+            biezaca, uzytkownik, CZYNNOSC_RADAR_AI, data,
+            "podpowiedź dla oceniającego - nie jest zapisywana; pytania wybiera i zadaje oceniający",
+        )
+    return {**wynik, "karty": radar.karty}
 
 
 def potwierdz_zapoznanie(ocena: Ocena, uzytkownik, *, data: date | None = None) -> None:

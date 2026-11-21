@@ -61,14 +61,10 @@ def _dane_zrodlowe(identyfikator: str, od: date, do: date):
     return None
 
 
-def karta_kontekstu(ocena: Ocena, dzien: date) -> KartaKontekstu:
+def przeszkody_monitoringu(ocena: Ocena, dzien: date) -> tuple[UstaleniaMonitoringu, list[Blad]]:
+    """Ustalenia pracodawcy i przeszkody z Kodeksu pracy, które nie pozwalają pokazać danych o pracy tej osoby.
+    Z tej samej bramki korzystają karta kontekstu z EZD RP i Radar Dobrostanu i Doceniania."""
     zapis = UstaleniaMonitoringu.pobierz()
-    if not zapis.integracja_wlaczona:
-        return KartaKontekstu(
-            WYLACZONA,
-            "Integracja z EZD RP jest wyłączona. Włącza ją komórka kadr po dokonaniu ustaleń wymaganych przez "
-            "Kodeks pracy.",
-        )
     przeszkody = bledy_uruchomienia_monitoringu(ustalenia_rdzenia(zapis), dzien)
     if not przeszkody and not ocena.oceniany.klauzula_ezd_potwierdzona:
         przeszkody = [Blad(
@@ -76,6 +72,17 @@ def karta_kontekstu(ocena: Ocena, dzien: date) -> KartaKontekstu:
             "Ocenianemu nie przekazano informacji o celach, zakresie i sposobie korzystania z danych z EZD RP.",
             PODSTAWA_INFORMACJI_DLA_PRACOWNIKA,
         )]
+    return zapis, przeszkody
+
+
+def karta_kontekstu(ocena: Ocena, dzien: date) -> KartaKontekstu:
+    zapis, przeszkody = przeszkody_monitoringu(ocena, dzien)
+    if not zapis.integracja_wlaczona:
+        return KartaKontekstu(
+            WYLACZONA,
+            "Integracja z EZD RP jest wyłączona. Włącza ją komórka kadr po dokonaniu ustaleń wymaganych przez "
+            "Kodeks pracy.",
+        )
     if przeszkody:
         return KartaKontekstu(
             ZABLOKOWANA, "Dane z EZD RP nie są pokazywane, dopóki nie zostaną spełnione warunki Kodeksu pracy.",

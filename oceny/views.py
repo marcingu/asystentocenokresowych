@@ -164,6 +164,19 @@ def _przygotowanie_rozmowy(request, wybrana: Ocena):
     return render(request, "oceny/ocena.html", kontekst)
 
 
+def _pytania_radaru(request, wybrana: Ocena):
+    """Radar Dobrostanu i Doceniania: pytania do kart obserwacji - funkcja wysokiego ryzyka, czynna tylko po
+    decyzji urzędu. Podpowiedź istnieje tylko na tej stronie: nie jest zapisywana."""
+    from . import copilot  # import przy użyciu - moduł AI nie jest potrzebny do pracy reszty systemu
+
+    # Najpierw szkic: dane wpisane w formularzu nie przepadają, gdy strona wraca z pytaniami.
+    uslugi.zapisz_szkic(wybrana, request.user, formularze.czesc_II(request.POST, wybrana.proces()))
+    wynik = uslugi.pytania_radaru(wybrana, request.user, doradca=copilot.pytania_do_kart)
+    kontekst = kontekst_karty(wybrana, request.user, dzis())
+    kontekst["radar_ai"] = copilot.pytania_radaru_do_pokazania(wynik)
+    return render(request, "oceny/ocena.html", kontekst)
+
+
 def _sporzadz_ocene(request, wybrana: Ocena):
     szkic = formularze.czesc_II(request.POST, wybrana.proces())
     # Najpierw szkic: po błędzie walidacji wpisane dane zostają w formularzu.
@@ -235,6 +248,7 @@ CZYNNOSCI = {
     "projekt-uzasadnienia": _projekt_uzasadnienia,
     "sugestia-ocen": _sugestia_ocen,
     "przygotowanie-rozmowy": _przygotowanie_rozmowy,
+    "pytania-radaru": _pytania_radaru,
     "sporzadz-ocene": _sporzadz_ocene,
     "potwierdz-zapoznanie": _potwierdz_zapoznanie,
     "fikcja-zapoznania": _fikcja_zapoznania,

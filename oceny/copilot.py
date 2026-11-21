@@ -9,6 +9,9 @@ urząd włączył ją własną decyzją (`rejestr_ai`), a oceny i tak wpisuje oc
 
 Wirtualny HR partner przygotowuje rozmowę oceniającą: układa z notatek pytania do rozmowy, a po decyzji urzędu
 proponuje też kierunki do IPRZ (funkcja wysokiego ryzyka). Pytania zadaje i wnioski wpisuje oceniający.
+
+Radar Dobrostanu i Doceniania: karty obserwacji liczy zwykły kod; model - po decyzji urzędu - układa do nich
+pytania otwarte (funkcja wysokiego ryzyka) i dostaje same karty, bez danych osobowych.
 """
 
 from __future__ import annotations
@@ -33,6 +36,7 @@ from asystent_ocen.przygotowanie_rozmowy import (
     FUNKCJA_PYTAN_DO_ROZMOWY,
     przygotuj_rozmowe,
 )
+from asystent_ocen.radar import FUNKCJA_RADARU, zaproponuj_pytania
 from asystent_ocen.zgodnosc import (
     POZA_ZALACZNIKIEM_III,
     WYJATEK_ART_6_UST_3,
@@ -67,6 +71,11 @@ BRAK_NOTATEK_DO_ROZMOWY = (
 BRAK_NOTATEK_DO_SUGESTII = (
     "Nie ma jeszcze notatek z okresu oceny, więc model nie ma na czym oprzeć sugestii. Dodaj notatki w panelu "
     "„Moje notatki z okresu oceny”."
+)
+
+RADAR_NIEWLACZONY = (
+    "Pytania do kart obserwacji to funkcja wysokiego ryzyka. Nie włączyła jej decyzja urzędu, więc system jej "
+    "nie uruchamia."
 )
 
 
@@ -245,4 +254,38 @@ def rozmowa_do_pokazania(wynik: dict, liczba_notatek: int) -> dict:
         "min_notatek": MIN_NOTATEK_DO_SUGESTII,
         "liczba_notatek": liczba_notatek,
         "ostrzezenia": list(rozmowa.ostrzezenia),
+    }
+
+
+def pytania_radaru_dostepne() -> bool:
+    """Funkcja wysokiego ryzyka: dostępna tylko wtedy, gdy włączyła ją decyzja urzędu."""
+    return funkcja_wlaczona(FUNKCJA_RADARU)
+
+
+def pytania_do_kart(karty) -> dict:
+    """Pytania otwarte do kart obserwacji radaru. Model dostaje wyłącznie karty: kod, tytuł i fakt z liczbami.
+
+    Zwraca słownik z kluczem „propozycja” (wynik rdzenia) albo „blad” (komunikat). Rejestr jest czytany przy
+    każdym wywołaniu, więc wycofanie decyzji urzędu działa od razu.
+    """
+    try:
+        wynik = zaproponuj_pytania(karty, model=model(), wymogi=rejestr_ai.wymogi())
+    except BladZgodnosci:
+        return {"blad": RADAR_NIEWLACZONY}
+    except BladModelu:
+        return {"blad": MODEL_NIEDOSTEPNY}
+    return {"propozycja": wynik}
+
+
+def pytania_radaru_do_pokazania(wynik: dict) -> dict:
+    """Wynik usługi `pytania_radaru` w postaci dla karty oceny: „blad” albo pytania z tytułami kart i ostrzeżenia."""
+    if "blad" in wynik:
+        return {"blad": wynik["blad"]}
+    tytuly = {karta.kod: karta.tytul for karta in wynik.get("karty", ())}
+    propozycja = wynik["propozycja"]
+    return {
+        "pytania": [
+            {"karta": tytuly.get(pozycja.kod, pozycja.kod), "pytanie": pozycja.pytanie} for pozycja in propozycja.pytania
+        ],
+        "ostrzezenia": list(propozycja.ostrzezenia),
     }

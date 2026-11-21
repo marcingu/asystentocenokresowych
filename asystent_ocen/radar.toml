@@ -1,0 +1,25 @@
+# Radar Dobrostanu i Doceniania - progi, od których powstaje karta obserwacji.
+# To ustawienia urzędu, nie przepisy: urząd ustala je sam i może je zmienić bez zmiany kodu.
+# Terminy urlopowe (30 września, 14 kolejnych dni) pochodzą z Kodeksu pracy i są w kodzie kart, nie tutaj.
+
+[dobrostan]
+# po ilu pełnych miesiącach od ostatniego wypoczynku trwającego co najmniej 14 kolejnych dni (art. 162 KP) powstaje karta
+miesiace_bez_wypoczynku_14_dni = 12
+# próg informacyjny pracy w godzinach nadliczbowych w roku kalendarzowym (godziny)
+nadgodziny_w_roku_h = 80
+# liczba spraw w toku jako procent mediany w komórce organizacyjnej
+sprawy_w_toku_procent_mediany = 150
+# czynności w EZD RP poza godzinami pracy urzędu w ostatnich 3 miesiącach
+czynnosci_poza_godzinami_3_mies = 20
+
+[docenienie]
+# udział spraw zakończonych w terminie w ostatnich 12 miesiącach (procent)
+terminowosc_procent = 95
+# udział projektów pism zaakceptowanych bez poprawek w ostatnich 12 miesiącach (procent)
+pisma_bez_poprawek_procent = 90
+# sprawy przejęte po nieobecnych współpracownikach w ostatnich 12 miesiącach
+sprawy_przejete_po_nieobecnych = 5
+# dni zastępowania nieobecnych współpracowników w ostatnich 12 miesiącach
+dni_zastepstw = 10
+# od ilu zdarzeń liczy się udział procentowy - z kilku spraw nie wyciąga się wniosków
+min_licznosc = 5

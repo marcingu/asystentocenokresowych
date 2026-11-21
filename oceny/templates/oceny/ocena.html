@@ -118,6 +118,88 @@
 </section>
 {% endif %}
 
+{% if radar and radar.stan != 'WYLACZONY' %}
+<section class="karta" aria-labelledby="n-radar">
+  <h2 id="n-radar">Radar dobrostanu i doceniania</h2>
+  {% if radar.stan == 'GOTOWY' %}
+  <p class="podpowiedz">Karty obserwacji na dzień {{ radar.stan_na|date:"d.m.Y" }}: fakty z systemu kadrowego i EZD RP, o których warto
+    porozmawiać. Bez punktów, rankingu i wniosków o zdrowiu albo emocjach. Te same karty widzą pracownik i bezpośredni przełożony.
+    Karty nie są kryterium oceny okresowej.</p>
+  {% if radar.dane_przykladowe %}<p class="komunikat komunikat-info">Pokaz: dane przykładowe zamiast połączenia z systemem kadrowym i EZD RP.</p>{% endif %}
+  {% if radar.karty %}
+  {% if radar.dobrostan %}
+  <h3>Dobrostan - do omówienia</h3>
+  <ul class="obserwacje">
+    {% for karta in radar.dobrostan %}
+    <li class="obserwacja">
+      <strong>{{ karta.tytul }}</strong>
+      <span>{{ karta.fakt }}</span>
+      <span>{{ karta.do_rozmowy }}</span>
+      <small>Źródło: {{ karta.zrodlo }}. Podstawa: {{ karta.podstawa }}</small>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if radar.docenienie %}
+  <h3>Docenienie - warto zauważyć</h3>
+  <ul class="obserwacje">
+    {% for karta in radar.docenienie %}
+    <li class="obserwacja obserwacja-docenienie">
+      <strong>{{ karta.tytul }}</strong>
+      <span>{{ karta.fakt }}</span>
+      <span>{{ karta.do_rozmowy }}</span>
+      <small>Źródło: {{ karta.zrodlo }}. Podstawa: {{ karta.podstawa }}</small>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% else %}
+  <p>Żadna liczba nie osiągnęła progu ustalonego przez urząd - radar nie ma dziś kart do pokazania.</p>
+  {% endif %}
+  <p class="podpowiedz">Karta powstaje, gdy liczba osiąga próg ustalony przez urząd (plik <code>radar.toml</code>) albo termin z Kodeksu pracy.
+    Ustalenia pracodawcy: {{ radar.podstawa }} Pracowników poinformowano {{ radar.poinformowano|date:"d.m.Y" }}
+    (art. 22[2] § 6 i 7 w zw. z art. 22[3] § 3 i 4 KP).</p>
+  {% if copilot.radar_dostepny and radar.karty %}
+  <div class="copilot">
+    <p class="podpowiedz"><span class="etykieta-ai">AI</span> Lokalny model językowy ułoży do każdej karty jedno pytanie otwarte do rozmowy.
+      Dostaje wyłącznie treść kart - bez imienia, nazwiska, notatek, ocen i szkicu. Pytania wybierasz i zadajesz Ty.</p>
+    {% include "oceny/_nota_ai.html" with nota=copilot.nota_radaru tytul="Ostrzeżenie. Funkcja wysokiego ryzyka według AI Act: pytania do kart obserwacji." zwiniete=True %}
+    <button type="submit" form="formularz-oceny" formaction="{% url 'czynnosc' ocena.pk 'pytania-radaru' %}" class="przycisk przycisk-drugi" data-czekanie="czekanie-radar">Zaproponuj pytania do kart obserwacji</button>
+    <p class="czekanie" id="czekanie-radar" role="status" data-komunikat="Model pracuje lokalnie - pytania będą gotowe za kilkanaście sekund..."></p>
+  </div>
+  {% endif %}
+  {% if radar_ai.blad %}
+  <p class="komunikat komunikat-error" id="radar-ai" role="alert">{{ radar_ai.blad }}</p>
+  {% elif radar_ai %}
+  <div class="projekt-ai" id="radar-ai" role="status">
+    <p><span class="etykieta-ai">AI</span> <strong>Pytania do kart przygotowane przez model językowy</strong> ({{ copilot.model }}) - propozycja do wyboru.</p>
+    <p class="komunikat komunikat-warning"><strong>Ostrzeżenie: treść wygenerowana przez model językowy.
+      Funkcja wysokiego ryzyka według AI Act.</strong> Pytanie może być nietrafne albo krzywdzące - zanim je zadasz, sprawdź je z kartą.
+      {% if copilot.nota_radaru.pokaz %}Pokaz na danych fikcyjnych: funkcję włączono bez analiz, które urząd wykonuje przed jej włączeniem.
+      {% else %}O użyciu tej funkcji zdecydował urząd: {{ copilot.nota_radaru.organ }}, decyzja z {{ copilot.nota_radaru.data|date:"d.m.Y" }}.{% endif %}</p>
+    {% if radar_ai.pytania %}
+    <ul class="lista-ai">
+      {% for pozycja in radar_ai.pytania %}<li>{{ pozycja.pytanie }}<small>Do karty: {{ pozycja.karta }}</small></li>{% endfor %}
+    </ul>
+    {% else %}
+    <p>Model nie podał pytań nadających się do rozmowy - przygotuj je samodzielnie.</p>
+    {% endif %}
+    {% for ostrzezenie in radar_ai.ostrzezenia %}
+    <p class="komunikat komunikat-warning"><strong>Kontrola podpowiedzi:</strong> {{ ostrzezenie }}</p>
+    {% endfor %}
+    <p class="podpowiedz">Podpowiedź powstała wyłącznie z kart obserwacji i nie jest nigdzie zapisana. Użycie tej funkcji zostaje
+      w historii czynności, a oceniany zobaczy je po sporządzeniu oceny.</p>
+  </div>
+  {% endif %}
+  {% else %}
+  <p>{{ radar.komunikat }}</p>
+  {% if radar.przeszkody %}
+  <ul>{% for blad in radar.przeszkody %}<li>{{ blad.komunikat }} <small>({{ blad.podstawa }})</small></li>{% endfor %}</ul>
+  {% endif %}
+  {% endif %}
+</section>
+{% endif %}
+
 {% if formularz_oceny %}
 <section class="karta" aria-labelledby="n-rozmowa">
   <h2 id="n-rozmowa">Przygotowanie rozmowy oceniającej</h2>

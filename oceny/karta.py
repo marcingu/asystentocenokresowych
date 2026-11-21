@@ -20,6 +20,7 @@ from asystent_ocen.wynik import NEGATYWNA, bledy_ocen_czastkowych, formatuj_sred
 from . import drukowanie
 from .formularze import nazwy_kryteriow
 from .kontekst_ezd import karta_kontekstu
+from .radar import radar_oceny
 from .models import Ocena, WniosekOTermin
 from .uprawnienia import role_uzytkownika
 from .uslugi import CZYNNOSC_NOTATKA, CZYNNOSCI_AI, CZYNNOSCI_AI_WYSOKIEGO_RYZYKA
@@ -335,6 +336,9 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
             "kierunki_dostepne": copilot.kierunki_iprz_dostepne(),
             "nota_rozmowy": copilot.nota_ai(copilot.FUNKCJA_PYTAN_DO_ROZMOWY),
             "nota_kierunkow": copilot.nota_ai(copilot.FUNKCJA_KIERUNKOW_IPRZ),
+            # radar: pytania do kart obserwacji - funkcja wysokiego ryzyka, widoczna tylko po decyzji urzędu
+            "radar_dostepny": copilot.pytania_radaru_dostepne(),
+            "nota_radaru": copilot.nota_ai(copilot.FUNKCJA_RADARU),
         }
     if oceniajacy:
         # Notatki widzi wyłącznie oceniający (decyzja zespołu z 21.11.2026): obserwacje, dodatkowe osiągnięcia
@@ -374,6 +378,8 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
     # Fakty z EZD RP są jawne dla obu stron oceny; komórka kadr ich nie potrzebuje (minimalizacja danych).
     if oceniajacy or oceniany:
         kontekst["karta_ezd"] = karta_kontekstu(ocena, dzien)
+        # Radar Dobrostanu i Doceniania: te same karty obserwacji dla pracownika i przełożonego.
+        kontekst["radar"] = radar_oceny(ocena, dzien)
     # Wynik widzą strony dopiero po sporządzeniu oceny; szkicu oceniającego nie widzi nikt poza nim.
     kontekst["widac_wynik"] = proces.wynik is not None
     # Przy sporządzonej ocenie strony widzą informację o użyciu modelu językowego; w trakcie oceniania praca

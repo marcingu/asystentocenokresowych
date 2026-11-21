@@ -14,7 +14,7 @@ Wymagany Python 3.11 lub nowszy. Wydruk PDF wymaga LibreOffice na serwerze; bez 
 
 Opcje: `./uruchom-demo.sh --od-nowa` buduje bazę pokazową od początku, `./uruchom-demo.sh 8080` zmienia port.
 
-Pokaz włącza - wyłącznie na danych fikcyjnych - dwie funkcje modelu językowego: sugestię ocen cząstkowych i propozycję kierunków do IPRZ. To funkcje wysokiego ryzyka według AI Act, po instalacji wyłączone (patrz „Założenia”). Wpisy pokazowe nie zawierają analiz, które urząd wykonuje przed włączeniem, i poza trybem demonstracyjnym niczego nie włączają. Pokaz bez tych funkcji: `ASYSTENT_DECYZJE_AI= ./uruchom-demo.sh`.
+Pokaz włącza - wyłącznie na danych fikcyjnych - trzy funkcje modelu językowego: sugestię ocen cząstkowych, propozycję kierunków do IPRZ i pytania do kart obserwacji radaru. To funkcje wysokiego ryzyka według AI Act, po instalacji wyłączone (patrz „Założenia”). Wpisy pokazowe nie zawierają analiz, które urząd wykonuje przed włączeniem, i poza trybem demonstracyjnym niczego nie włączają. Pokaz bez tych funkcji: `ASYSTENT_DECYZJE_AI= ./uruchom-demo.sh`.
 
 ## Co działa (stan na 21.11.2026)
 
@@ -37,8 +37,10 @@ Pokaz włącza - wyłącznie na danych fikcyjnych - dwie funkcje modelu językow
 - **Dziennik zdarzeń**: logowania, kody, zmiany kont, czynności administratora, odmowy dostępu, odczyty kart ocen i pobrania arkuszy. Wpisów nie da się zmienić ani usunąć, a łańcuch skrótów wykrywa ingerencję w bazie. Filtry, eksport CSV, osobny wgląd w czynności procesu oceny.
 - **Zaplecze administratora**: zakładanie i blokowanie kont, nadawanie uprawnień, odłączanie aplikacji uwierzytelniającej, wgląd w dzienniki. Konto bez logowania przez miesiąc system zawiesza sam. Administrator nie dostaje treści ocen i nie poznaje haseł.
 - **Kontekst z EZD RP**: karta faktów o sprawach ocenianego za okres oceny (liczba spraw, terminowość, akceptacje pism), jawna dla obu stron, bez punktów i rankingów. Włącza ją komórka kadr po spełnieniu warunków Kodeksu pracy. W pokazie karta działa na danych przykładowych; klient Integrator API jest w rdzeniu, przetestowany na atrapie i jeszcze niepodłączony do karty.
+- **Radar Dobrostanu i Doceniania**: na karcie oceny pracownik i jego przełożony widzą te same karty obserwacji - fakty z systemu kadrowego i EZD RP, np. urlop zaległy z terminem z Kodeksu pracy, godziny nadliczbowe, sprawy przejęte po nieobecnych, terminowość. Karty liczy zwykły kod według progów urzędu (`asystent_ocen/radar.toml`): bez punktów, rankingu i wniosków o zdrowiu albo emocjach. Radar działa po spełnieniu tych samych warunków Kodeksu pracy co karta z EZD RP. W pokazie liczby są przykładowe - prototyp nie ma połączenia z systemem kadrowym.
+- **Pytania do kart obserwacji** (po instalacji wyłączone): model układa do każdej karty jedno pytanie otwarte dla przełożonego. Dostaje same karty, bez danych osobowych; pytanie o zdrowie, emocje albo sprawy prywatne jest odrzucane. To funkcja wysokiego ryzyka - włącza ją decyzja urzędu.
 
-Testy: 725 testów rdzenia i 372 testy aplikacji.
+Testy: 749 testów rdzenia i 388 testów aplikacji.
 
 ## Założenia
 
@@ -110,4 +112,4 @@ Skrypt `uruchom-demo.sh` używa serwera deweloperskiego Django i służy do poka
 - Kodeks cywilny, art. 110-116 (terminy),
 - ustawa z dnia 4 kwietnia 2019 r. o dostępności cyfrowej stron internetowych i aplikacji mobilnych podmiotów publicznych (t.j. Dz. U. z 2023 r. poz. 1440) - wymagania WCAG 2.1,
 - ustawa z dnia 5 lipca 2018 r. o krajowym systemie cyberbezpieczeństwa (t.j. Dz. U. z 2026 r. poz. 20, 252, 815, 1003 i 1206), art. 8 i załącznik nr 4 - kontrola dostępu, uwierzytelnianie wieloskładnikowe, zawieszanie uprawnień,
-- rozporządzenie Rady Ministrów z dnia 21 maja 2024 r. w sprawie Krajowych Ram Interoperacyjności (Dz. U. poz. 773), § 19 i § 20 - bezpieczeństwo informacji i dzienniki systemów.
+- rozporządzenie Rady Ministrów z dnia 21 maja 2024 r. w sprawie Krajowych Ram Interoperacyjności, minimalnych wymagań dla rejestrów publicznych i wymiany informacji w postaci elektronicznej oraz minimalnych wymagań dla systemów teleinformatycznych (Dz. U. z 2024 r. poz. 773), § 19 i § 20 - bezpieczeństwo informacji i dzienniki systemów.

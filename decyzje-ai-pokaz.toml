@@ -17,3 +17,8 @@ decyzja_wlaczenia = "Pokaz na danych fikcyjnych: funkcję włączył prowadzący
 kod = "PROPOZYCJA_KIERUNKOW_IPRZ"
 pokaz = true
 decyzja_wlaczenia = "Pokaz na danych fikcyjnych: funkcję włączył prowadzący projekt 21.11.2026. Analiz i czynności wymaganych przed włączeniem nie wykonano, bo pokaz nie przetwarza danych pracowników. Urząd, który użyje funkcji na danych pracowników, sam decyduje o jej włączeniu - obowiązki jak przy funkcji PROPOZYCJA_OCENY."
+
+[[decyzje]]
+kod = "RADAR_PYTANIA_DO_KART"
+pokaz = true
+decyzja_wlaczenia = "Pokaz na danych fikcyjnych: funkcję włączył prowadzący projekt 21.11.2026. Analiz i czynności wymaganych przed włączeniem nie wykonano, bo pokaz nie przetwarza danych pracowników. Urząd, który użyje funkcji na danych pracowników, sam decyduje o jej włączeniu - obowiązki jak przy funkcji PROPOZYCJA_OCENY."

@@ -231,3 +231,10 @@ summary { cursor: pointer; color: var(--granat); font-weight: 600; }
 .formularz .pole-wyboru input { width: 1.15rem; height: 1.15rem; flex: none; }
 .szerokie { width: 100%; font: inherit; padding: .45rem .6rem; border: 1px solid var(--ramka-pola); border-radius: 4px; }
 .uzytkownik { flex-wrap: wrap; gap: .5rem 1rem; }
+
+/* Radar: karty obserwacji - fakt, temat do rozmowy, źródło; bez barw ostrzegawczych, bo karta niczego nie ocenia */
+.obserwacje { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .6rem; margin: .4rem 0 .9rem; padding: 0; list-style: none; }
+.obserwacja { display: grid; grid-template-columns: minmax(0, 1fr); gap: .3rem; align-content: start; border: 1px solid var(--linia); border-left: 5px solid var(--granat); border-radius: 2px; padding: .6rem .8rem; background: #f7f7f7; }
+.obserwacja-docenienie { border-left-color: var(--zielony); }
+.obserwacja strong { color: var(--granat-ciemny); }
+.obserwacja small { color: var(--szary); overflow-wrap: anywhere; }

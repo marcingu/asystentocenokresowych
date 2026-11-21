@@ -9,7 +9,7 @@ ai_act = "rozporządzenie (UE) 2024/1689 zmienione rozporządzeniem (UE) 2026/17
 rodo = "rozporządzenie (UE) 2016/679"
 ezdrp_api = "EZD RP Integrator API v2, specyfikacja OpenAPI v2.11.5 z 10.09.2026"
 ksc = "ustawa z dnia 5 lipca 2018 r. o krajowym systemie cyberbezpieczeństwa (t.j. Dz. U. z 2026 r. poz. 20, zm. poz. 252, 815, 1003 i 1206), art. 8 i załącznik nr 4"
-kri = "rozporządzenie Rady Ministrów z dnia 21 maja 2024 r. w sprawie Krajowych Ram Interoperacyjności (Dz. U. poz. 773), § 19 i § 20"
+kri = "rozporządzenie Rady Ministrów z dnia 21 maja 2024 r. w sprawie Krajowych Ram Interoperacyjności, minimalnych wymagań dla rejestrów publicznych i wymiany informacji w postaci elektronicznej oraz minimalnych wymagań dla systemów teleinformatycznych (Dz. U. z 2024 r. poz. 773), § 19 i § 20"
 
 [bezpieczenstwo]
 # zał. nr 4 część I pkt 6 ustawy o KSC: zawieszanie uprawnień w przypadku niewykonywania obowiązków co najmniej przez jeden miesiąc
@@ -100,6 +100,13 @@ kod = "PROPOZYCJA_KIERUNKOW_IPRZ"
 opis = "Propozycja kierunków rozwoju do indywidualnego programu rozwoju zawodowego na podstawie notatek oceniającego. Model nie dostaje danych z EZD RP ani szkicu oceny. Propozycję przyjmuje, zmienia albo odrzuca oceniający - wnioski do IPRZ wpisuje sam."
 klasyfikacja = "wysokie_ryzyko"
 podstawa = "Zał. III pkt 4 lit. b AI Act (ocena wydajności i zachowania). Model wskazuje potrzeby rozwojowe konkretnej osoby, czyli ocenia czynniki osobowe - to profilowanie (art. 4 pkt 4 RODO), więc wyjątki z art. 6 ust. 3 nie mają zastosowania (art. 6 ust. 3 akapit trzeci). Kwalifikacja ostrożnościowa - do potwierdzenia przez prawnika urzędu."
+wlaczona = false
+
+[[funkcje_ai]]
+kod = "RADAR_PYTANIA_DO_KART"
+opis = "Pytania otwarte dla przełożonego do kart obserwacji Radaru Dobrostanu i Doceniania. Model dostaje liczby z kart (urlopy, godziny nadliczbowe, sprawy z EZD RP) bez danych osobowych; nie stawia diagnoz i nie ocenia. Karty liczy zwykły kod - bez modelu."
+klasyfikacja = "wysokie_ryzyko"
+podstawa = "Zał. III pkt 4 lit. b AI Act (monitorowanie i ocena wydajności i zachowania osób w stosunkach pracy). Model przetwarza liczby o pracy konkretnej osoby - to profilowanie (art. 4 pkt 4 RODO), więc wyjątki z art. 6 ust. 3 nie mają zastosowania (art. 6 ust. 3 akapit trzeci). Kwalifikacja ostrożnościowa - do potwierdzenia przez prawnika urzędu."
 wlaczona = false
 
 [[funkcje_ai]]
