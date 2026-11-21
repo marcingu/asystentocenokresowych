@@ -22,6 +22,18 @@
     <input id="nazwa-{{ wpis.pk }}" name="nazwa" value="{{ wpis.nazwa }}" maxlength="160" required>
     <button type="submit" name="akcja" value="zmien" class="przycisk przycisk-drugi">Zapisz nazwę</button>
   </form>
+  <form method="post" class="formularz">{% csrf_token %}
+    <input type="hidden" name="pk" value="{{ wpis.pk }}">
+    <label for="szef-{{ wpis.pk }}">Bezpośredni przełożony pracowników - {{ wpis.nazwa }}</label>
+    <select id="szef-{{ wpis.pk }}" name="kierownik"><option value="">Nie wyznaczono</option>
+      {% for osoba in osoby %}<option value="{{ osoba.pk }}"{% if osoba.pk == wpis.kierownik_id %} selected{% endif %}>{{ osoba }} - {{ osoba.stanowisko }} (#{{ osoba.pk }})</option>{% endfor %}
+    </select>
+    <label for="nadrzedny-{{ wpis.pk }}">Przełożony kierownika, jeśli sam pracuje w tym wydziale</label>
+    <select id="nadrzedny-{{ wpis.pk }}" name="zwierzchnik"><option value="">Nie wyznaczono</option>
+      {% for osoba in osoby %}<option value="{{ osoba.pk }}"{% if osoba.pk == wpis.zwierzchnik_id %} selected{% endif %}>{{ osoba }} - {{ osoba.stanowisko }} (#{{ osoba.pk }})</option>{% endfor %}
+    </select>
+    <button type="submit" name="akcja" value="obsada" class="przycisk przycisk-drugi">Zapisz obsadę wydziału</button>
+  </form>
   <p>Liczba przypisanych pracowników: {{ wpis.liczba }}.</p>
   {% if not wpis.liczba %}<form method="post">{% csrf_token %}
     <input type="hidden" name="pk" value="{{ wpis.pk }}">

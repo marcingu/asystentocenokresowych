@@ -18,6 +18,17 @@
   listy.forEach(function (lista) { lista.addEventListener("change", odswiezListy); });
   odswiezListy();
 
+  var wydzial = document.getElementById("id_wydzial");
+  var szefKomorki = document.getElementById("szef-komorki");
+  if (wydzial && szefKomorki) {
+    function pokazSzefa() {
+      var opcja = wydzial.options[wydzial.selectedIndex];
+      szefKomorki.textContent = (opcja && opcja.dataset.szef) || "Wybierz komórkę organizacyjną.";
+    }
+    wydzial.addEventListener("change", pokazSzefa);
+    pokazSzefa();
+  }
+
   // W formularzu kadr data mianowania automatycznie wybiera rodzaj zatrudnienia.
   var mianowanie = document.getElementById("id_data_mianowania");
   var rodzaj = document.getElementById("id_rodzaj_zatrudnienia");

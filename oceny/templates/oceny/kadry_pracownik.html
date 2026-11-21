@@ -19,6 +19,9 @@
     <label for="{{ pole.id_for_label }}">{{ pole.label }}{% if pole.name == 'data_mianowania' or pole.name == 'data_stopnia' or pole.name == 'stopien_sluzbowy' %} (wymagane przy mianowaniu){% elif not pole.field.required %} (nieobowiązkowe){% endif %}</label>
     {{ pole }}
     {% endif %}
+    {% if pole.name == 'wydzial' %}
+    <p>Bezpośredni przełożony: <span id="szef-komorki" role="status">{% if osoba.przelozony %}{{ osoba.przelozony.imie_i_nazwisko }}{% else %}wynika z obsady wybranej komórki organizacyjnej.{% endif %}</span></p>
+    {% endif %}
     {% if pole.help_text %}<p class="podpowiedz" id="{{ pole.auto_id }}_helptext">{{ pole.help_text }}</p>{% endif %}
     {% if pole.errors %}<div id="{{ pole.auto_id }}_error" class="komunikat komunikat-error" role="alert">{{ pole.errors|join:" " }}</div>{% endif %}
     {% endfor %}

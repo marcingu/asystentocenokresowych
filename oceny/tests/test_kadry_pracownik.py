@@ -38,6 +38,7 @@ class Podstawa(TestCase):
     def setUp(self):
         self.z = Zespol()
         self.kadry = klient(self.z.kadry)
+        Wydzial.objects.filter(pk=self.z.ola.wydzial_id).update(kierownik=self.z.szef)
 
     def edycja(self, osoba) -> str:
         return reverse("kadry_pracownik", args=[osoba.pk])
@@ -150,10 +151,10 @@ class ZmianaTest(Podstawa):
 
         self.assertEqual(self.wpisy(dziennik.PRACOWNIK_ZMIENIONY).count(), 0)
 
-    def test_pracownik_nie_moze_byc_wlasnym_przelozonym(self):
+    def test_podane_recznie_id_nie_zmienia_szefa_z_wydzialu(self):
         odpowiedz = self.kadry.post(self.edycja(self.z.ola), dane(przelozony=str(self.z.ola.pk)))
 
-        self.assertEqual(odpowiedz.status_code, 200)
+        self.assertEqual(odpowiedz.status_code, 302)
         self.z.ola.refresh_from_db()
         self.assertEqual(self.z.ola.przelozony, self.z.szef)
 

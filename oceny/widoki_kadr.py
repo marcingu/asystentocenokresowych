@@ -16,7 +16,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
 from . import dziennik, uprawnienia
-from .models import Pracownik, rodzaje_zatrudnienia
+from .models import Pracownik, Wydzial, rodzaje_zatrudnienia
+from .podleglosc import PodlegloscZKomorki
 
 ARKUSZE = (
     ("C", "C - pozostali członkowie korpusu służby cywilnej"),
@@ -25,7 +26,18 @@ ARKUSZE = (
 )
 
 
-class FormularzPracownika(forms.ModelForm):
+class WyborWydzialu(forms.Select):
+    osoba_id = None
+
+    def create_option(self, name, value, *args, **kwargs):
+        opcja = super().create_option(name, value, *args, **kwargs)
+        if hasattr(value, "instance"):
+            szef = value.instance.szef_dla(self.osoba_id)
+            opcja["attrs"]["data-szef"] = szef.imie_i_nazwisko if szef else "Nie wyznaczono przełożonego w strukturze urzędu."
+        return opcja
+
+
+class FormularzPracownika(PodlegloscZKomorki, forms.ModelForm):
     rodzaj_zatrudnienia = forms.ChoiceField(
         label="Rodzaj zatrudnienia",
         help_text="Od rodzaju zatrudnienia zależy, czy osoba podlega ocenie okresowej (art. 81 ust. 1 u.s.c.).",
@@ -39,12 +51,12 @@ class FormularzPracownika(forms.ModelForm):
         model = Pracownik
         fields = (
             "imie", "nazwisko", "stanowisko", "opis_stanowiska", "wydzial", "rodzaj_zatrudnienia", "arkusz",
-            "przelozony", "data_zatrudnienia", "data_mianowania", "stopien_sluzbowy", "data_stopnia",
+            "data_zatrudnienia", "data_mianowania", "stopien_sluzbowy", "data_stopnia",
             "identyfikator_ezd", "klauzula_ezd_potwierdzona",
         )
         labels = {
             "imie": "Imię", "nazwisko": "Nazwisko", "stanowisko": "Stanowisko", "opis_stanowiska": "Opis stanowiska pracy",
-            "wydzial": "Komórka organizacyjna", "przelozony": "Bezpośredni przełożony",
+            "wydzial": "Komórka organizacyjna",
             "data_zatrudnienia": "Data rozpoczęcia zatrudnienia",
             "data_mianowania": "Data mianowania", "stopien_sluzbowy": "Stopień służbowy",
             "data_stopnia": "Data przyznania stopnia służbowego",
@@ -52,13 +64,13 @@ class FormularzPracownika(forms.ModelForm):
             "klauzula_ezd_potwierdzona": "Pracownikowi przekazano informację o danych z EZD RP",
         }
         help_texts = {
-            "przelozony": "Bezpośredni przełożony jest oceniającym w kolejnym cyklu oceny.",
             "data_zatrudnienia": "Od tego dnia liczy się pierwszy okres oceny.",
             "data_mianowania": "Data mianowania ustawia rodzaj zatrudnienia na mianowanie. Wypełnij wtedy także stopień służbowy i datę jego przyznania.",
             "stopien_sluzbowy": "Wypełnij dla urzędnika służby cywilnej.",
             "klauzula_ezd_potwierdzona": "Bez tej informacji system nie pokazuje danych z EZD RP (art. 22[2] § 8 w zw. z art. 22[3] § 3 i 4 KP).",
         }
         widgets = {
+            "wydzial": WyborWydzialu(),
             "opis_stanowiska": forms.Textarea(attrs={"rows": 3}),
             "data_zatrudnienia": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
             "data_mianowania": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
@@ -72,12 +84,10 @@ class FormularzPracownika(forms.ModelForm):
         self.fields["wydzial"].required = True
         if self.instance.rok_mianowania and not self.instance.data_mianowania:
             self.fields["data_mianowania"].help_text += f" Dotychczas zapisano tylko rok: {self.instance.rok_mianowania}."
-        pozostali = Pracownik.objects.all()
+        self.fields["wydzial"].queryset = Wydzial.objects.select_related("kierownik", "zwierzchnik")
+        self.fields["wydzial"].widget.osoba_id = self.instance.pk
         if self.instance.pk:
-            pozostali = pozostali.exclude(pk=self.instance.pk)
             self.initial["arkusz"] = self.instance.arkusz
-        self.fields["przelozony"].queryset = pozostali
-        self.fields["przelozony"].empty_label = "- brak -"
 
     def save(self, commit: bool = True) -> Pracownik:
         osoba = super().save(commit=False)
@@ -130,5 +140,7 @@ def pracownik(request, pk: int | None = None):
             messages.success(request, f"Zapisano dane pracownika: {zapisana.imie_i_nazwisko}.")
             if "arkusz" in formularz.changed_data and zapisana.oceny.exclude(etap="ZAKONCZONA").exists():
                 messages.info(request, "Cykl oceny, który trwa, zostaje przy dotychczasowym arkuszu - nowy arkusz obowiązuje od kolejnego cyklu oceny.")
+        if not zapisana.przelozony_id:
+            messages.info(request, "Nie wyznaczono przełożonego. Obsada wydziału jest w administracji urzędu.")
         return redirect("kadry")
     return render(request, "oceny/kadry_pracownik.html", {"formularz": formularz, "osoba": osoba})

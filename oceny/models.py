@@ -36,6 +36,13 @@ def rodzaje_zatrudnienia() -> list[tuple[str, str]]:
 
 class Wydzial(models.Model):
     nazwa = models.CharField("nazwa wydziału", max_length=160, unique=True)
+    kierownik = models.ForeignKey("Pracownik", null=True, blank=True, on_delete=models.PROTECT,
+                                  related_name="prowadzone_wydzialy", verbose_name="przełożony pracowników wydziału")
+    zwierzchnik = models.ForeignKey("Pracownik", null=True, blank=True, on_delete=models.PROTECT,
+                                   related_name="nadzorowane_wydzialy", verbose_name="przełożony kierownika")
+
+    def szef_dla(self, osoba_id):
+        return self.zwierzchnik if osoba_id and osoba_id == self.kierownik_id else self.kierownik
 
     class Meta:
         ordering = ["nazwa"]

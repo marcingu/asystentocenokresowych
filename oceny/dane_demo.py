@@ -91,6 +91,10 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
         data_stopnia=dodaj_miesiace(dzien, -40),
     )
 
+    Wydzial.objects.filter(pk=naczelnik.wydzial_id).update(kierownik=naczelnik, zwierzchnik=dyrektor)
+    Wydzial.objects.filter(pk=kadry.wydzial_id).update(kierownik=dyrektor)
+    Wydzial.objects.filter(pk=dyrektor.wydzial_id).update(kierownik=dyrektor)
+
     def podwladny(login, imie, nazwisko, stanowisko, opis, **pola) -> Pracownik:
         return _osoba(login, imie, nazwisko, stanowisko, WYDZIAL, opis, przelozony=naczelnik, **pola)
 

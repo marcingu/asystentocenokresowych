@@ -1,7 +1,10 @@
 """Panel administratora: dane kadrowe i ustalenia. Stan ocen i dziennik zdarzeń są tu tylko do odczytu -
 proces oceny zmienia się wyłącznie czynnościami w aplikacji, które przechodzą przez reguły rdzenia."""
 
+from django import forms
 from django.contrib import admin
+
+from .podleglosc import PodlegloscZKomorki
 
 from .models import Nieobecnosc, Ocena, Pracownik, Sprzeciw, UstaleniaMonitoringu, WniosekOTermin, Zdarzenie
 
@@ -17,12 +20,17 @@ class TylkoOdczyt(admin.ModelAdmin):
         return False
 
 
+class KartaAdministracyjna(PodlegloscZKomorki, forms.ModelForm):
+    pass
+
+
 @admin.register(Pracownik)
 class PracownikAdmin(admin.ModelAdmin):
     list_display = ("nazwisko", "imie", "stanowisko", "komorka", "rodzaj_zatrudnienia", "przelozony", "rola_kadry")
     list_filter = ("rodzaj_zatrudnienia", "wydzial", "rola_kadry", "rola_dyrektor")
     search_fields = ("nazwisko", "imie", "stanowisko")
-    autocomplete_fields = ("przelozony",)
+    form = KartaAdministracyjna
+    readonly_fields = ("przelozony",)
 
 
 @admin.register(Nieobecnosc)
