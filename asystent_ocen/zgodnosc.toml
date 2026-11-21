@@ -1,0 +1,92 @@
+# Wymogi zgodności dla integracji z EZD RP i funkcji AI: Kodeks pracy, RODO, AI Act.
+# Stan prawny sprawdzony 21.11.2026 (API ELI Sejmu, Urząd Publikacji UE). Zmiana prawa = zmiana wartości tutaj.
+# Uzasadnienie: dokumentacja/analiza-prawna-ai-act-kp-rodo.md
+
+[zrodla]
+kodeks_pracy = "ustawa z dnia 26 czerwca 1974 r. - Kodeks pracy (t.j. Dz. U. z 2026 r. poz. 1245; zmiana z Dz. U. z 2026 r. poz. 1046 nie dotyczy art. 22[2]-22[3])"
+sluzba_cywilna = "ustawa z dnia 21 listopada 2008 r. o służbie cywilnej (t.j. Dz. U. z 2026 r. poz. 590), art. 9 ust. 1 i art. 81"
+ai_act = "rozporządzenie (UE) 2024/1689 zmienione rozporządzeniem (UE) 2026/1744 (wersja skonsolidowana z 27.07.2026)"
+rodo = "rozporządzenie (UE) 2016/679"
+ezdrp_api = "EZD RP Integrator API v2, specyfikacja OpenAPI v2.11.5 z 10.09.2026"
+
+[monitoring]
+# art. 22[2] § 7 w zw. z art. 22[3] § 3 i 4 KP: pracodawca informuje pracowników nie później niż 2 tygodnie przed uruchomieniem
+wyprzedzenie_informacji_dni = 14
+
+[wiedza_o_pracy]
+# decyzja projektowa: przy mniejszej liczbie zdarzeń mediana i wskaźniki procentowe nie są liczone
+min_licznosc_wskaznika = 5
+
+[ezdrp]
+prefiks = "/ezdrp/integrator/v2"
+rozmiar_strony = 50
+pierwsza_strona = 1               # do potwierdzenia na instancji; kolejne strony wg pageInfo z odpowiedzi
+status_sprawy_zakonczona = 4
+
+[ezdrp.statusy_sprawy]            # opis pola `status` w POST /sprawy/_search
+"1" = "w toku"
+"2" = "odłożona"
+"3" = "zawieszona"
+"4" = "zakończona"
+"5" = "wznowiona"
+"6" = "przerejestrowana"
+"7" = "zarchiwizowana"
+"8" = "w trakcie archiwizacji"
+"11" = "przydzielone"
+"12" = "w trakcie brakowania"
+"13" = "zbrakowana"
+"14" = "przygotowane do brakowania"
+"16" = "do poprawy archiwum"
+"17" = "zamówiona do wycofania z archiwum"
+"18" = "zaakceptowana do wycofania z archiwum"
+
+[ezdrp.wyniki_akceptacji]         # TypStatusAkceptacji w GET /dokumenty/{id}/akceptacje
+"1" = "zaakceptowany"
+"2" = "odrzucony"
+"3" = "do akceptacji"
+"4" = "anulowany"
+
+# Rejestr funkcji AI. Klasyfikacje: poza_zalacznikiem_III | wyjatek_art_6_ust_3 | wysokie_ryzyko | zakazana.
+# Funkcji o klasyfikacji wysokie_ryzyko i zakazana nie da się włączyć w tej wersji systemu.
+
+[[funkcje_ai]]
+kod = "PYTANIA_O_PROCEDURE"
+opis = "Odpowiedzi na pytania o procedurę i przepisy ocen okresowych, wyłącznie na podstawie przekazanych fragmentów przepisów."
+klasyfikacja = "poza_zalacznikiem_III"
+podstawa = "Funkcja nie służy podejmowaniu decyzji o pracowniku ani monitorowaniu lub ocenie jego wydajności i zachowania (zał. III pkt 4 lit. b AI Act). Obowiązek przejrzystości: art. 50 ust. 1 AI Act."
+wlaczona = true
+
+[[funkcje_ai]]
+kod = "KOREKTA_JEZYKOWA_UZASADNIENIA"
+opis = "Korekta językowa uzasadnienia napisanego przez oceniającego, bez zmiany treści i ocen."
+klasyfikacja = "wyjatek_art_6_ust_3"
+podstawa = "Art. 6 ust. 3 lit. b AI Act - poprawa wyniku zakończonej uprzednio czynności człowieka (motyw 53: korekta językowa przygotowanych wcześniej dokumentów). Funkcja nie ocenia czynników osobowych, więc nie profiluje (art. 4 pkt 4 RODO). Dostawca dokumentuje ocenę i rejestruje system: art. 6 ust. 4 i art. 49 ust. 2 AI Act."
+wlaczona = true
+
+[[funkcje_ai]]
+kod = "PROPOZYCJA_OCENY"
+opis = "Propozycja ocen cząstkowych, poziomu lub treści uzasadnienia na podstawie danych o pracy pracownika."
+klasyfikacja = "wysokie_ryzyko"
+podstawa = "Zał. III pkt 4 lit. b AI Act (ocena wydajności i zachowania; decyzje o awansie lub rozwiązaniu stosunku pracy). Ocena efektów pracy to profilowanie (art. 4 pkt 4 RODO), więc wyjątki z art. 6 ust. 3 nie mają zastosowania (art. 6 ust. 3 akapit trzeci)."
+wlaczona = false
+
+[[funkcje_ai]]
+kod = "PODSUMOWANIE_PRACY_PRACOWNIKA"
+opis = "Generowane przez model podsumowanie lub interpretacja wskaźników pracy konkretnej osoby."
+klasyfikacja = "wysokie_ryzyko"
+podstawa = "Zał. III pkt 4 lit. b AI Act (monitorowanie lub ocena wydajności i zachowania) oraz art. 6 ust. 3 akapit trzeci AI Act (profilowanie)."
+wlaczona = false
+
+[[funkcje_ai]]
+kod = "REKOMENDACJA_KADROWA"
+opis = "Rekomendacja zwolnienia, awansu lub nagrody albo ranking pracowników."
+klasyfikacja = "wysokie_ryzyko"
+podstawa = "Zał. III pkt 4 lit. b AI Act (decyzje o awansie lub rozwiązaniu stosunku pracy) i art. 6 ust. 3 akapit trzeci AI Act; art. 22 ust. 1 RODO, gdy decyzja opiera się wyłącznie na zautomatyzowanym przetwarzaniu."
+wlaczona = false
+
+[[funkcje_ai]]
+kod = "ANALIZA_EMOCJI"
+opis = "Wnioskowanie o emocjach pracownika."
+klasyfikacja = "zakazana"
+podstawa = "Art. 5 ust. 1 lit. f AI Act - zakaz wyciągania wniosków o emocjach osoby fizycznej w miejscu pracy."
+wlaczona = false
