@@ -77,6 +77,21 @@ class DaneDemoTest(TestCase):
         self.assertIn("w pierwszym terminie", notatki("katarzyna", "egzamin")[0])
         self.assertIn("po egzaminie poprawkowym", notatki("piotr", "egzamin")[0])
 
+    def test_symulacja_pokazowa_bohaterki_wskazuje_ocene_z_faktow_ezd_rp(self):
+        """Anna: 100% spraw w terminie (9) i 92% projektów przyjętych za pierwszym razem (7) - remis rozstrzyga się
+        w dół, więc fakty wskazują na 7 w kryterium „Rzetelność”; o pozostałych sześciu kryteriach EZD RP milczy."""
+        zaladuj()
+        anna = Client()
+        anna.force_login(get_user_model().objects.get(username="anna"))
+
+        with override_settings(ASYSTENT_TRYB_DEMO=True, ASYSTENT_DZIS="2026-11-21"):
+            odpowiedz = anna.get(reverse("symulacja"))
+
+        (wskazanie,) = odpowiedz.context["ezd"]["wskazania"]
+        self.assertEqual((wskazanie["kryterium"], wskazanie["ocena"]), ("Rzetelność", 7))
+        self.assertEqual([(fakt["wartosc"], fakt["ocena"]) for fakt in wskazanie["fakty"]], [("100%", 9), ("92%", 7)])
+        self.assertEqual(len(odpowiedz.context["kryteria"]), 7)
+
     def test_ustalenia_dotyczace_danych_z_ezd_rp_sa_wpisane(self):
         zaladuj()
         ustalenia = UstaleniaMonitoringu.pobierz()

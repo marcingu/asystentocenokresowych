@@ -107,6 +107,8 @@ def karta_kontekstu(ocena: Ocena, dzien: date) -> KartaKontekstu:
             "kod": wskaznik.kod,
             "nazwa": wskaznik.nazwa,
             "wartosc": formatuj_wskaznik(wskaznik),
+            "liczba": wskaznik.wartosc,
+            "jednostka": wskaznik.jednostka,
             "licznosc": wskaznik.licznosc,
             "uwaga": wskaznik.uwaga or "",
             "szczegoly": tuple(wskaznik.szczegoly),

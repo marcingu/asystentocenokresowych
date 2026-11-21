@@ -20,6 +20,7 @@ urlpatterns = [
     path("kadry/pracownik/<int:pk>/rozpocznij/", views.kadry_rozpocznij, name="kadry_rozpocznij"),
     path("kadry/pracownik/<int:pk>/nieobecnosc/", views.kadry_nieobecnosc, name="kadry_nieobecnosc"),
     path("kadry/ezd/", views.kadry_ezd, name="kadry_ezd"),
+    path("symulacja/", views.symulacja, name="symulacja"),
     path("statystyki/", views.statystyki, name="statystyki"),
     path("przepisy/", views.przepisy, name="przepisy"),
     path("asystent/", views.asystent, name="asystent"),

@@ -32,6 +32,7 @@
   {% if user.is_authenticated %}
   <nav aria-label="Menu główne">
     <a href="{% url 'zadania' %}">Moje zadania</a>
+    {% if ja.podlega_ocenie %}<a href="{% url 'symulacja' %}">Symulacja oceny</a>{% endif %}
     {% if jestem_kadry %}<a href="{% url 'kadry' %}">Kadry</a>{% endif %}
     {% if widze_statystyki %}<a href="{% url 'statystyki' %}">Statystyki</a>{% endif %}
     <a href="{% url 'asystent' %}">Asystent AI</a>

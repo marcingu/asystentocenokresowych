@@ -1,0 +1,23 @@
+# Symulacja oceny dla pracownika: jak fakty z EZD RP przekładają się na orientacyjną ocenę cząstkową.
+#
+# To NIE są przepisy. Rozporządzenie w sprawie ocen okresowych nie wiąże ocen z liczbą spraw ani z terminowością -
+# progi ustala urząd i może je zmienić w tym pliku, bez zmiany kodu.
+# Symulacja jest przypuszczeniem widocznym tylko dla ocenianego: ocenę wystawia przełożony na podstawie wszystkich
+# informacji, które posiada, także spoza EZD RP.
+
+# Od jakiego udziału (w procentach) fakt wskazuje na daną ocenę cząstkową ze skali z § 11 ust. 1 pkt 1 rozp.
+# Poniżej najniższego progu fakt wskazuje na najniższą ocenę skali.
+[progi_procentowe]
+9 = 95
+7 = 85
+5 = 70
+3 = 50
+
+# Które fakty mówią coś o którym kryterium. Dozwolone są tylko wskaźniki procentowe:
+#   TERMINOWOSC, PROJEKTY_ZAAKCEPTOWANE_ZA_PIERWSZYM_RAZEM, ROZSTRZYGNIECIA_UTRZYMANE.
+# Liczba spraw i mediana czasu nie mają naturalnej skali, więc nie są przeliczane na oceny.
+# Kolejne powiązanie dodaje się następnym blokiem [[powiazania]] z nazwą kryterium z wykazu (załącznik nr 1 do rozp.).
+[[powiazania]]
+kryterium = "Rzetelność"
+wskazniki = ["TERMINOWOSC", "PROJEKTY_ZAAKCEPTOWANE_ZA_PIERWSZYM_RAZEM", "ROZSTRZYGNIECIA_UTRZYMANE"]
+uzasadnienie = "Opis kryterium w załączniku nr 1 do rozporządzenia: wykonywanie zadań zgodnie z obowiązującymi standardami, dbałość o jakość rezultatów i dotrzymywanie zobowiązań w wyznaczonym czasie."

@@ -134,10 +134,13 @@ class TrescKartyTest(TestCase):
         self.assertEqual(karta_kontekstu(self.ocena, DZIS), karta_kontekstu(self.ocena, DZIS))
 
     def test_karta_nie_ma_oceny_zbiorczej_ani_punktow(self):
-        """Architektura v4 i art. 22 RODO: fakty, bez automatycznej punktacji."""
+        """Architektura v4 i art. 22 RODO: fakty, bez automatycznej punktacji. `liczba` i `jednostka` to ten sam
+        fakt w postaci liczbowej - bez żadnej oceny."""
         karta = karta_kontekstu(self.ocena, DZIS)
         for wskaznik in karta.wskazniki:
-            self.assertEqual(set(wskaznik), {"kod", "nazwa", "wartosc", "licznosc", "uwaga", "szczegoly"})
+            self.assertEqual(
+                set(wskaznik), {"kod", "nazwa", "wartosc", "liczba", "jednostka", "licznosc", "uwaga", "szczegoly"}
+            )
             self.assertNotIn("pkt", wskaznik["wartosc"])
 
     def test_karte_widza_obie_strony_a_kadry_nie(self):

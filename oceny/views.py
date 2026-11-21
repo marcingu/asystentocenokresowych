@@ -29,6 +29,7 @@ from .kontekst import konta_demo
 from .kontekst_ezd import ustalenia_rdzenia
 from .lista_kadr import lista_pracownikow
 from .models import Ocena, Pracownik, Sprzeciw, UstaleniaMonitoringu
+from .symulacja import dane_symulacji
 from .zadania import zadania_uzytkownika
 
 
@@ -303,6 +304,19 @@ def _wymagaj_kadr(request) -> None:
 def kadry(request):
     _wymagaj_kadr(request)
     return render(request, "oceny/kadry.html", lista_pracownikow(request.GET, dzis()))
+
+
+# --- symulacja oceny (pracownik) ---
+
+@require_http_methods(["GET", "POST"])
+def symulacja(request):
+    """Symulacja oceny zalogowanej osoby. Adres nie przyjmuje wskazania pracownika, a wynik nie jest zapisywany -
+    POST służy tylko temu, żeby przewidywane oceny nie trafiały do adresu strony i dzienników serwera."""
+    pracownik = uprawnienia.pracownik_uzytkownika(request.user)
+    if pracownik is None:
+        raise Http404
+    wybrane = request.POST if request.method == "POST" else None
+    return render(request, "oceny/symulacja.html", dane_symulacji(pracownik, wybrane, dzis()))
 
 
 @require_POST
