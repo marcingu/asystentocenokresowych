@@ -11,6 +11,8 @@ Stan: 21.11.2026. Każda pozycja ma test albo przełącznik w `asystent_ocen/prz
 | Precyzja średniej | Jedno miejsce po przecinku, zaokrąglenie arytmetyczne; poziom ustala się z dokładnej średniej | `[interpretacje] miejsca_po_przecinku_sredniej` |
 | Notatki robocze przełożonego | Oceniany ich nie widzi | `tests/test_przebieg_procesu.py` |
 | Fikcja zapoznania z oceną | Może ją stwierdzić oceniający, oceniany i zarządzający; data stwierdzenia jest datą zapoznania | `tests/test_przebieg_procesu.py` |
+| Dostępność cyfrowa | WCAG 2.1 na poziomach A i AA (załącznik do ustawy o dostępności cyfrowej) jest wymaganiem interfejsu i wydruków | `dokumentacja/dostepnosc.md`, `oceny/tests/test_dostepnosc.py` |
+| Sugestia ocen cząstkowych przez model językowy | Model podpowiada oceniającemu oceny na podstawie jego notatek. To funkcja wysokiego ryzyka: po instalacji wyłączona, włącza ją tylko plik decyzji urzędu; pokaz włącza ją na danych fikcyjnych | `decyzje-ai-pokaz.toml`, `tests/test_zgodnosc_funkcje_ai.py` |
 
 Bez decyzji: wartość pola „do” okresu oceny przy ocenie sporządzonej po terminie (data terminu według schematu pól czy data sporządzenia według przypisu 7 do części II arkusza B). Rdzeń przyjmuje datę sporządzenia.
 
@@ -29,8 +31,11 @@ Bez decyzji: wartość pola „do” okresu oceny przy ocenie sporządzonej po t
 11. **Pouczenie o sprzeciwie.** W arkuszu A adresata wpisuje oceniający; w arkuszach B i C adresat wynika ze wzoru.
 12. **Zmiana stanowiska (art. 81 ust. 6 u.s.c., § 9 rozp.).** Terminy „najpóźniej” przesuwają się zgodnie z art. 115 KC; granica „najwcześniej” się nie przesuwa.
 13. **Druga kolejna ocena negatywna urzędnika.** Obok sygnału o rozwiązaniu stosunku pracy (art. 71 ust. 1 pkt 1 u.s.c.) system nadal pokazuje ponowną ocenę i nowe kryteria, bo przepisy ich nie wyłączają.
+14. **Sugestia ocen cząstkowych: granice.** Model dostaje tylko notatki oceniającego, bez danych z EZD RP i bez szkicu oceny. Przy mniej niż 3 notatkach nie jest pytany. Podpowiedzi nie da się przenieść do formularza. Ocena z krańca skali dostaje ostrzeżenie. Próg 3 notatek jest decyzją wykonawcy po próbach na modelu, nie przepisem.
+15. **Ślad użycia modelu.** Wpis o użyciu modelu przy pracy nad oceną widzi oceniający, a oceniany dopiero po sporządzeniu oceny - tak jak szkic.
 
 ## 3. Znane ograniczenia
 
 - Anonimizacja zastępuje nazwiska tylko w podanym brzmieniu; formy odmienione („Adama Kowalika”) zostają w tekście. NIP i numery rachunków nie są objęte. Do poprawy przed użyciem modelu spoza infrastruktury urzędu.
 - Integracja z EZD RP nie była testowana na działającej instancji (patrz `analiza-prawna-ai-act-kp-rodo.md`, pkt 5).
+- Sugestia ocen cząstkowych: w próbach model PLLuM-12B zbyt łatwo sugerował oceny z krańców skali i przypisywał notatki do niewłaściwych kryteriów (patrz `analiza-prawna-ai-act-kp-rodo.md`, pkt 6). Funkcja jest po instalacji wyłączona.

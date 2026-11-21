@@ -416,6 +416,22 @@ def test_klient_ollama_wysyla_zadanie_czatu_i_zwraca_tresc_odpowiedzi():
     assert zapis["dane"]["stream"] is False
     assert zapis["dane"]["options"]["temperature"] == 0  # odpowiedzi o prawie mają być powtarzalne
     assert zapis["dane"]["messages"] == [{"role": "user", "content": "Cześć"}]
+    assert "format" not in zapis["dane"]  # bez schematu model odpowiada zwykłym tekstem
+
+
+def test_klient_ollama_przekazuje_schemat_odpowiedzi_jako_format():
+    """Sugestia ocen wymaga odpowiedzi w ustalonej postaci - Ollama wymusza ją parametrem `format` (JSON Schema)."""
+    zapis = {}
+    schemat = {"type": "object", "properties": {"ocena": {"type": "integer", "enum": [0, 1, 3]}}, "required": ["ocena"]}
+
+    def otworz(zadanie, timeout):
+        zapis.update(dane=json.loads(zadanie.data))
+        return _OdpowiedzHttp(json.dumps({"message": {"role": "assistant", "content": '{"ocena": 3}'}}).encode())
+
+    klient = KlientOllama("http://localhost:11434", "pllum", otworz=otworz)
+
+    assert klient([{"role": "user", "content": "Oceń."}], schemat=schemat) == '{"ocena": 3}'
+    assert zapis["dane"]["format"] == schemat
 
 
 def test_klient_ollama_zamienia_blad_polaczenia_na_blad_modelu():

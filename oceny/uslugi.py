@@ -17,17 +17,21 @@ from django.db import transaction
 
 from asystent_ocen import terminy
 from asystent_ocen.bledy import Blad, BladWalidacji
-from asystent_ocen.przebieg import OBSERWACJA, BladEtapu, BladUprawnien, Etap, Rola
+from asystent_ocen.przebieg import OBSERWACJA, OSIAGNIECIE, BladEtapu, BladUprawnien, Etap, Rola
 from asystent_ocen.zgodnosc import UstaleniaMonitoringu as UstaleniaRdzenia
 from asystent_ocen.zgodnosc import bledy_uruchomienia_monitoringu
 
 from .czas import dzis
+from .formularze import nazwy_kryteriow
 from .models import Nieobecnosc, Ocena, Pracownik, Sprzeciw, UstaleniaMonitoringu, WniosekOTermin, Zdarzenie
 from .uprawnienia import czy_kadry, pracownik_uzytkownika, role_uzytkownika
 
 UWZGLEDNIENIA_SPRZECIWU = (Sprzeciw.ZMIANA, Sprzeciw.PONOWNE_SPORZADZENIE)
 CZYNNOSC_NOTATKA = "notatka"
 CZYNNOSC_PROJEKT_AI = "projekt uzasadnienia ułożony przez model językowy"
+CZYNNOSC_SUGESTIA_AI = "sugestia ocen cząstkowych przygotowana przez model językowy"
+# Ślady użycia modelu językowego przy pracy nad oceną - oceniany widzi je po sporządzeniu oceny.
+CZYNNOSCI_AI = (CZYNNOSC_PROJEKT_AI, CZYNNOSC_SUGESTIA_AI)
 
 
 # --- narzędzia wspólne ---
@@ -371,6 +375,38 @@ def projekt_uzasadnienia(ocena: Ocena, uzytkownik, *, redaktor, data: date | Non
     if projekt is not None and not projekt.odmowa:
         _zapisz_zdarzenie(
             biezaca, uzytkownik, CZYNNOSC_PROJEKT_AI, data, "tekst do decyzji oceniającego - nie jest zapisywany"
+        )
+    return wynik
+
+
+def sugestia_ocen(ocena: Ocena, uzytkownik, *, doradca, data: date | None = None) -> dict:
+    """Sugestia ocen cząstkowych przygotowana przez model językowy - funkcja wysokiego ryzyka (zał. III pkt 4
+    lit. b AI Act), którą włącza tylko decyzja urzędu.
+
+    `doradca(notatki, kryteria, osoby)` zwraca słownik z kluczem „sugestia” (wynik rdzenia) albo „blad”
+    (komunikat) - w aplikacji jest nim `copilot.sugestia_ocen`. Model dostaje wyłącznie to, co oceniający sam
+    zapisał: obserwacje, dodatkowe osiągnięcia i wynik egzaminu - oraz nazwy kryteriów arkusza. Nie dostaje
+    danych z EZD RP ani szkicu oceny. Sugestia nie jest zapisywana i nie zmienia formularza: oceny wpisuje
+    oceniający. W dzienniku zostaje ślad użycia funkcji, bez treści. Model pracuje kilkanaście sekund,
+    dlatego wywołanie nie jest objęte transakcją.
+    """
+    data = data or dzis()
+    biezaca = Ocena.objects.select_related("oceniany").get(pk=ocena.pk)
+    _wymagaj_roli(uzytkownik, biezaca, Rola.OCENIAJACY)
+    if biezaca.etap != Etap.OCENIANIE.name:
+        raise BladEtapu("Sugestię ocen cząstkowych można przygotować tylko na etapie dokonywania oceny.")
+    proces = biezaca.proces()
+    notatki = [
+        f"Dodatkowe osiągnięcie: {notatka.tresc}" if notatka.rodzaj == OSIAGNIECIE else notatka.tresc
+        for notatka in sorted(proces.notatki, key=lambda notatka: notatka.data)
+    ]
+    oceniany = biezaca.oceniany
+    wynik = doradca(notatki, nazwy_kryteriow(proces), [oceniany.imie_i_nazwisko, oceniany.imie, oceniany.nazwisko])
+    sugestia = wynik.get("sugestia")
+    if sugestia is not None and not sugestia.odmowa:
+        _zapisz_zdarzenie(
+            biezaca, uzytkownik, CZYNNOSC_SUGESTIA_AI, data,
+            "podpowiedź dla oceniającego - nie jest zapisywana; oceny wpisuje oceniający",
         )
     return wynik
 

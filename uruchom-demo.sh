@@ -34,6 +34,9 @@ export ASYSTENT_TRYB_DEMO=1
 export ASYSTENT_BAZA="$PWD/demo.sqlite3"
 export ASYSTENT_URZAD="${ASYSTENT_URZAD:-Urząd Wojewódzki w Przykładowie}"
 export ASYSTENT_MIEJSCOWOSC="${ASYSTENT_MIEJSCOWOSC:-Przykładów}"
+# Tylko w pokazie, na danych fikcyjnych: sugestia ocen cząstkowych przez model (funkcja wysokiego ryzyka według
+# AI Act) włączona plikiem decyzji. Pokaz bez tej funkcji: ASYSTENT_DECYZJE_AI= ./uruchom-demo.sh
+export ASYSTENT_DECYZJE_AI="${ASYSTENT_DECYZJE_AI-$PWD/decyzje-ai-pokaz.toml}"
 # Klucz sesji pokazu zapisany obok bazy pokazowej: ponowne uruchomienie nie wylogowuje oglądających.
 # Plik jest tylko dla właściciela i nie trafia do repozytorium. We wdrożeniu klucz podaje się zmienną środowiskową.
 if [ -z "${ASYSTENT_SECRET_KEY:-}" ]; then

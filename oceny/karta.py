@@ -22,7 +22,7 @@ from .formularze import nazwy_kryteriow
 from .kontekst_ezd import karta_kontekstu
 from .models import Ocena, WniosekOTermin
 from .uprawnienia import role_uzytkownika
-from .uslugi import CZYNNOSC_NOTATKA, CZYNNOSC_PROJEKT_AI
+from .uslugi import CZYNNOSC_NOTATKA, CZYNNOSCI_AI
 from .zadania import opis_dni_do_terminu, opisy_skutkow, zadania_oceny
 
 
@@ -271,7 +271,7 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
             zdarzenie for zdarzenie in ocena.zdarzenia.all()
             if oceniajacy or not (
                 zdarzenie.czynnosc == CZYNNOSC_NOTATKA
-                or (zdarzenie.czynnosc == CZYNNOSC_PROJEKT_AI and etap == Etap.OCENIANIE)
+                or (zdarzenie.czynnosc in CZYNNOSCI_AI and etap == Etap.OCENIANIE)
             )
         ],
         "sprzeciwy": sprzeciwy,
@@ -294,6 +294,8 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
         kontekst["mozna_zmienic_termin"] = True
         kontekst["copilot"] = {
             "dostepny": copilot.redakcja_notatek_dostepna(),
+            # funkcja wysokiego ryzyka - widoczna tylko wtedy, gdy włączyła ją decyzja urzędu
+            "sugestie_dostepne": copilot.sugestie_ocen_dostepne(),
             "liczba_notatek": len(proces.notatki),
             "model": settings.ASYSTENT_MODEL,
         }

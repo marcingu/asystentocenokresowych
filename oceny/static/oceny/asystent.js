@@ -70,7 +70,7 @@
     });
   });
 
-  // Po powrocie strony z projektem (albo komunikatem asystenta) pokazujemy od razu to miejsce.
-  var projekt = document.getElementById("projekt-ai");
-  if (projekt && projekt.scrollIntoView) { projekt.scrollIntoView({ block: "center" }); }
+  // Po powrocie strony z odpowiedzią modelu (albo komunikatem asystenta) pokazujemy od razu to miejsce.
+  var wynik = document.getElementById("projekt-ai") || document.getElementById("sugestia-ai");
+  if (wynik && wynik.scrollIntoView) { wynik.scrollIntoView({ block: "center" }); }
 })();

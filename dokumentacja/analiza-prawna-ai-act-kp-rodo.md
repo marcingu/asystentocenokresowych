@@ -10,7 +10,7 @@ Oznaczenia: **[F]** fakt sprawdzony w tekście źródła, **[W]** wniosek zespo�
 1. **Art. 22[3] Kodeksu pracy.** [F] Brzmienie przytoczone przez Marcina jest zgodne z obowiązującym. [W] Zestawianie danych o pracy konkretnej osoby z EZD RP traktujemy ostrożnie jako „inną formę monitoringu” (§ 4), więc przed uruchomieniem urząd musi spełnić wymogi z art. 22[2] § 6-8 KP.
 2. **Otwarte ryzyko.** [?] Art. 22[3] § 4 dopuszcza inne formy monitoringu tylko dla celów z § 1 (organizacja pracy, właściwe użytkowanie narzędzi pracy). „Ocena okresowa” nie jest tam wymieniona. Do rozstrzygnięcia przez prawnika (pkt 7).
 3. **AI Act.** [W] Założenie „decyzję w 100% podejmuje dyrektor, więc to nie jest system wysokiego ryzyka” nie wystarcza. O klasyfikacji decyduje przeznaczenie systemu AI, a nie to, kto podpisuje decyzję. System AI, który ocenia wydajność lub zachowanie pracownika, mieści się w załączniku III pkt 4 lit. b, a ponieważ taka ocena jest profilowaniem, wyjątek z art. 6 ust. 3 nie działa.
-4. **Projekt.** [W] AI nie ocenia. Terminy, średnie, skutki i wskaźniki z EZD RP liczy zwykły kod - to nie jest system AI. Model językowy dostaje wyłącznie zadania spoza oceny osoby: pytania o procedurę, korektę językową tekstu napisanego przez oceniającego i ułożenie jego własnych notatek w projekt uzasadnienia (kwalifikacja robocza - pkt 7.6).
+4. **Projekt.** [W] Ocenę wystawia człowiek. Terminy, średnie, skutki i wskaźniki z EZD RP liczy zwykły kod - to nie jest system AI. Po instalacji model językowy dostaje wyłącznie zadania spoza oceny osoby: pytania o procedurę, korektę językową tekstu napisanego przez oceniającego i ułożenie jego własnych notatek w projekt uzasadnienia (kwalifikacja robocza - pkt 7.6). Sugestia ocen cząstkowych z notatek oceniającego jest funkcją wysokiego ryzyka: po instalacji jest wyłączona, a włącza ją tylko decyzja urzędu (pkt 3.7 i 7.7).
 5. **Daty.** [F] Wymogi dla systemów wysokiego ryzyka z załącznika III stosuje się od 2.12.2027. Zakazy z art. 5 obowiązują od 2.02.2025.
 6. **API EZD RP.** [F] Da się pobrać daty i terminy spraw oraz historię akceptacji dokumentów. [F] Nie ma pola o wyniku odwołania - potrzebny rejestr własny urzędu albo wpis ręczny.
 
@@ -108,21 +108,33 @@ Kierunek ten potwierdza projekt wytycznych Komisji Europejskiej do art. 6 (AI Ac
 | Pytania o procedurę i przepisy (model odpowiada z przekazanych fragmentów przepisów) | tak | poza załącznikiem III; przejrzystość z art. 50 ust. 1 | włączona |
 | Korekta językowa uzasadnienia napisanego przez oceniającego | tak | wyjątek z art. 6 ust. 3 lit. b (motyw 53); dokumentacja oceny i rejestracja - art. 6 ust. 4, art. 49 ust. 2 | włączona |
 | Ułożenie notatek oceniającego w projekt uzasadnienia (HR Copilot z architektury zespołu); model nie dostaje ocen cząstkowych, wyniku ani danych z EZD RP | tak | [W] wyjątek z art. 6 ust. 3 lit. d (zadania przygotowawcze; motyw 53: przetwarzanie tekstów); bez oceny, prognozy albo osądu o osobie nie ma profilowania (projekt wytycznych, pkt 112). [?] Kwalifikacja robocza - pkt 7.6 | włączona |
-| Propozycja ocen cząstkowych, poziomu lub uzasadnienia z danych o pracy | tak | wysokie ryzyko | zablokowana |
+| Sugestia ocen cząstkowych dla oceniającego z jego własnych notatek; model nie dostaje danych z EZD RP ani szkicu oceny | tak | wysokie ryzyko (zał. III pkt 4 lit. b) | wyłączona; włącza ją tylko decyzja urzędu (pkt 3.7); w pokazie włączona na danych fikcyjnych |
 | Podsumowanie albo interpretacja wskaźników pracy osoby przez model | tak | wysokie ryzyko | zablokowana |
 | Rekomendacja zwolnienia, awansu, nagrody; ranking pracowników | tak | wysokie ryzyko; dodatkowo art. 22 RODO | zablokowana |
 | Wnioskowanie o emocjach pracownika | tak | praktyka zakazana - art. 5 ust. 1 lit. f | zablokowana |
 
-Rejestr jest w `asystent_ocen/zgodnosc.toml`. Funkcji wysokiego ryzyka i zakazanych nie da się włączyć konfiguracją.
+Rejestr jest w `asystent_ocen/zgodnosc.toml`. W rejestrze nie da się włączyć funkcji wysokiego ryzyka ani zakazanej. Funkcję wysokiego ryzyka włącza wyłącznie decyzja urzędu zapisana w osobnym pliku (pkt 3.7); funkcji zakazanej nie włącza nic.
 
 ### 3.7. Gdyby urząd chciał funkcję wysokiego ryzyka
 
 [F] Od 2.12.2027 obowiązują m.in.: nadzór człowieka (art. 14), poinformowanie przedstawicieli pracowników i pracowników przed użyciem systemu w miejscu pracy (art. 26 ust. 7), poinformowanie osób, których dotyczą decyzje (art. 26 ust. 11), ocena skutków dla praw podstawowych przez podmioty prawa publicznego przed wdrożeniem (art. 27 ust. 1), rejestracja w bazie UE (art. 49 ust. 1 i 3). [?] Pełnego katalogu wymogów z rozdziału III sekcji 2 nie analizowano.
 
+**Jak system to obsługuje (decyzje prowadzącego projekt z 21.11.2026).** Sugestia ocen cząstkowych (`PROPOZYCJA_OCENY`) to jedyna funkcja wysokiego ryzyka, która ma kod. Po instalacji jest wyłączona. Urząd włącza ją plikiem decyzji wskazanym zmienną `ASYSTENT_DECYZJE_AI` (wzór: `decyzje-ai-pokaz.toml`). Wpis podaje kod funkcji i opis decyzji: kto, kiedy i na jakich warunkach ją włączył. Plik bez opisu, z nieznanym kodem albo z funkcją zakazaną system odrzuca i niczego nie włącza. Plik jest czytany przy każdym użyciu, więc usunięcie wpisu wyłącza funkcję od razu. Pokaz włącza funkcję na danych fikcyjnych.
+
+[W] Środki wbudowane w prototyp:
+
+- model dostaje wyłącznie notatki oceniającego (obserwacje, dodatkowe osiągnięcia, wynik egzaminu) po anonimizacji - bez danych z EZD RP i bez szkicu oceny;
+- podpowiedzi nie da się przenieść do formularza - oceny wpisuje oceniający;
+- przy mniej niż 3 notatkach model nie jest pytany;
+- ocena z krańca skali, ocena spoza skali i liczba spoza notatek dają ostrzeżenie;
+- użycie funkcji zostaje w historii czynności, a oceniany widzi je po sporządzeniu oceny.
+
+[?] To nie jest wykazanie zgodności. Prototyp nie wykazuje spełnienia wymogów dla systemów wysokiego ryzyka ani obowiązków urzędu wymienionych wyżej. Użycie funkcji na danych pracowników wymaga decyzji urzędu poprzedzonej analizą prawną (pkt 7.7).
+
 ## 4. RODO
 
 - [F] Art. 4 pkt 4: profilowaniem jest także zautomatyzowana analiza efektów pracy osoby. [W] Karta faktów z EZD RP jest więc profilowaniem w rozumieniu RODO, mimo że nie jest systemem AI.
-- [F] Art. 22 ust. 1: prawo do tego, by nie podlegać decyzji opartej wyłącznie na zautomatyzowanym przetwarzaniu, która wywołuje skutki prawne. [W] Dlatego ocenę wystawia oceniający, a system nie proponuje ocen i nie liczy oceny zbiorczej ze wskaźników.
+- [F] Art. 22 ust. 1: prawo do tego, by nie podlegać decyzji opartej wyłącznie na zautomatyzowanym przetwarzaniu, która wywołuje skutki prawne. [W] Dlatego ocenę wystawia oceniający, a system nie liczy oceny zbiorczej ze wskaźników i po instalacji nie proponuje ocen. Po włączeniu sugestii ocen (pkt 3.7) decyzję nadal podejmuje oceniający. [?] Czy to wystarcza, zależy od tego, czy jego udział jest rzeczywisty - do oceny przez prawnika i IOD.
 - [F] Art. 35 ust. 3 lit. a: ocena skutków dla ochrony danych jest wymagana przy systematycznej, kompleksowej ocenie czynników osobowych opartej na zautomatyzowanym przetwarzaniu, która jest podstawą decyzji wywołujących skutki prawne. [W] Ocena okresowa wywołuje skutki prawne, więc DPIA uważamy za konieczną. [?] Do potwierdzenia z IOD urzędu.
 - [F] Art. 88: państwa członkowskie mogą przyjąć szczegółowe przepisy o przetwarzaniu danych pracowników, w tym o systemach monitorujących w miejscu pracy.
 - [W] Nieobecności: system używa dat, nie przyczyn. [?] Kwalifikacji przyczyn nieobecności jako danych o zdrowiu (art. 9 RODO) nie sprawdzano.
@@ -146,12 +158,13 @@ Ograniczenia: [F] wyszukiwanie spraw wymaga uprawnienia `Sprawy.Podglad`, a wyni
 | Decyzja | Testy |
 |---|---|
 | Integracja z EZD RP rusza dopiero po ustaleniach z art. 22[2] § 6 i po 2 tygodniach od poinformowania pracowników | `tests/test_zgodnosc_monitoring.py` |
-| Rejestr funkcji AI z klasyfikacją; wysokie ryzyko i funkcje zakazane nie do włączenia | `tests/test_zgodnosc_funkcje_ai.py` |
+| Rejestr funkcji AI z klasyfikacją; funkcji zakazanej nie włącza nic; funkcję wysokiego ryzyka włącza tylko plik decyzji urzędu z opisem decyzji | `tests/test_zgodnosc_funkcje_ai.py` |
+| Sugestia ocen cząstkowych: po instalacji wyłączona; tylko z notatek oceniającego, przy co najmniej 3 notatkach; bez przenoszenia do formularza; ostrzeżenie przy ocenie skrajnej; ślad w historii czynności | `tests/test_sugestia_ocen.py`, `oceny/tests/test_sugestia_ocen.py` |
 | Zamknięta lista jawnych wskaźników z listą spraw źródłowych; bez oceny zbiorczej i rankingu; minimalna liczność 5 | `tests/test_wskazniki_pracy.py` |
 | Klient EZD RP tylko do odczytu, bez treści pism; wynik odwołań z rejestru własnego | `tests/test_ezdrp_api.py` |
 | Projekt uzasadnienia z notatek: model dostaje wyłącznie notatki (bez ocen, szkicu, wyniku i danych z EZD RP), projekt nie jest zapisywany, a kontrola oznacza pola do uzupełnienia, liczby spoza notatek, pominięte liczby i sformułowania o ocenie | `tests/test_redakcja_notatek.py`, `oceny/tests/test_copilot.py` |
 
-Poza testami: model PLLuM-12B-chat-2512 działa lokalnie (licencja Apache-2.0 według karty modelu na Hugging Face, sprawdzone 21.11.2026), więc dane nie opuszczają urzędu. W próbach z 21.11.2026 model układał notatki wiernie co do liczb, ale potrafił zmienić sens zdania (np. podmiot) - tego kontrola automatyczna nie wykrywa, dlatego projekt zawsze sprawdza oceniający.
+Poza testami: model PLLuM-12B-chat-2512 działa lokalnie (licencja Apache-2.0 według karty modelu na Hugging Face, sprawdzone 21.11.2026), więc dane nie opuszczają urzędu. W próbach z 21.11.2026 model układał notatki wiernie co do liczb, ale potrafił zmienić sens zdania (np. podmiot) - tego kontrola automatyczna nie wykrywa, dlatego projekt zawsze sprawdza oceniający. W próbach sugestii ocen cząstkowych z 21.11.2026 ten sam model zbyt łatwo sugerował oceny z krańców skali (ocena 9 na podstawie jednej notatki) i przypisywał notatki do niewłaściwych kryteriów; dopisanie do poleceń zdania o ostrożności nie pomogło. Dlatego funkcja jest po instalacji wyłączona, a jej wynik jest podpowiedzią z ostrzeżeniami.
 
 ## 7. Do rozstrzygnięcia
 
@@ -161,6 +174,7 @@ Poza testami: model PLLuM-12B-chat-2512 działa lokalnie (licencja Apache-2.0 we
 4. Czy korekta językowa uzasadnienia na pewno mieści się w art. 6 ust. 3 lit. b i kogo obciąża rejestracja z art. 49 ust. 2.
 5. Czy urzędy prowadzą w EZD RP rejestr odwołań z wynikiem.
 6. Czy ułożenie notatek oceniającego w projekt uzasadnienia mieści się w art. 6 ust. 3 lit. d (albo b) AI Act. Model nie ocenia i nie dostaje ocen ani danych z EZD RP, ale jego tekst po akceptacji oceniającego trafia do arkusza. Do rozstrzygnięcia funkcję można wyłączyć jedną zmianą w `zgodnosc.toml`.
+7. Sugestia ocen cząstkowych (funkcja wysokiego ryzyka, pkt 3.7): czy urząd chce z niej korzystać, kto jest dostawcą, a kto podmiotem stosującym, i jakie obowiązki trzeba spełnić przed użyciem na danych pracowników. Do rozstrzygnięcia funkcja jest wyłączona poza pokazem na danych fikcyjnych.
 
 ## 8. Źródła
 

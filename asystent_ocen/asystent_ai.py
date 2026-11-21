@@ -294,8 +294,9 @@ def _tresc_odmowy(wymogi: Wymogi | None) -> str:
 
 # --- wywołanie modelu i kontrola odpowiedzi ---
 
-def _zapytaj(model: Model, wiadomosci: list[dict]) -> str:
-    odpowiedz = model(wiadomosci)
+def _zapytaj(model: Model, wiadomosci: list[dict], schemat: dict | None = None) -> str:
+    """Odpowiedź modelu. `schemat` (JSON Schema) wymusza postać odpowiedzi - przekazywany tylko, gdy jest potrzebny."""
+    odpowiedz = model(wiadomosci) if schemat is None else model(wiadomosci, schemat=schemat)
     if not isinstance(odpowiedz, str) or not odpowiedz.strip():
         raise BladModelu("Model językowy zwrócił pustą odpowiedź.")
     return odpowiedz.strip()
@@ -621,6 +622,143 @@ def zredaguj_notatki(
     )
 
 
+# --- sugestia ocen cząstkowych (funkcja wysokiego ryzyka: PROPOZYCJA_OCENY) ---
+
+ZASADY_SUGESTII = (
+    "Pomagasz przełożonemu przygotować się do wystawienia oceny okresowej. Dla każdego kryterium z listy podaj "
+    "sugerowaną ocenę cząstkową ze skali, opierając się wyłącznie na notatkach przełożonego. Jeżeli żadna notatka "
+    "nie dotyczy kryterium, wpisz ocenę 0 i napisz, że notatki nie dają podstaw - nie zgaduj i nie zakładaj, że "
+    "brak uwag oznacza dobrą albo złą pracę. W uzasadnieniu wskaż w jednym lub dwóch zdaniach, które notatki "
+    "przemawiają za oceną; nie dodawaj faktów, liczb ani dat, których w notatkach nie ma, i nie powtarzaj w nim "
+    "samej oceny. To tylko podpowiedź: ocenę wystawia przełożony, który zna także to, czego nie zapisał."
+)
+ODMOWA_ZA_MALO_NOTATEK = "za_malo_notatek"
+# Decyzja zespołu, nie przepis: jedna albo dwie notatki nie pokazują pracy z całego okresu oceny, a model potrafi
+# wyprowadzić z nich ocenę skrajną (próba na PLLuM-12B z 21.11.2026).
+MIN_NOTATEK_DO_SUGESTII = 3
+# Wartość w odpowiedzi modelu oznaczająca „notatki nie dają podstaw” - nie jest oceną i nie trafia do oceniającego.
+_BRAK_PODSTAW = 0
+
+
+@dataclass(frozen=True)
+class SugestiaKryterium:
+    kryterium: str
+    ocena: int | None  # None = notatki nie dają podstaw do sugestii
+    uzasadnienie: str = ""
+
+
+@dataclass(frozen=True)
+class SugestiaOcen:
+    """Podpowiedź modelu dla oceniającego. Oceny wpisuje i za ocenę odpowiada człowiek."""
+
+    sugestie: tuple[SugestiaKryterium, ...] = ()
+    odmowa: bool = False
+    powod: str = ""  # przy odmowie: ODMOWA_BRAK_NOTATEK albo ODMOWA_ZA_MALO_NOTATEK
+    ostrzezenia: tuple[str, ...] = ()
+
+
+def opisy_kryteriow() -> dict[str, str]:
+    """Opisy kryteriów z załącznika nr 1 do rozporządzenia (z bazy wiedzy asystenta), według nazw kryteriów."""
+    opisy = {}
+    for fragment in wczytaj_fragmenty():
+        dopasowanie = _KRYTERIUM_W_ZRODLE.search(fragment.zrodlo)
+        if dopasowanie:
+            opisy[dopasowanie.group(1)] = fragment.tresc
+    return opisy
+
+
+def _schemat_sugestii(kryteria: Sequence[str], skala: Sequence[int]) -> dict:
+    """Schemat odpowiedzi: wpis dla każdego kryterium, najpierw uzasadnienie, potem ocena ze skali albo 0."""
+    wpis = {
+        "type": "object",
+        "properties": {
+            "uzasadnienie": {"type": "string"},
+            "ocena": {"type": "integer", "enum": [_BRAK_PODSTAW, *sorted(skala)]},
+        },
+        "required": ["uzasadnienie", "ocena"],
+    }
+    return {"type": "object", "properties": {kryterium: wpis for kryterium in kryteria}, "required": list(kryteria)}
+
+
+def zasugeruj_oceny(
+    notatki: Iterable[str],
+    kryteria: Sequence[str],
+    *,
+    model: Model,
+    wymogi: Wymogi | None = None,
+    osoby: Sequence[str] = (),
+) -> SugestiaOcen:
+    """Sugestia ocen cząstkowych dla oceniającego - funkcja wysokiego ryzyka (zał. III pkt 4 lit. b AI Act).
+
+    Model dostaje wyłącznie notatki oceniającego (obserwacje, dodatkowe osiągnięcia, wynik egzaminu), bez danych
+    osobowych, oraz nazwy i opisy kryteriów ze skalą ocen. Funkcja nie przyjmuje danych z EZD RP, szkicu ani
+    wyniku oceny. Odpowiedź sprawdzają reguły: ocena spoza skali i kryterium pominięte przez model zostają bez
+    sugestii, a liczba spoza notatek w uzasadnieniu daje ostrzeżenie. Sugestia nie jest oceną - oceny wpisuje
+    oceniający.
+    Brak notatek albo mniej niż `MIN_NOTATEK_DO_SUGESTII` -> odmowa bez wywołania modelu; ocena z krańca skali
+    -> ostrzeżenie. Funkcja niewłączona decyzją urzędu -> BladZgodnosci.
+    Niedostępny model albo odpowiedź w nieznanej postaci -> BladModelu.
+    """
+    wymagaj_dozwolonej_funkcji_ai(FUNKCJA_PROPOZYCJI_OCENY, wymogi)
+    if isinstance(notatki, str):
+        notatki = [notatki]
+    tresci = [str(notatka).strip() for notatka in notatki if str(notatka or "").strip()]
+    if not tresci:
+        return SugestiaOcen(odmowa=True, powod=ODMOWA_BRAK_NOTATEK)
+    if len(tresci) < MIN_NOTATEK_DO_SUGESTII:
+        return SugestiaOcen(odmowa=True, powod=ODMOWA_ZA_MALO_NOTATEK)
+    przepisy = wczytaj_przepisy()
+    zrodlo = "\n".join(f"- {tresc}" for tresc in tresci)
+    zanonimizowane = anonimizuj(zrodlo, osoby)
+    opisy = opisy_kryteriow()
+    # Nazwy ocen cząstkowych: skala punktów i nazwy poziomów mają w rozporządzeniu tę samą kolejność.
+    skala = "; ".join(f"{punkty} - {poziom.nazwa}" for punkty, poziom in zip(sorted(przepisy.skala), przepisy.poziomy))
+    skrajne = (min(przepisy.skala), max(przepisy.skala))
+    lista = "\n".join(f"- {kryterium}: {opisy.get(kryterium, 'brak opisu')}" for kryterium in kryteria)
+    polecenie = (
+        f"Skala ocen cząstkowych: {skala}; {_BRAK_PODSTAW} - notatki nie dają podstaw.\n\n"
+        f"Kryteria:\n{lista}\n\nNotatki przełożonego:\n{zanonimizowane.tekst}"
+    )
+    if zanonimizowane.mapa:
+        polecenie += f"\n\n{_O_ZNACZNIKACH}"
+    wiadomosci = [{"role": "system", "content": ZASADY_SUGESTII}, {"role": "user", "content": polecenie}]
+    surowa = _zapytaj(model, wiadomosci, _schemat_sugestii(kryteria, przepisy.skala))
+    try:
+        odpowiedz = json.loads(surowa)
+    except ValueError as blad:
+        raise BladModelu("Model językowy zwrócił sugestię w nieznanej postaci.") from blad
+    if not isinstance(odpowiedz, dict):
+        raise BladModelu("Model językowy zwrócił sugestię w nieznanej postaci.")
+
+    sugestie: list[SugestiaKryterium] = []
+    ostrzezenia: list[str] = []
+    znane_liczby = set(_liczby(zrodlo))
+    for kryterium in kryteria:
+        wpis = odpowiedz.get(kryterium)
+        ocena = wpis.get("ocena") if isinstance(wpis, dict) else None
+        if not isinstance(wpis, dict) or type(ocena) is not int:
+            ostrzezenia.append(f"Model nie odniósł się do kryterium „{kryterium}” - sugestii brak.")
+            sugestie.append(SugestiaKryterium(kryterium, None))
+            continue
+        uzasadnienie = przywroc(str(wpis.get("uzasadnienie") or "").strip(), zanonimizowane.mapa)
+        if ocena != _BRAK_PODSTAW and ocena not in przepisy.skala:
+            ostrzezenia.append(f"Model podał dla kryterium „{kryterium}” ocenę spoza skali ({ocena}) - pominięto ją.")
+            ocena = _BRAK_PODSTAW
+        obce = [liczba for liczba in dict.fromkeys(_liczby(uzasadnienie)) if len(liczba) > 1 and liczba not in znane_liczby]
+        if obce:
+            ostrzezenia.append(
+                f"Uzasadnienie dla kryterium „{kryterium}” zawiera liczbę, której nie ma w notatkach "
+                f"({', '.join(obce)}) - sprawdź, skąd pochodzi."
+            )
+        if ocena in skrajne:
+            ostrzezenia.append(
+                f"Model zasugerował dla kryterium „{kryterium}” ocenę skrajną ({ocena}) - sprawdź, czy notatki "
+                "rzeczywiście ją uzasadniają."
+            )
+        sugestie.append(SugestiaKryterium(kryterium, None if ocena == _BRAK_PODSTAW else ocena, uzasadnienie))
+    return SugestiaOcen(sugestie=tuple(sugestie), ostrzezenia=tuple(ostrzezenia))
+
+
 class KlientOllama:
     """Model uruchomiony lokalnie przez Ollamę (np. PLLuM): `POST /api/chat` bez strumieniowania.
 
@@ -649,15 +787,17 @@ class KlientOllama:
         self.temperatura = temperatura
         self._otworz = otworz or urllib.request.urlopen
 
-    def __call__(self, wiadomosci: list[dict]) -> str:
-        dane = json.dumps(
-            {
-                "model": self.model,
-                "messages": list(wiadomosci),
-                "stream": False,
-                "options": {"temperature": self.temperatura},
-            }
-        ).encode("utf-8")
+    def __call__(self, wiadomosci: list[dict], schemat: dict | None = None) -> str:
+        zapytanie = {
+            "model": self.model,
+            "messages": list(wiadomosci),
+            "stream": False,
+            "options": {"temperature": self.temperatura},
+        }
+        if schemat is not None:
+            # JSON Schema w polu `format`: Ollama ogranicza odpowiedź modelu do tej postaci.
+            zapytanie["format"] = schemat
+        dane = json.dumps(zapytanie).encode("utf-8")
         zadanie = urllib.request.Request(
             f"{self.adres}/api/chat", data=dane, headers={"Content-Type": "application/json"}, method="POST"
         )

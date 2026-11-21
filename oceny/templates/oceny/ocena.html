@@ -146,6 +146,45 @@
     </table>
     </div>
 
+    {% if copilot.sugestie_dostepne %}
+    <div class="copilot">
+      <p class="podpowiedz"><span class="etykieta-ai">AI</span> Model językowy może zasugerować ocenę cząstkową w każdym kryterium
+        na podstawie Twoich notatek z okresu oceny (liczba notatek: {{ copilot.liczba_notatek }}). To funkcja wysokiego ryzyka według
+        AI Act, włączona decyzją urzędu. Model dostaje wyłącznie notatki - bez danych z EZD RP i bez ocen wpisanych w formularzu.
+        Podpowiedzi nie da się przenieść do formularza: oceny wpisujesz Ty.</p>
+      <button type="submit" formaction="{% url 'czynnosc' ocena.pk 'sugestia-ocen' %}" class="przycisk przycisk-drugi" data-czekanie="czekanie-sugestia">Zasugeruj oceny cząstkowe z moich notatek</button>
+      <p class="czekanie" id="czekanie-sugestia" role="status" data-komunikat="Model pracuje lokalnie - podpowiedź będzie gotowa za kilkanaście sekund..."></p>
+    </div>
+    {% endif %}
+    {% if sugestia_ai.blad %}
+    <p class="komunikat komunikat-error" id="sugestia-ai" role="alert">{{ sugestia_ai.blad }}</p>
+    {% elif sugestia_ai.odmowa %}
+    <p class="komunikat komunikat-info" id="sugestia-ai" role="status">{{ sugestia_ai.odmowa }}</p>
+    {% elif sugestia_ai.wiersze %}
+    <div class="projekt-ai" id="sugestia-ai" role="status">
+      <p><span class="etykieta-ai">AI</span> <strong>Sugestia modelu językowego</strong> ({{ copilot.model }}) - podpowiedź do sprawdzenia, nie ocena.</p>
+      <div class="przewijana" role="region" aria-labelledby="t-sugestia" tabindex="0">
+      <table class="tabela">
+        <caption class="ukryte" id="t-sugestia">Podpowiedzi modelu językowego do ocen cząstkowych</caption>
+        <thead><tr><th scope="col">Kryterium</th><th scope="col">Podpowiedź modelu</th><th scope="col">Na podstawie notatek</th></tr></thead>
+        <tbody>
+          {% for wiersz in sugestia_ai.wiersze %}
+          <tr><th scope="row">{{ wiersz.kryterium }}</th>
+            <td>{% if wiersz.ocena %}<strong>{{ wiersz.ocena }}</strong> - {{ wiersz.poziom }}{% else %}brak sugestii{% endif %}</td>
+            <td>{{ wiersz.uzasadnienie|default:"Notatki nie dają podstaw." }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% for ostrzezenie in sugestia_ai.ostrzezenia %}
+      <p class="komunikat komunikat-warning"><strong>Kontrola sugestii:</strong> {{ ostrzezenie }}</p>
+      {% endfor %}
+      <p class="podpowiedz">Podpowiedź powstała wyłącznie z Twoich notatek i nie jest nigdzie zapisana. Model nie zna rozmów, obserwacji
+        ani faktów, których nie ma w notatkach, może pominąć notatkę albo wyciągnąć z niej zbyt daleki wniosek. Oceny wpisujesz Ty
+        i Ty za nie odpowiadasz. Użycie tej funkcji zostaje w historii czynności, a oceniany zobaczy je po sporządzeniu oceny.</p>
+    </div>
+    {% endif %}
+
     {% if f.podglad %}
     <div class="podglad wynik-{{ f.podglad.ocena|lower }}" role="status">
       <strong>Wynik wyliczony z przepisów:</strong> średnia {{ f.podglad.srednia }} - {{ f.podglad.poziom }} - ocena {{ f.podglad.ocena }}

@@ -1,0 +1,11 @@
+# Decyzje urzędu o włączeniu funkcji AI wysokiego ryzyka - plik pokazu na danych fikcyjnych.
+#
+# W rejestrze funkcji AI (asystent_ocen/zgodnosc.toml) funkcje wysokiego ryzyka są wyłączone i tam nie da się ich
+# włączyć. Urząd włącza taką funkcję wyłącznie własną decyzją zapisaną w pliku takim jak ten, wskazanym zmienną
+# ASYSTENT_DECYZJE_AI. Wpis podaje kod funkcji i opis decyzji: kto, kiedy i na jakich warunkach ją włączył.
+# Bez opisu system odrzuci plik. Plik jest czytany przy każdym użyciu funkcji - usunięcie wpisu wyłącza ją od razu.
+# Włączenie nie zmienia klasyfikacji funkcji ani obowiązków urzędu z AI Act i RODO.
+
+[[decyzje]]
+kod = "PROPOZYCJA_OCENY"
+decyzja_wlaczenia = "Pokaz na danych fikcyjnych: funkcję włączył prowadzący projekt 21.11.2026. Kwalifikacja i zakres do potwierdzenia przez prawnika zespołu. To nie jest potwierdzenie spełnienia obowiązków. Urząd, który użyje funkcji na danych pracowników, odpowiada m.in. za: nadzór człowieka (art. 14 AI Act), poinformowanie pracowników i ich przedstawicieli (art. 26 ust. 7 i 11), ocenę skutków dla praw podstawowych (art. 27 ust. 1) i rejestrację (art. 49) - wymogi dla systemów wysokiego ryzyka z załącznika III stosuje się od 2.12.2027 - oraz za ocenę skutków dla ochrony danych (art. 35 RODO)."

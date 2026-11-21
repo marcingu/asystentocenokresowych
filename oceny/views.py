@@ -20,9 +20,9 @@ from asystent_ocen.bledy import Blad, BladWalidacji
 from asystent_ocen.konfiguracja import DOMYSLNY_PLIK, wczytaj_przepisy
 from asystent_ocen.przebieg import OBSERWACJA, OSIAGNIECIE, BladEtapu, BladUprawnien, Etap, Rola
 from asystent_ocen.wynik import NEGATYWNA, POZYTYWNA
-from asystent_ocen.zgodnosc import bledy_uruchomienia_monitoringu, rejestr_funkcji_ai, wczytaj_wymogi
+from asystent_ocen.zgodnosc import bledy_uruchomienia_monitoringu, wczytaj_wymogi
 
-from . import drukowanie, formularze, uprawnienia, uslugi
+from . import drukowanie, formularze, rejestr_ai, uprawnienia, uslugi
 from .czas import dzis
 from .karta import kontekst_karty
 from .kontekst import konta_demo
@@ -158,6 +158,19 @@ def _projekt_uzasadnienia(request, wybrana: Ocena):
     return render(request, "oceny/ocena.html", kontekst)
 
 
+def _sugestia_ocen(request, wybrana: Ocena):
+    """Sugestia ocen cząstkowych przez model - funkcja wysokiego ryzyka, czynna tylko po decyzji urzędu.
+    Sugestia istnieje tylko na tej stronie: nie jest zapisywana i nie zmienia formularza."""
+    from . import copilot  # import przy użyciu - moduł AI nie jest potrzebny do pracy reszty systemu
+
+    # Najpierw szkic: dane wpisane w formularzu nie przepadają, gdy strona wraca z sugestią.
+    uslugi.zapisz_szkic(wybrana, request.user, formularze.czesc_II(request.POST, wybrana.proces()))
+    wynik = uslugi.sugestia_ocen(wybrana, request.user, doradca=copilot.sugestia_ocen)
+    kontekst = kontekst_karty(wybrana, request.user, dzis())
+    kontekst["sugestia_ai"] = copilot.sugestia_do_pokazania(wynik, kontekst["copilot"]["liczba_notatek"])
+    return render(request, "oceny/ocena.html", kontekst)
+
+
 def _sporzadz_ocene(request, wybrana: Ocena):
     szkic = formularze.czesc_II(request.POST, wybrana.proces())
     # Najpierw szkic: po błędzie walidacji wpisane dane zostają w formularzu.
@@ -227,6 +240,7 @@ CZYNNOSCI = {
     "rozpatrz-wniosek": _rozpatrz_wniosek,
     "szkic": _szkic,
     "projekt-uzasadnienia": _projekt_uzasadnienia,
+    "sugestia-ocen": _sugestia_ocen,
     "sporzadz-ocene": _sporzadz_ocene,
     "potwierdz-zapoznanie": _potwierdz_zapoznanie,
     "fikcja-zapoznania": _fikcja_zapoznania,
@@ -440,11 +454,13 @@ def statystyki(request):
 
 @require_GET
 def przepisy(request):
-    """Parametry prawne systemu - dokładnie ten plik, z którego korzysta rdzeń."""
+    """Parametry prawne systemu - dokładnie ten plik, z którego korzysta rdzeń - i rejestr funkcji AI urzędu."""
+    wymogi, blad_decyzji_ai = rejestr_ai.stan()
     return render(request, "oceny/przepisy.html", {
         "plik": DOMYSLNY_PLIK.name,
         "tresc": DOMYSLNY_PLIK.read_text(encoding="utf-8"),
-        "funkcje_ai": rejestr_funkcji_ai(),
+        "funkcje_ai": wymogi.funkcje_ai,
+        "blad_decyzji_ai": blad_decyzji_ai,
     })
 
 

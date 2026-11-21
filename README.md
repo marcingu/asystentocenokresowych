@@ -14,6 +14,8 @@ Wymagany Python 3.11 lub nowszy. Wydruk PDF wymaga LibreOffice na serwerze; bez 
 
 Opcje: `./uruchom-demo.sh --od-nowa` buduje bazę pokazową od początku, `./uruchom-demo.sh 8080` zmienia port.
 
+Pokaz włącza - wyłącznie na danych fikcyjnych - sugestię ocen cząstkowych przez model językowy. To funkcja wysokiego ryzyka według AI Act, po instalacji wyłączona (patrz „Założenia”). Pokaz bez niej: `ASYSTENT_DECYZJE_AI= ./uruchom-demo.sh`.
+
 ## Co działa (stan na 21.11.2026)
 
 - **Przebieg oceny** dla arkuszy A, B i C: kryteria i termin (część I), rozmowa i ocena (część II), wniosek o stopień służbowy (część III), zapoznanie z oceną, sprzeciw i jego rozstrzygnięcie, kolejny cykl.
@@ -21,17 +23,21 @@ Opcje: `./uruchom-demo.sh --od-nowa` buduje bazę pokazową od początku, `./uru
 - **Wynik liczony z przepisów**: średnia, poziom i ocena pozytywna albo negatywna. Formularz nie pozwala zatwierdzić oceny z brakami i mówi, czego brakuje.
 - **Skutki oceny**: ponowna ocena po negatywnej, termin nowych kryteriów, stopień służbowy z mocy prawa.
 - **Role i poufność**: oceniany, oceniający, kadry, dyrektor, administrator. Notatki i szkic oceny widzi tylko oceniający. Statystyki są zbiorcze, bez nazwisk.
+- **Kadry**: lista pracowników z wyszukiwaniem, filtrami (komórka organizacyjna, status oceny) i sortowaniem.
+- **Notatki oceniającego**: obserwacje z pracy, dodatkowe osiągnięcia pracownika i - przy pierwszej ocenie - wynik egzaminu ze służby przygotowawczej.
+- **Symulacja oceny** dla pracownika: własne przewidywania i wskazanie z faktów EZD RP według jawnych progów urzędu, bez modelu AI. Strona mówi wprost, że to przypuszczenie, i niczego nie zapisuje.
 - **Wydruk arkusza** zgodnego ze wzorem z rozporządzenia (PDF do podpisu, DOCX) i terminy do kalendarza (iCalendar).
 - **Asystent AI** na lokalnym modelu PLLuM: odpowiada na pytania o procedurę, wskazuje przepisy i ostrzega, gdy odpowiedź modelu powołuje przepis albo liczbę spoza źródeł.
 - **Projekt uzasadnienia z notatek**: na karcie oceny model układa notatki przełożonego w tekst uzasadnienia. Dostaje wyłącznie notatki - bez ocen cząstkowych i danych z EZD RP. Projekt jest oznaczony jako tekst AI, nie zapisuje się sam, a do formularza przenosi go oceniający.
+- **Sugestia ocen cząstkowych** (po instalacji wyłączona): model podpowiada oceniającemu ocenę w każdym kryterium na podstawie jego notatek, a podpowiedzi nie da się przenieść do formularza. Wymaga co najmniej 3 notatek. W próbach model zbyt łatwo sugerował oceny skrajne, więc system oznacza je ostrzeżeniem.
 - **Kontekst z EZD RP**: karta faktów o sprawach ocenianego za okres oceny (liczba spraw, terminowość, akceptacje pism), jawna dla obu stron, bez punktów i rankingów. Włącza ją komórka kadr po spełnieniu warunków Kodeksu pracy. W pokazie karta działa na danych przykładowych; klient Integrator API jest w rdzeniu, przetestowany na atrapie i jeszcze niepodłączony do karty.
 
-Testy: 628 testów rdzenia i 213 testów aplikacji.
+Testy: 673 testy rdzenia i 237 testów aplikacji.
 
 ## Założenia
 
 - **Prawo w konfiguracji, nie w kodzie.** Parametry przepisów są w `asystent_ocen/przepisy.toml`, wymogi zgodności w `asystent_ocen/zgodnosc.toml`. Zmiana przepisu to zmiana pliku. Aplikacja pokazuje ten plik na stronie „Przepisy”.
-- **AI nie ocenia pracownika.** Rejestr funkcji AI w `zgodnosc.toml` dopuszcza odpowiedzi na pytania o procedurę, korektę językową i ułożenie notatek oceniającego w projekt uzasadnienia. Model nie dostaje ocen ani danych z EZD RP. Funkcji wysokiego ryzyka nie da się włączyć w tej wersji.
+- **Ocenę wystawia człowiek.** Po instalacji działają tylko funkcje AI spoza wysokiego ryzyka: odpowiedzi na pytania o procedurę, korekta językowa i ułożenie notatek oceniającego w projekt uzasadnienia. Sugestia ocen cząstkowych jest w rejestrze (`zgodnosc.toml`) funkcją wysokiego ryzyka i jest wyłączona. Urząd może ją włączyć tylko własną decyzją zapisaną w pliku wskazanym zmienną `ASYSTENT_DECYZJE_AI` (wzór: `decyzje-ai-pokaz.toml`), a usunięcie wpisu wyłącza ją od razu. Funkcji zakazanych nie włącza nic. Model nie dostaje danych z EZD RP.
 - **Dane zostają w urzędzie.** Model językowy działa lokalnie, a strony nie pobierają niczego z internetu (wymusza to polityka treści w nagłówkach odpowiedzi).
 - **Tylko licencje permisywne.** Django (BSD-3-Clause), python-docx (MIT), model PLLuM-12B-chat (Apache-2.0).
 - **Dostępność cyfrowa jest wymaganiem.** Interfejs i wydruki mają spełniać WCAG 2.1 na poziomach A i AA, czyli załącznik do ustawy o dostępności cyfrowej. Automatyczny audyt 71 stron pokazu nie wykazuje naruszeń, a strony działają przy szerokości 320 px. Testu z czytnikiem ekranu jeszcze nie było - stan kontroli i znane braki opisuje `dokumentacja/dostepnosc.md`.
@@ -69,6 +75,7 @@ Wszystko, co zależy od urzędu, ustawia się zmiennymi środowiskowymi z prefik
 | `ASYSTENT_URZAD`, `ASYSTENT_MIEJSCOWOSC` | nazwa urzędu i miejscowość na wydrukach |
 | `ASYSTENT_BAZA` | plik bazy danych |
 | `ASYSTENT_OLLAMA_ADRES`, `ASYSTENT_MODEL` | lokalny model językowy |
+| `ASYSTENT_DECYZJE_AI` | plik z decyzjami urzędu o włączeniu funkcji AI wysokiego ryzyka; bez niego żadna taka funkcja nie działa |
 | `ASYSTENT_TRYB_DEMO` | `1` włącza konta pokazowe - nigdy we wdrożeniu |
 
 Skrypt `uruchom-demo.sh` używa serwera deweloperskiego Django i służy do pokazu. We wdrożeniu aplikację uruchamia się przez serwer WSGI za serwerem pośredniczącym z HTTPS.

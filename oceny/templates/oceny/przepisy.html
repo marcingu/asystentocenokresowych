@@ -8,7 +8,13 @@
 <section class="karta" aria-labelledby="n-ai">
   <h2 id="n-ai">Rejestr funkcji AI</h2>
   <p class="podpowiedz">Każda funkcja modelu językowego ma tu klasyfikację według rozporządzenia o sztucznej inteligencji (AI Act).
-    System uruchamia tylko funkcje włączone i niezaliczone do wysokiego ryzyka. AI nie ocenia pracownika i nie proponuje ocen.</p>
+    System uruchamia tylko funkcje włączone. Po instalacji funkcje wysokiego ryzyka są wyłączone - taką funkcję uruchamia
+    wyłącznie decyzja urzędu zapisana w osobnym pliku wdrożenia, a funkcji zakazanej nie uruchamia nic. Ocenę zawsze
+    wystawia oceniający.</p>
+  {% if blad_decyzji_ai %}
+  <p class="komunikat komunikat-error" role="alert">Plik decyzji urzędu o funkcjach AI jest błędny, więc żadna funkcja wysokiego
+    ryzyka nie działa. {{ blad_decyzji_ai }}</p>
+  {% endif %}
   <div class="przewijana" role="region" aria-labelledby="t-funkcje-ai" tabindex="0">
   <table class="tabela">
     <caption class="ukryte" id="t-funkcje-ai">Funkcje modelu językowego: klasyfikacja, podstawa i stan</caption>
@@ -19,12 +25,15 @@
         <td>{{ funkcja.opis }}<small>{{ funkcja.kod }}</small></td>
         <td>{{ funkcja.klasyfikacja }}</td>
         <td>{{ funkcja.podstawa }}</td>
-        <td><span class="stan stan-{% if funkcja.wlaczona %}w_terminie{% else %}bez_terminu{% endif %}">{% if funkcja.wlaczona %}włączona{% else %}wyłączona{% endif %}</span></td>
+        <td>{% if funkcja.wlaczona and funkcja.decyzja_wlaczenia %}<span class="stan stan-pilne">włączona decyzją urzędu</span>{% elif funkcja.wlaczona %}<span class="stan stan-w_terminie">włączona</span>{% else %}<span class="stan stan-bez_terminu">wyłączona</span>{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   </div>
+  {% for funkcja in funkcje_ai %}{% if funkcja.wlaczona and funkcja.decyzja_wlaczenia %}
+  <p class="pouczenie"><strong>Decyzja o włączeniu funkcji {{ funkcja.kod }} (wysokie ryzyko):</strong> {{ funkcja.decyzja_wlaczenia }}</p>
+  {% endif %}{% endfor %}
 </section>
 
 <section class="karta" aria-labelledby="n-plik">

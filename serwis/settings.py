@@ -39,6 +39,9 @@ ASYSTENT_SOFFICE = os.environ.get("ASYSTENT_SOFFICE") or None
 ASYSTENT_OLLAMA_ADRES = os.environ.get("ASYSTENT_OLLAMA_ADRES", "http://localhost:11434")
 ASYSTENT_MODEL = os.environ.get("ASYSTENT_MODEL", "pllum-12b-chat-2512:q4_k_m")
 ASYSTENT_MODEL_LIMIT_CZASU = int(os.environ.get("ASYSTENT_MODEL_LIMIT_CZASU", "120"))
+# Plik z decyzjami urzędu o włączeniu funkcji AI wysokiego ryzyka (wzór: decyzje-ai-pokaz.toml). Bez niego
+# żadna taka funkcja nie działa - to ustawienie domyślne i nie należy go zmieniać w tym pliku.
+ASYSTENT_DECYZJE_AI = os.environ.get("ASYSTENT_DECYZJE_AI") or None
 # EZD RP (tylko odczyt). Bez adresu karta kontekstu pracuje na danych przykładowych - wyraźnie oznaczonych.
 ASYSTENT_EZD_ADRES = os.environ.get("ASYSTENT_EZD_ADRES") or None
 
