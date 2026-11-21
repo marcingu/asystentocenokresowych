@@ -45,6 +45,8 @@ POBRANIE_ARKUSZA = "POBRANIE_ARKUSZA"
 WGLAD_W_DZIENNIK = "WGLAD_W_DZIENNIK"
 EKSPORT_DZIENNIKA = "EKSPORT_DZIENNIKA"
 PANEL_ADMINISTRATORA = "PANEL_ADMINISTRATORA"
+PRACOWNIK_DODANY = "PRACOWNIK_DODANY"
+PRACOWNIK_ZMIENIONY = "PRACOWNIK_ZMIENIONY"
 
 RODZAJE = {
     LOGOWANIE_UDANE: "logowanie",
@@ -69,6 +71,8 @@ RODZAJE = {
     WGLAD_W_DZIENNIK: "wgląd w dziennik zdarzeń",
     EKSPORT_DZIENNIKA: "eksport dziennika zdarzeń",
     PANEL_ADMINISTRATORA: "czynność w panelu administratora",
+    PRACOWNIK_DODANY: "dane pracownika - dodane przez komórkę kadr",
+    PRACOWNIK_ZMIENIONY: "dane pracownika - zmienione przez komórkę kadr",
 }
 NIEUDANE_PROBY = (LOGOWANIE_NIEUDANE, KOD_BLEDNY)
 

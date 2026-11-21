@@ -4,7 +4,8 @@
 <h1>Kadry - pracownicy i oceny</h1>
 <p class="podpowiedz">Arkusz wynika ze stanowiska (§ 3 rozp.), a obowiązek oceny - z rodzaju zatrudnienia (art. 81 ust. 1 u.s.c.).
   Nieobecność dłuższa niż miesiąc przedłuża termin oceny (art. 81 ust. 7 u.s.c.) - system przelicza terminy sam.</p>
-<p><a href="{% url 'kadry_ezd' %}" class="przycisk przycisk-drugi">Dane z EZD RP - ustalenia pracodawcy</a></p>
+<p class="przyciski"><a href="{% url 'kadry_pracownik_nowy' %}" class="przycisk">Dodaj pracownika</a>
+  <a href="{% url 'kadry_ezd' %}" class="przycisk przycisk-drugi">Dane z EZD RP - ustalenia pracodawcy</a></p>
 
 <form method="get" action="{% url 'kadry' %}" class="formularz filtry" role="search" aria-label="Wyszukiwanie i filtry listy pracowników">
   <div class="wiersz-pol">
@@ -45,7 +46,7 @@
   <tbody>
     {% for wiersz in wiersze %}
     <tr>
-      <td>{{ wiersz.osoba.imie_i_nazwisko }}<small>{{ wiersz.osoba.stanowisko }}{% if wiersz.osoba.komorka %}, {{ wiersz.osoba.komorka }}{% endif %}</small></td>
+      <td><a href="{% url 'kadry_pracownik' wiersz.osoba.pk %}">{{ wiersz.osoba.imie_i_nazwisko }}</a><small>{{ wiersz.osoba.stanowisko }}{% if wiersz.osoba.komorka %}, {{ wiersz.osoba.komorka }}{% endif %}</small></td>
       <td>{{ wiersz.osoba.rodzaj_zatrudnienia_opis }}{% if wiersz.osoba.urzednik and wiersz.osoba.stopien_sluzbowy %}<small>stopień służbowy: {{ wiersz.osoba.stopien_sluzbowy }}</small>{% endif %}</td>
       <td>{% if wiersz.osoba.podlega_ocenie %}{{ wiersz.osoba.arkusz }}{% else %}-{% endif %}</td>
       <td>{{ wiersz.osoba.przelozony.imie_i_nazwisko|default:"-" }}</td>

@@ -1,0 +1,31 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}{% if osoba %}Dane pracownika{% else %}Nowy pracownik{% endif %}{% endblock %}
+{% block tresc %}
+<p class="okruszki"><a href="{% url 'kadry' %}">Kadry</a> / {% if osoba %}{{ osoba.imie_i_nazwisko }}{% else %}nowy pracownik{% endif %}</p>
+<h1>{% if osoba %}Dane pracownika{% else %}Nowy pracownik{% endif %}</h1>
+
+<section class="karta" aria-labelledby="n-dane">
+  <h2 id="n-dane">Dane i parametry oceny</h2>
+  <p class="podpowiedz">Arkusz wynika ze stanowiska (§ 3 rozp.): A - kierownik urzędu, B - osoba kierująca bezpośrednio pracownikami,
+    C - pozostali. Zmiana arkusza albo rodzaju zatrudnienia obowiązuje od kolejnego cyklu oceny - cykl, który trwa, zostaje
+    przy dotychczasowym arkuszu. Konto do logowania zakłada administrator systemu i wiąże je z pracownikiem.</p>
+  <form method="post" class="formularz">
+    {% csrf_token %}
+    {% for blad in formularz.non_field_errors %}<div class="komunikat komunikat-error" role="alert">{{ blad }}</div>{% endfor %}
+    {% for pole in formularz %}
+    {% if pole.widget_type == 'checkbox' %}
+    <div class="pole-wyboru">{{ pole }} <label for="{{ pole.id_for_label }}">{{ pole.label }}</label></div>
+    {% else %}
+    <label for="{{ pole.id_for_label }}">{{ pole.label }}{% if not pole.field.required %} (nieobowiązkowe){% endif %}</label>
+    {{ pole }}
+    {% endif %}
+    {% if pole.help_text %}<p class="podpowiedz" id="{{ pole.auto_id }}_helptext">{{ pole.help_text }}</p>{% endif %}
+    {% if pole.errors %}<div id="{{ pole.auto_id }}_error" class="komunikat komunikat-error" role="alert">{{ pole.errors|join:" " }}</div>{% endif %}
+    {% endfor %}
+    <div class="przyciski">
+      <button type="submit" class="przycisk">{% if osoba %}Zapisz zmiany{% else %}Dodaj pracownika{% endif %}</button>
+      <a href="{% url 'kadry' %}" class="przycisk przycisk-drugi">Anuluj</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
