@@ -1,0 +1,20 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Logowanie{% endblock %}
+{% block tresc %}
+<section class="karta waska">
+  <h1>Logowanie</h1>
+  {% if form.errors %}<p class="komunikat komunikat-error" role="alert">Nieprawidłowy login lub hasło.</p>{% endif %}
+  <form method="post" class="formularz">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <label for="id_username">Login</label>
+    <input type="text" name="username" id="id_username" autocomplete="username" required autofocus>
+    <label for="id_password">Hasło</label>
+    <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+    <button type="submit" class="przycisk">Zaloguj</button>
+  </form>
+  {% if tryb_demo %}
+  <p class="podpowiedz">W trybie demonstracyjnym wybierz osobę z paska u góry strony - konta pokazowe nie mają haseł.</p>
+  {% endif %}
+</section>
+{% endblock %}

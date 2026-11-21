@@ -1,0 +1,9 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Nie znaleziono{% endblock %}
+{% block tresc %}
+<section class="karta waska">
+  <h1>Nie znaleziono strony</h1>
+  <p>Taka strona nie istnieje albo nie masz do niej dostępu.</p>
+  <p><a href="{% url 'zadania' %}">Wróć do moich zadań</a></p>
+</section>
+{% endblock %}

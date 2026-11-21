@@ -1,0 +1,59 @@
+{% load static %}<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block tytul %}Moje zadania{% endblock %} - Asystent ocen okresowych</title>
+<link rel="stylesheet" href="{% static 'oceny/styl.css' %}">
+</head>
+<body>
+<a class="pomin" href="#tresc">Przejdź do treści</a>
+{% if tryb_demo %}
+<aside class="demo" aria-label="Tryb demonstracyjny">
+  <strong>Tryb demonstracyjny - dane fikcyjne.</strong>
+  {% if konta_demo %}
+  <form method="post" action="{% url 'demo_zaloguj' %}" class="demo-konta">
+    {% csrf_token %}
+    <span>Wejdź jako:</span>
+    {% for konto in konta_demo %}
+    <button type="submit" name="login" value="{{ konto.username }}"{% if konto == user %} class="aktywne" aria-current="true"{% endif %}>
+      {{ konto.pracownik.imie_i_nazwisko|default:konto.username }}<small>{{ konto.pracownik.opis_roli }}</small>
+    </button>
+    {% endfor %}
+  </form>
+  {% endif %}
+</aside>
+{% endif %}
+<header class="naglowek">
+  <div class="naglowek-marka">
+    <a href="{% url 'zadania' %}" class="marka">Asystent ocen okresowych</a>
+    <span class="urzad">{{ urzad }}</span>
+  </div>
+  {% if user.is_authenticated %}
+  <nav aria-label="Menu główne">
+    <a href="{% url 'zadania' %}">Moje zadania</a>
+    {% if jestem_kadry %}<a href="{% url 'kadry' %}">Kadry</a>{% endif %}
+    {% if widze_statystyki %}<a href="{% url 'statystyki' %}">Statystyki</a>{% endif %}
+    <a href="{% url 'asystent' %}">Asystent AI</a>
+    <a href="{% url 'przepisy' %}">Przepisy</a>
+  </nav>
+  <div class="uzytkownik">
+    <span>{% if ja %}{{ ja.imie_i_nazwisko }}<small>{{ ja.stanowisko }}</small>{% else %}{{ user.get_username }}{% endif %}</span>
+    <form method="post" action="{% url 'wylogowanie' %}">{% csrf_token %}<button type="submit" class="przycisk-link">Wyloguj</button></form>
+  </div>
+  {% endif %}
+</header>
+<main id="tresc">
+  {% if data_symulowana %}<p class="komunikat komunikat-info">Data w systemie jest ustawiona ręcznie: {{ dzis|date:"d.m.Y" }}.</p>{% endif %}
+  {% for message in messages %}
+  <p class="komunikat komunikat-{{ message.level_tag }}" role="{% if message.level_tag == 'error' %}alert{% else %}status{% endif %}">{{ message }}</p>
+  {% endfor %}
+  {% block tresc %}{% endblock %}
+</main>
+<footer class="stopka">
+  <p>Cyfrowy asystent ocen okresowych w służbie cywilnej. Terminy, wyniki i komunikaty wynikają z przepisów zapisanych
+    w konfiguracji systemu - <a href="{% url 'przepisy' %}">zobacz przepisy</a>. Dziś: {{ dzis|date:"d.m.Y" }}.</p>
+</footer>
+<script src="{% static 'oceny/asystent.js' %}" defer></script>
+</body>
+</html>

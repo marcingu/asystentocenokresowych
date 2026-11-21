@@ -1,0 +1,31 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Przepisy{% endblock %}
+{% block tresc %}
+<h1>Przepisy, na których działa system</h1>
+<p>Wszystkie terminy, skale, progi i wykazy kryteriów są zapisane w jednym pliku konfiguracji: <code>{{ plik }}</code>.
+  Zmiana przepisów oznacza zmianę tego pliku - bez zmiany programu. Przy każdej wartości podana jest podstawa prawna.</p>
+
+<section class="karta" aria-labelledby="n-ai">
+  <h2 id="n-ai">Rejestr funkcji AI</h2>
+  <p class="podpowiedz">Każda funkcja modelu językowego ma tu klasyfikację według rozporządzenia o sztucznej inteligencji (AI Act).
+    System uruchamia tylko funkcje włączone i niezaliczone do wysokiego ryzyka. AI nie ocenia pracownika i nie proponuje ocen.</p>
+  <table class="tabela">
+    <thead><tr><th scope="col">Funkcja</th><th scope="col">Klasyfikacja</th><th scope="col">Podstawa</th><th scope="col">Stan</th></tr></thead>
+    <tbody>
+      {% for funkcja in funkcje_ai %}
+      <tr>
+        <td>{{ funkcja.opis }}<small>{{ funkcja.kod }}</small></td>
+        <td>{{ funkcja.klasyfikacja }}</td>
+        <td>{{ funkcja.podstawa }}</td>
+        <td><span class="stan stan-{% if funkcja.wlaczona %}w_terminie{% else %}bez_terminu{% endif %}">{% if funkcja.wlaczona %}włączona{% else %}wyłączona{% endif %}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="karta" aria-labelledby="n-plik">
+  <h2 id="n-plik">Plik {{ plik }}</h2>
+  <pre class="konfiguracja" tabindex="0">{{ tresc }}</pre>
+</section>
+{% endblock %}

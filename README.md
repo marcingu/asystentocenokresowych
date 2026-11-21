@@ -2,44 +2,84 @@
 
 Prototyp na HackNation 2026 (wyzwanie KPRM). System prowadzi ocenę okresową w służbie cywilnej od wyznaczenia kryteriów do skutków oceny: pilnuje terminów, sprawdza arkusz i przy każdym komunikacie podaje podstawę prawną.
 
-## Stan na 21.11.2026
+## Pokaz w jednym poleceniu
 
-Gotowe i pokryte testami (476 testów):
+```
+./uruchom-demo.sh
+```
 
-- rdzeń reguł: terminy liczone według Kodeksu cywilnego, arkusze A/B/C i kryteria, wynik oceny, skutki oceny, stopnie służbowe, sprzeciw, przebieg procesu z rolami,
-- integracja z EZD RP (tylko odczyt) i wskaźniki pracy liczone jawnymi regułami,
-- wymogi Kodeksu pracy, RODO i AI Act zapisane jako konfiguracja, z bramkami w kodzie,
-- wydruk arkusza oceny do DOCX i eksport terminów do kalendarza (iCalendar).
+Skrypt tworzy środowisko Pythona, instaluje dwie zależności, zakłada bazę z fikcyjnym urzędem i uruchamia serwer pod adresem `http://127.0.0.1:8000/`. Na pasku u góry strony wybiera się osobę (oceniany, przełożony, kadry, dyrektor) - konta pokazowe nie mają haseł i działają tylko w trybie demonstracyjnym.
 
-W budowie: aplikacja webowa (Django), asystent AI na lokalnym modelu PLLuM, instalacja jednym poleceniem.
+Wymagany Python 3.11 lub nowszy. Wydruk PDF wymaga LibreOffice na serwerze; bez niego arkusz pobiera się jako DOCX. Asystent AI wymaga lokalnego modelu w Ollamie; bez niego reszta systemu działa bez zmian.
+
+Opcje: `./uruchom-demo.sh --od-nowa` buduje bazę pokazową od początku, `./uruchom-demo.sh 8080` zmienia port.
+
+## Co działa (stan na 21.11.2026)
+
+- **Przebieg oceny** dla arkuszy A, B i C: kryteria i termin (część I), rozmowa i ocena (część II), wniosek o stopień służbowy (część III), zapoznanie z oceną, sprzeciw i jego rozstrzygnięcie, kolejny cykl.
+- **Moje zadania**: każda osoba widzi, co ma zrobić, do kiedy i na jakiej podstawie prawnej. Terminy liczone według Kodeksu cywilnego, z dniami wolnymi i przedłużeniem o długie nieobecności.
+- **Wynik liczony z przepisów**: średnia, poziom i ocena pozytywna albo negatywna. Formularz nie pozwala zatwierdzić oceny z brakami i mówi, czego brakuje.
+- **Skutki oceny**: ponowna ocena po negatywnej, termin nowych kryteriów, stopień służbowy z mocy prawa.
+- **Role i poufność**: oceniany, oceniający, kadry, dyrektor, administrator. Notatki i szkic oceny widzi tylko oceniający. Statystyki są zbiorcze, bez nazwisk.
+- **Wydruk arkusza** zgodnego ze wzorem z rozporządzenia (PDF do podpisu, DOCX) i terminy do kalendarza (iCalendar).
+- **Asystent AI** na lokalnym modelu PLLuM: odpowiada na pytania o procedurę, wskazuje przepisy i ostrzega, gdy odpowiedź modelu powołuje przepis albo liczbę spoza źródeł.
+- **Integracja z EZD RP** (tylko odczyt) i wskaźniki pracy liczone jawnymi regułami - w rdzeniu; karta w aplikacji w budowie.
+
+Testy: 556 testów rdzenia i 116 testów aplikacji.
 
 ## Założenia
 
-- **Prawo w konfiguracji, nie w kodzie.** Parametry przepisów są w `asystent_ocen/przepisy.toml`, wymogi zgodności w `asystent_ocen/zgodnosc.toml`. Zmiana przepisu to zmiana pliku.
+- **Prawo w konfiguracji, nie w kodzie.** Parametry przepisów są w `asystent_ocen/przepisy.toml`, wymogi zgodności w `asystent_ocen/zgodnosc.toml`. Zmiana przepisu to zmiana pliku. Aplikacja pokazuje ten plik na stronie „Przepisy”.
 - **AI nie ocenia pracownika.** Rejestr funkcji AI w `zgodnosc.toml` dopuszcza odpowiedzi na pytania o procedurę i korektę językową. Funkcji wysokiego ryzyka nie da się włączyć w tej wersji.
-- **Dane zostają w urzędzie.** Model językowy ma działać lokalnie, a aplikacja nie pobiera zasobów z internetu.
-- **Tylko licencje permisywne.** Django (BSD-3-Clause), python-docx (MIT).
+- **Dane zostają w urzędzie.** Model językowy działa lokalnie, a strony nie pobierają niczego z internetu (wymusza to polityka treści w nagłówkach odpowiedzi).
+- **Tylko licencje permisywne.** Django (BSD-3-Clause), python-docx (MIT), model PLLuM-12B-chat (Apache-2.0).
 
 ## Testy
 
 ```
 python3 -m venv .venv
-.venv/bin/pip install "django>=5.2,<5.3" "python-docx>=1.2" pytest python-dateutil
+.venv/bin/pip install -r requirements.txt pytest python-dateutil
 .venv/bin/python -m pytest -q
+.venv/bin/python manage.py test oceny
 ```
 
-Wymagany Python 3.11 lub nowszy. Reguły oparte na interpretacji albo decyzji zespołu (35 testów) mają znaczniki `interpretacja` i `decyzja_projektowa`:
+Reguły oparte na interpretacji albo decyzji zespołu mają znaczniki `interpretacja` i `decyzja_projektowa`:
 
 ```
 .venv/bin/python -m pytest --collect-only -q -m "interpretacja or decyzja_projektowa"
 ```
+
+Sprawdzian modelu językowego (test odbiorczy przy wymianie modelu):
+
+```
+.venv/bin/python -m asystent_ocen.sprawdzian_modelu --adres http://localhost:11434 --model pllum-12b-chat-2512:q4_k_m
+```
+
+## Ustawienia wdrożenia
+
+Wszystko, co zależy od urzędu, ustawia się zmiennymi środowiskowymi z prefiksem `ASYSTENT_` (pełna lista w `serwis/settings.py`). Najważniejsze:
+
+| Zmienna | Znaczenie |
+|---|---|
+| `ASYSTENT_SECRET_KEY` | klucz sesji - wymagany we wdrożeniu |
+| `ASYSTENT_ALLOWED_HOSTS` | nazwy, pod którymi działa serwis |
+| `ASYSTENT_HTTPS` | `1`, gdy serwis działa przez HTTPS (ciasteczka tylko po HTTPS, HSTS) |
+| `ASYSTENT_URZAD`, `ASYSTENT_MIEJSCOWOSC` | nazwa urzędu i miejscowość na wydrukach |
+| `ASYSTENT_BAZA` | plik bazy danych |
+| `ASYSTENT_OLLAMA_ADRES`, `ASYSTENT_MODEL` | lokalny model językowy |
+| `ASYSTENT_TRYB_DEMO` | `1` włącza konta pokazowe - nigdy we wdrożeniu |
+
+Skrypt `uruchom-demo.sh` używa serwera deweloperskiego Django i służy do pokazu. We wdrożeniu aplikację uruchamia się przez serwer WSGI za serwerem pośredniczącym z HTTPS.
 
 ## Układ repozytorium
 
 | Katalog | Zawartość |
 |---|---|
 | `asystent_ocen/` | rdzeń reguł - czyste funkcje, bez bazy danych i interfejsu |
+| `oceny/` | aplikacja webowa: modele, usługi, widoki, szablony, dane pokazowe |
+| `serwis/` | ustawienia projektu Django |
 | `tests/` | testy rdzenia; każdy cytuje przepis albo wymaganie |
+| `oceny/tests/` | testy aplikacji: role, dostęp, przebieg oceny przez przeglądarkę |
 | `dokumentacja/` | architektura, decyzje i interpretacje, analiza prawna |
 
 ## Podstawy prawne

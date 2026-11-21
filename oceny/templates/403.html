@@ -1,0 +1,9 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Brak dostępu{% endblock %}
+{% block tresc %}
+<section class="karta waska">
+  <h1>Brak dostępu</h1>
+  <p>{{ exception|default:"Nie masz uprawnień do tej czynności." }}</p>
+  <p><a href="{% url 'zadania' %}">Wróć do moich zadań</a></p>
+</section>
+{% endblock %}

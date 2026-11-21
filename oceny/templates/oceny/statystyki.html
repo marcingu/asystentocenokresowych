@@ -1,0 +1,58 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Statystyki{% endblock %}
+{% block tresc %}
+<h1>Statystyki ocen okresowych</h1>
+<p class="podpowiedz">Dane zbiorcze, bez nazwisk. Komórek, w których jest mniej niż {{ prog }} ocen, nie pokazuje się osobno -
+  tak, żeby z liczb nie dało się odczytać oceny konkretnej osoby.</p>
+
+<div class="kafle">
+  <div class="kafel"><strong>{{ liczba_ocen }}</strong><span>ocen w systemie</span></div>
+  <div class="kafel"><strong>{{ liczba_w_toku }}</strong><span>w toku</span></div>
+  <div class="kafel{% if po_terminie %} kafel-alarm{% endif %}"><strong>{{ po_terminie }}</strong><span>po terminie</span></div>
+  <div class="kafel"><strong>{{ liczba_zakonczonych }}</strong><span>zakończonych</span></div>
+  <div class="kafel"><strong>{{ pozytywne }}</strong><span>pozytywnych</span></div>
+  <div class="kafel"><strong>{{ negatywne }}</strong><span>negatywnych</span></div>
+  <div class="kafel"><strong>{{ sprzeciwy }}</strong><span>sprzeciwów ({{ sprzeciwy_w_toku }} w toku)</span></div>
+  <div class="kafel"><strong>{{ nie_podlega }}</strong><span>osób nie podlega ocenie</span></div>
+</div>
+
+<div class="uklad uklad-rowny">
+<section class="karta" aria-labelledby="n-etapy">
+  <h2 id="n-etapy">Oceny według etapu</h2>
+  <table class="tabela">
+    <thead><tr><th scope="col">Etap</th><th scope="col">Liczba ocen</th></tr></thead>
+    <tbody>{% for etap in etapy %}<tr><td>{{ etap.nazwa }}</td><td>{{ etap.liczba }}</td></tr>{% endfor %}</tbody>
+  </table>
+</section>
+
+<section class="karta" aria-labelledby="n-poziomy">
+  <h2 id="n-poziomy">Zakończone oceny według poziomu</h2>
+  <table class="tabela">
+    <thead><tr><th scope="col">Poziom</th><th scope="col">Liczba</th><th scope="col"><span class="ukryte">Wykres</span></th></tr></thead>
+    <tbody>
+      {% for poziom in poziomy %}
+      <tr><td>{{ poziom.nazwa }}</td><td>{{ poziom.liczba }}</td>
+        <td><meter min="0" max="100" value="{{ poziom.procent }}" aria-label="{{ poziom.nazwa }}: {{ poziom.liczba }}"></meter></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+</div>
+
+<section class="karta" aria-labelledby="n-komorki">
+  <h2 id="n-komorki">Komórki organizacyjne</h2>
+  {% if komorki %}
+  <table class="tabela">
+    <thead><tr><th scope="col">Komórka</th><th scope="col">Oceny</th><th scope="col">W toku</th><th scope="col">Po terminie</th></tr></thead>
+    <tbody>
+      {% for komorka in komorki %}
+      <tr><td>{{ komorka.nazwa }}</td><td>{{ komorka.liczba }}</td><td>{{ komorka.w_toku }}</td><td>{{ komorka.po_terminie }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="pusto">Żadna komórka nie osiąga progu {{ prog }} ocen.</p>
+  {% endif %}
+  {% if pominiete_komorki %}<p class="podpowiedz">Pominięte komórki poniżej progu: {{ pominiete_komorki }}.</p>{% endif %}
+</section>
+{% endblock %}

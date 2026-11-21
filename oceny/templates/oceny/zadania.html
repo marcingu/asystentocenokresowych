@@ -1,0 +1,52 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Moje zadania{% endblock %}
+{% block tresc %}
+<h1>Moje zadania</h1>
+{% if zadania %}
+<table class="tabela">
+  <caption class="ukryte">Zadania w procesie ocen okresowych, od najbliższego terminu</caption>
+  <thead>
+    <tr><th scope="col">Stan</th><th scope="col">Zadanie</th><th scope="col">Oceniany</th><th scope="col">Termin</th><th scope="col">Podstawa prawna</th></tr>
+  </thead>
+  <tbody>
+    {% for zadanie in zadania %}
+    <tr>
+      <td><span class="stan stan-{{ zadanie.stan }}">{{ zadanie.stan_opis }}</span></td>
+      <td><a href="{% url 'ocena' zadanie.ocena.pk %}">{{ zadanie.tytul }}</a><small>w roli: {{ zadanie.rola.value }}</small></td>
+      <td>{{ zadanie.ocena.oceniany.imie_i_nazwisko }}<small>{{ zadanie.ocena.oceniany.stanowisko }}</small></td>
+      <td>{% if zadanie.termin %}{{ zadanie.termin|date:"d.m.Y" }}{% else %}niezwłocznie{% endif %}</td>
+      <td>{{ zadanie.podstawa }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="pusto">Nie masz teraz żadnych zadań w procesie ocen okresowych.</p>
+{% endif %}
+
+{% if moje_oceny %}
+<h2>Moje oceny</h2>
+<ul class="lista-ocen">
+  {% for ocena in moje_oceny %}
+  <li>
+    <a href="{% url 'ocena' ocena.pk %}">Okres od {{ ocena.poczatek_cyklu|date:"d.m.Y" }}</a>
+    <span class="etap">{{ ocena.etap_opis }}</span>
+    {% if ocena.wynik %}<span class="wynik wynik-{{ ocena.wynik|lower }}">{{ ocena.wynik|lower }}, {{ ocena.poziom }}</span>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if oceny_podwladnych %}
+<h2>Oceny, które prowadzę</h2>
+<ul class="lista-ocen">
+  {% for ocena in oceny_podwladnych %}
+  <li>
+    <a href="{% url 'ocena' ocena.pk %}">{{ ocena.oceniany.imie_i_nazwisko }}</a>
+    <span class="etap">{{ ocena.etap_opis }}</span>
+    {% if ocena.termin %}<span>termin oceny: {{ ocena.termin|date:"d.m.Y" }}</span>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

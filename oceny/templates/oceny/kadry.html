@@ -1,0 +1,50 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Kadry{% endblock %}
+{% block tresc %}
+<h1>Kadry - pracownicy i oceny</h1>
+<p class="podpowiedz">Arkusz wynika ze stanowiska (§ 3 rozp.), a obowiązek oceny - z rodzaju zatrudnienia (art. 81 ust. 1 u.s.c.).
+  Nieobecność dłuższa niż miesiąc przedłuża termin oceny (art. 81 ust. 7 u.s.c.) - system przelicza terminy sam.</p>
+<table class="tabela">
+  <caption class="ukryte">Pracownicy urzędu i stan ich ocen okresowych</caption>
+  <thead>
+    <tr><th scope="col">Pracownik</th><th scope="col">Zatrudnienie</th><th scope="col">Arkusz</th><th scope="col">Oceniający</th>
+      <th scope="col">Ocena okresowa</th><th scope="col">Nieobecności</th></tr>
+  </thead>
+  <tbody>
+    {% for wiersz in wiersze %}
+    <tr>
+      <td>{{ wiersz.osoba.imie_i_nazwisko }}<small>{{ wiersz.osoba.stanowisko }}{% if wiersz.osoba.komorka %}, {{ wiersz.osoba.komorka }}{% endif %}</small></td>
+      <td>{{ wiersz.osoba.rodzaj_zatrudnienia_opis }}{% if wiersz.osoba.urzednik and wiersz.osoba.stopien_sluzbowy %}<small>stopień służbowy: {{ wiersz.osoba.stopien_sluzbowy }}</small>{% endif %}</td>
+      <td>{% if wiersz.osoba.podlega_ocenie %}{{ wiersz.osoba.arkusz }}{% else %}-{% endif %}</td>
+      <td>{{ wiersz.osoba.przelozony.imie_i_nazwisko|default:"-" }}</td>
+      <td>
+        {% if not wiersz.osoba.podlega_ocenie %}
+        <span class="stan stan-bez_terminu">nie podlega ocenie</span><small>art. 81 ust. 1 u.s.c.</small>
+        {% elif wiersz.ocena %}
+        <a href="{% url 'ocena' wiersz.ocena.pk %}">{{ wiersz.ocena.etap_opis }}</a>
+        {% if wiersz.ocena.wynik %}<small>{{ wiersz.ocena.wynik|lower }}, {{ wiersz.ocena.poziom }}</small>{% endif %}
+        {% if wiersz.ocena.termin and not wiersz.ocena.zakonczona %}<small>termin: {{ wiersz.ocena.termin|date:"d.m.Y" }}{% if wiersz.po_terminie %} <span class="stan stan-po_terminie">po terminie</span>{% endif %}</small>{% endif %}
+        {% elif wiersz.mozna_rozpoczac %}
+        <form method="post" action="{% url 'kadry_rozpocznij' wiersz.osoba.pk %}">{% csrf_token %}
+          <button type="submit" class="przycisk przycisk-maly">Rozpocznij cykl oceny</button></form>
+        {% endif %}
+      </td>
+      <td>
+        {% for nieobecnosc in wiersz.nieobecnosci %}<small>{{ nieobecnosc.od|date:"d.m.Y" }} - {{ nieobecnosc.do|date:"d.m.Y" }}</small>{% endfor %}
+        {% if wiersz.osoba.podlega_ocenie %}
+        <details>
+          <summary>Dodaj</summary>
+          <form method="post" action="{% url 'kadry_nieobecnosc' wiersz.osoba.pk %}" class="formularz formularz-maly">{% csrf_token %}
+            <label for="od_{{ wiersz.osoba.pk }}">Od</label><input type="date" name="od" id="od_{{ wiersz.osoba.pk }}" required>
+            <label for="do_{{ wiersz.osoba.pk }}">Do</label><input type="date" name="do" id="do_{{ wiersz.osoba.pk }}" required>
+            <button type="submit" class="przycisk przycisk-maly">Zapisz</button>
+          </form>
+          <p class="podpowiedz">Bez przyczyny nieobecności - system jej nie potrzebuje.</p>
+        </details>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Asystent AI{% endblock %}
+{% block tresc %}
+<h1>Asystent AI - pytania o procedurę oceny</h1>
+<p class="podpowiedz">Odpowiada lokalny model językowy ({{ model }}) uruchomiony w infrastrukturze urzędu - pytanie nie wychodzi
+  poza serwer. Asystent wyjaśnia procedurę na podstawie przepisów. Nie ocenia pracowników i nie proponuje ocen.</p>
+
+<section class="karta">
+  <form method="post" class="formularz czeka-na-model">
+    {% csrf_token %}
+    <label for="pytanie">Twoje pytanie</label>
+    <textarea name="pytanie" id="pytanie" rows="3" maxlength="1000" required>{{ pytanie }}</textarea>
+    <button type="submit" class="przycisk">Zapytaj</button>
+    <p class="czekanie" hidden role="status">Model pracuje lokalnie - odpowiedź może potrwać kilkadziesiąt sekund...</p>
+  </form>
+  <p class="podpowiedz">Przykłady:</p>
+  <ul class="przyklady">{% for przyklad in przyklady %}<li><button type="button" class="przycisk-link wstaw-pytanie">{{ przyklad }}</button></li>{% endfor %}</ul>
+</section>
+
+{% if blad %}<p class="komunikat komunikat-error" role="alert">{{ blad }}</p>{% endif %}
+
+{% if odpowiedz %}
+<section class="karta" aria-labelledby="n-odpowiedz">
+  <h2 id="n-odpowiedz">Odpowiedź</h2>
+  {% if odpowiedz.odmowa %}<p class="komunikat komunikat-warning">{{ odpowiedz.tekst }}</p>
+  {% else %}<p class="tekst">{{ odpowiedz.tekst }}</p>{% endif %}
+  {% for ostrzezenie in odpowiedz.ostrzezenia %}
+  <p class="komunikat komunikat-warning"><strong>Kontrola odpowiedzi:</strong> {{ ostrzezenie }}</p>
+  {% endfor %}
+  {% if odpowiedz.zrodla %}
+  <h3>Przepisy, na których oparto odpowiedź</h3>
+  <ul>{% for zrodlo in odpowiedz.zrodla %}<li>{{ zrodlo }}</li>{% endfor %}</ul>
+  <p class="podpowiedz">Odpowiedź modelu nie jest źródłem prawa - wiążące jest brzmienie wskazanych przepisów.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

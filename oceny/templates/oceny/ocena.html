@@ -1,0 +1,425 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Ocena: {{ ocena.oceniany.imie_i_nazwisko }}{% endblock %}
+{% block tresc %}
+<p class="okruszki"><a href="{% url 'zadania' %}">Moje zadania</a> / ocena okresowa</p>
+<header class="naglowek-oceny">
+  <div>
+    <h1>{{ ocena.oceniany.imie_i_nazwisko }}</h1>
+    <p>{{ ocena.oceniany.stanowisko }}{% if ocena.oceniany.komorka %}, {{ ocena.oceniany.komorka }}{% endif %}</p>
+  </div>
+  <dl class="metryczka">
+    <div><dt>Arkusz</dt><dd>{{ proces.arkusz }}</dd></div>
+    <div><dt>Status</dt><dd>{% if proces.urzednik %}urzędnik służby cywilnej{% else %}pracownik służby cywilnej{% endif %}</dd></div>
+    <div><dt>Oceniający</dt><dd>{{ ocena.oceniajacy.imie_i_nazwisko }}</dd></div>
+    <div><dt>Okres oceny od</dt><dd>{{ proces.poczatek_cyklu|date:"d.m.Y" }}</dd></div>
+    <div><dt>Twoja rola</dt><dd>{{ role_opis|default:"-" }}</dd></div>
+  </dl>
+</header>
+
+<ol class="os-etapow" aria-label="Etapy oceny">
+  {% for krok in os_etapow %}
+  <li class="krok krok-{{ krok.stan }}"{% if krok.stan == 'biezacy' %} aria-current="step"{% endif %}>{{ krok.nazwa }}</li>
+  {% endfor %}
+</ol>
+
+{% if ocena.po_negatywnej %}
+<p class="komunikat komunikat-warning">Ponowna ocena po ocenie negatywnej (art. 81 ust. 9 u.s.c.). Kryteria wyznacza się
+  w ciągu 7 dni od sporządzenia negatywnej oceny (§ 7 pkt 2 rozp.).</p>
+{% endif %}
+
+{% if zadania %}
+<section class="karta do-zrobienia" aria-labelledby="n-zadania">
+  <h2 id="n-zadania">Do zrobienia</h2>
+  <ul>
+    {% for zadanie in zadania %}
+    <li><span class="stan stan-{{ zadanie.stan }}">{{ zadanie.stan_opis }}</span> <strong>{{ zadanie.tytul }}</strong>
+      {% if zadanie.termin %}- do {{ zadanie.termin|date:"d.m.Y" }}{% endif %} <small>({{ zadanie.podstawa }})</small></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<div class="uklad">
+<div class="kolumna-glowna">
+
+<section class="karta" aria-labelledby="n-czesc1">
+  <h2 id="n-czesc1">Część I - kryteria i termin oceny</h2>
+  <h3>Kryteria obowiązkowe</h3>
+  <ul class="kryteria">{% for nazwa in kryteria_obowiazkowe %}<li>{{ nazwa }}</li>{% endfor %}</ul>
+
+  {% if formularz_kryteriow %}
+  <form method="post" action="{% url 'czynnosc' ocena.pk 'wyznacz-kryteria' %}" class="formularz">
+    {% csrf_token %}
+    <fieldset>
+      <legend>Kryteria dodatkowe (najwyżej {{ formularz_kryteriow.limit }}, bez powtórzeń - § 5 ust. 2 rozp.)</legend>
+      {% for pole in formularz_kryteriow.pola %}
+      <label for="kryterium_{{ pole.numer }}">Kryterium dodatkowe {{ pole.numer }}</label>
+      <select name="kryterium_{{ pole.numer }}" id="kryterium_{{ pole.numer }}" class="kryterium">
+        <option value="">- nie wybrano -</option>
+        {% for opcja in pole.opcje %}<option value="{{ opcja }}"{% if opcja == pole.wybrane %} selected{% endif %}>{{ opcja }}</option>{% endfor %}
+      </select>
+      {% endfor %}
+    </fieldset>
+    <label for="termin">Termin sporządzenia oceny</label>
+    <input type="date" name="termin" id="termin" value="{{ formularz_kryteriow.termin }}" required>
+    <p class="podpowiedz">Termin ustawowy: {{ formularz_kryteriow.termin_ustawowy|date:"d.m.Y" }}. Możesz wyznaczyć termin wcześniejszy.</p>
+    <button type="submit" class="przycisk">{% if kryteria_wyznaczone %}Popraw i przekaż ponownie{% else %}Przekaż ocenianemu do potwierdzenia{% endif %}</button>
+  </form>
+  {% else %}
+  <h3>Kryteria dodatkowe</h3>
+  {% if kryteria_dodatkowe %}
+  <ul class="kryteria">{% for nazwa in kryteria_dodatkowe %}<li>{{ nazwa }}</li>{% endfor %}</ul>
+  {% elif kryteria_wyznaczone %}<p>Nie wybrano kryteriów dodatkowych.</p>
+  {% else %}<p class="pusto">Oceniający jeszcze nie wyznaczył kryteriów.</p>{% endif %}
+  {% endif %}
+
+  {% if kryteria_wyznaczone and proces.termin %}
+  <p>Termin sporządzenia oceny: <strong>{{ proces.termin|date:"d.m.Y" }}</strong>
+    {% if proces.data_zapoznania_z_kryteriami %}<span class="stan stan-wykonane">kryteria potwierdzone {{ proces.data_zapoznania_z_kryteriami|date:"d.m.Y" }} - pola zablokowane</span>{% endif %}</p>
+  {% endif %}
+
+  {% if mozna_potwierdzic_kryteria %}
+  <form method="post" action="{% url 'czynnosc' ocena.pk 'potwierdz-kryteria' %}" class="potwierdzenie">
+    {% csrf_token %}
+    <p>Potwierdzam, że przeprowadzono ze mną rozmowę, w której omówiono główne obowiązki i kryteria oceny,
+      oraz że zapoznałam(-łem) się z kryteriami i terminem sporządzenia oceny (§ 6 ust. 2 rozp.).</p>
+    <button type="submit" class="przycisk" data-potwierdz="Potwierdzić zapoznanie z kryteriami? Po potwierdzeniu kryteria i termin zostają zablokowane.">Potwierdzam</button>
+  </form>
+  {% endif %}
+</section>
+
+{% if formularz_oceny %}
+<section class="karta" aria-labelledby="n-czesc2">
+  <h2 id="n-czesc2">Część II - rozmowa oceniająca i ocena</h2>
+  {% with f=formularz_oceny %}
+  <form method="post" action="{% url 'czynnosc' ocena.pk 'sporzadz-ocene' %}" class="formularz" id="formularz-oceny">
+    {% csrf_token %}
+    <label for="data_rozmowy">Dzień rozmowy oceniającej</label>
+    <input type="date" name="data_rozmowy" id="data_rozmowy" value="{{ f.data_rozmowy }}" max="{{ f.dzis }}">
+
+    <table class="tabela tabela-ocen">
+      <caption>Oceny cząstkowe (§ 11 ust. 1 pkt 1 rozp.)</caption>
+      <thead>
+        <tr><th scope="col">Kryterium</th>{% for pozycja in f.skala %}<th scope="col">{{ pozycja.punkty }}<small>{{ pozycja.nazwa }}</small></th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        {% for wiersz in f.wiersze %}
+        <tr>
+          <th scope="row">{{ wiersz.nazwa }}<small>{% if wiersz.obowiazkowe %}obowiązkowe{% else %}dodatkowe{% endif %}</small></th>
+          {% for pozycja in f.skala %}
+          <td><input type="radio" name="ocena_{{ wiersz.numer }}" value="{{ pozycja.punkty }}" aria-label="{{ wiersz.nazwa }}: {{ pozycja.punkty }} - {{ pozycja.nazwa }}"{% if wiersz.wartosc == pozycja.punkty %} checked{% endif %}></td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if f.podglad %}
+    <div class="podglad wynik-{{ f.podglad.ocena|lower }}" role="status">
+      <strong>Wynik wyliczony z przepisów:</strong> średnia {{ f.podglad.srednia }} - {{ f.podglad.poziom }} - ocena {{ f.podglad.ocena }}
+    </div>
+    {% elif f.ma_szkic %}
+    <p class="podpowiedz">Wynik pojawi się po wpisaniu wszystkich ocen cząstkowych i zapisaniu szkicu.</p>
+    {% endif %}
+
+    <label for="uzasadnienie">Uzasadnienie przyznanej oceny {% if f.podglad and f.podglad.ocena == 'NEGATYWNA' %}<span class="wymagane">wymagane przy ocenie negatywnej (§ 11 ust. 3 rozp.)</span>{% endif %}</label>
+    <textarea name="uzasadnienie" id="uzasadnienie" rows="5">{{ f.uzasadnienie }}</textarea>
+
+    <label for="wnioski_iprz">Wnioski dotyczące indywidualnego programu rozwoju zawodowego <span class="wymagane">wymagane</span></label>
+    <textarea name="wnioski_iprz" id="wnioski_iprz" rows="4">{{ f.wnioski_iprz }}</textarea>
+
+    {% if f.urzednik %}
+    <fieldset>
+      <legend>Poprzednia ocena okresowa urzędnika</legend>
+      {% if f.poprzednia_z_systemu %}
+      <p>{{ f.poprzednia_z_systemu.ocena|lower }}, {{ f.poprzednia_z_systemu.poziom }}{% if f.poprzednia_z_systemu.data_sporzadzenia %}, sporządzona {{ f.poprzednia_z_systemu.data_sporzadzenia|date:"d.m.Y" }}{% endif %} <small>(z historii w systemie)</small></p>
+      {% else %}
+      <p class="podpowiedz">W systemie nie ma poprzedniej oceny - przepisz ją z papierowego arkusza albo zostaw puste.</p>
+      <div class="wiersz-pol">
+        <div><label for="poprzednia_ocena">Ocena</label>
+          <select name="poprzednia_ocena" id="poprzednia_ocena">
+            <option value="">- brak -</option>
+            <option value="POZYTYWNA"{% if f.poprzednia_reczna.ocena == 'POZYTYWNA' %} selected{% endif %}>pozytywna</option>
+            <option value="NEGATYWNA"{% if f.poprzednia_reczna.ocena == 'NEGATYWNA' %} selected{% endif %}>negatywna</option>
+          </select></div>
+        <div><label for="poprzednia_poziom">Poziom</label>
+          <select name="poprzednia_poziom" id="poprzednia_poziom">
+            <option value="">- brak -</option>
+            {% for poziom in f.poziomy %}<option value="{{ poziom }}"{% if poziom == f.poprzednia_reczna.poziom %} selected{% endif %}>{{ poziom }}</option>{% endfor %}
+          </select></div>
+        <div><label for="poprzednia_data">Data sporządzenia</label>
+          <input type="date" name="poprzednia_data" id="poprzednia_data" value="{{ f.poprzednia_reczna.data }}"></div>
+      </div>
+      {% endif %}
+    </fieldset>
+
+    <fieldset>
+      <legend>Część III - wniosek o przyznanie kolejnego stopnia służbowego (art. 89 ust. 1 u.s.c.)</legend>
+      <p>Posiadany stopień służbowy: <strong>{{ f.posiadany_stopien|default:"brak danych" }}</strong></p>
+      {% if f.komunikat_stopnia %}
+      <p class="komunikat komunikat-warning">{{ f.komunikat_stopnia }}</p>
+      <input type="hidden" name="wniosek_o_stopien" value="NIE">
+      {% elif f.wniosek_zablokowany %}
+      <p class="podpowiedz">Przy ocenie negatywnej wniosku o stopień nie składa się - pole ustawione na „NIE”.</p>
+      <input type="hidden" name="wniosek_o_stopien" value="NIE">
+      {% else %}
+      <label for="wniosek_o_stopien">Czy dołączasz wniosek o przyznanie {{ f.kolejny_stopien }} stopnia służbowego?</label>
+      <select name="wniosek_o_stopien" id="wniosek_o_stopien">
+        <option value="NIE"{% if f.wniosek_o_stopien != 'TAK' %} selected{% endif %}>NIE</option>
+        <option value="TAK"{% if f.wniosek_o_stopien == 'TAK' %} selected{% endif %}>TAK</option>
+      </select>
+      <label for="umotywowanie_wniosku">Umotywowanie wniosku <span class="wymagane">wymagane, gdy „TAK”</span></label>
+      <textarea name="umotywowanie_wniosku" id="umotywowanie_wniosku" rows="3">{{ f.umotywowanie_wniosku }}</textarea>
+      {% endif %}
+    </fieldset>
+    {% else %}
+    <p class="podpowiedz">Wniosek o stopień służbowy: NIE DOTYCZY (oceniany nie jest urzędnikiem służby cywilnej).</p>
+    {% endif %}
+
+    {% if f.braki %}
+    <div class="braki" role="status">
+      <strong>Do uzupełnienia przed zatwierdzeniem:</strong>
+      <ul>{% for blad in f.braki %}<li>{{ blad.komunikat|default:blad.kod }}{% if blad.podstawa %} <small>({{ blad.podstawa }})</small>{% endif %}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    <div class="przyciski">
+      <button type="submit" formaction="{% url 'czynnosc' ocena.pk 'szkic' %}" class="przycisk przycisk-drugi">Zapisz szkic i przelicz wynik</button>
+      <button type="submit" class="przycisk" data-potwierdz="Zatwierdzić ocenę? Po zatwierdzeniu ocena trafi do ocenianego i nie będzie można jej zmienić.">Zatwierdź ocenę</button>
+    </div>
+    <p class="podpowiedz">Szkic widzisz tylko Ty. Średnią, poziom i wynik oceny wylicza system na podstawie rozporządzenia.</p>
+  </form>
+  {% endwith %}
+</section>
+{% endif %}
+
+{% if widac_wynik %}
+<section class="karta" aria-labelledby="n-wynik">
+  <h2 id="n-wynik">Część II - ocena okresowa</h2>
+  <div class="podglad wynik-{{ wynik.ocena|lower }}">
+    <strong>Ocena {{ wynik.ocena }}</strong> - {{ wynik.poziom }} (średnia {{ wynik.srednia }})
+  </div>
+  <p>Rozmowa oceniająca: {{ proces.data_rozmowy_oceniajacej|date:"d.m.Y" }}. Ocena sporządzona: {{ proces.data_sporzadzenia|date:"d.m.Y" }}.</p>
+  <table class="tabela">
+    <caption class="ukryte">Oceny cząstkowe</caption>
+    <thead><tr><th scope="col">Kryterium</th><th scope="col">Ocena cząstkowa</th></tr></thead>
+    <tbody>
+      {% for wiersz in wynik.wiersze %}
+      <tr><td>{{ wiersz.nazwa }}<small>{% if wiersz.obowiazkowe %}obowiązkowe{% else %}dodatkowe{% endif %}</small></td>
+        <td><strong>{{ wiersz.punkty }}</strong> - {{ wiersz.opis }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if wynik.uzasadnienie %}<h3>Uzasadnienie</h3><p class="tekst">{{ wynik.uzasadnienie }}</p>{% endif %}
+  <h3>Wnioski do indywidualnego programu rozwoju zawodowego</h3><p class="tekst">{{ wynik.wnioski_iprz }}</p>
+  <p>Wniosek o przyznanie kolejnego stopnia służbowego: <strong>{{ wynik.wniosek_o_stopien }}</strong></p>
+  {% if wynik.umotywowanie_wniosku %}<h3>Umotywowanie wniosku</h3><p class="tekst">{{ wynik.umotywowanie_wniosku }}</p>{% endif %}
+
+  {% if mozna_potwierdzic_zapoznanie %}
+  <form method="post" action="{% url 'czynnosc' ocena.pk 'potwierdz-zapoznanie' %}" class="potwierdzenie">
+    {% csrf_token %}
+    <p>Przeprowadzono ze mną rozmowę oceniającą oraz zapoznałam(-łem) się z oceną okresową i wnioskami dotyczącymi
+      indywidualnego programu rozwoju zawodowego. Potwierdzenie nie oznacza zgody z oceną - od dnia zapoznania biegnie
+      7 dni na sprzeciw (art. 83 ust. 1 u.s.c.).</p>
+    <button type="submit" class="przycisk" data-potwierdz="Potwierdzić zapoznanie z oceną?">Potwierdzam zapoznanie z oceną</button>
+  </form>
+  {% endif %}
+  {% if mozna_stwierdzic_fikcje %}
+  <form method="post" action="{% url 'czynnosc' ocena.pk 'fikcja-zapoznania' %}" class="potwierdzenie potwierdzenie-drugie">
+    {% csrf_token %}
+    <p>{% if jestem_ocenianym %}Jeżeli odmawiasz potwierdzenia zapoznania z oceną, zostanie to odnotowane - termin na sprzeciw
+      zacznie biec od dziś.{% else %}Jeżeli oceniany odmawia potwierdzenia albo nie można go uzyskać, stwierdź zapoznanie
+      z oceną z dzisiejszą datą - od niej biegnie termin na sprzeciw.{% endif %}</p>
+    <button type="submit" class="przycisk przycisk-drugi" data-potwierdz="Stwierdzić zapoznanie z oceną bez potwierdzenia ocenianego?">{% if jestem_ocenianym %}Odmawiam potwierdzenia{% else %}Stwierdź zapoznanie bez potwierdzenia{% endif %}</button>
+  </form>
+  {% endif %}
+  {% if pouczenie %}<p class="pouczenie"><strong>Pouczenie.</strong> {{ pouczenie }}</p>{% endif %}
+</section>
+{% endif %}
+
+{% if sprzeciwy or mozna_wniesc_sprzeciw %}
+<section class="karta" aria-labelledby="n-sprzeciw">
+  <h2 id="n-sprzeciw">Sprzeciw od oceny (art. 83 u.s.c.)</h2>
+  {% for sprzeciw in sprzeciwy %}
+  <article class="wpis">
+    <p><strong>Sprzeciw z {{ sprzeciw.data_wniesienia|date:"d.m.Y" }}</strong>
+      {% if sprzeciw.po_terminie %}<span class="stan stan-po_terminie">wniesiony po terminie</span>{% endif %}
+      <span class="stan stan-{% if sprzeciw.rozpatrzony %}wykonane{% else %}pilne{% endif %}">{{ sprzeciw.rozstrzygniecie_opis }}</span></p>
+    <p class="tekst">{{ sprzeciw.tresc }}</p>
+    {% if sprzeciw.rozpatrzony %}
+    <p>Rozstrzygnięcie z {{ sprzeciw.data_rozstrzygniecia|date:"d.m.Y" }}{% if sprzeciw.uzasadnienie %}: {{ sprzeciw.uzasadnienie }}{% endif %}</p>
+    <p class="podpowiedz">W razie nieuwzględnienia sprzeciwu albo nierozpatrzenia go w terminie można odwołać się do sądu pracy
+      w ciągu 14 dni (art. 83 ust. 5 u.s.c.).</p>
+    {% endif %}
+  </article>
+  {% endfor %}
+
+  {% if mozna_wniesc_sprzeciw %}
+  <form method="post" action="{% url 'czynnosc' ocena.pk 'sprzeciw' %}" class="formularz">
+    {% csrf_token %}
+    <p>Sprzeciw możesz wnieść do {{ termin_sprzeciwu|date:"d.m.Y" }} (7 dni od zapoznania się z oceną).</p>
+    <label for="tresc_sprzeciwu">Treść sprzeciwu</label>
+    <textarea name="tresc" id="tresc_sprzeciwu" rows="5" required></textarea>
+    <button type="submit" class="przycisk" data-potwierdz="Wnieść sprzeciw od oceny?">Wnieś sprzeciw</button>
+  </form>
+  {% endif %}
+
+  {% if mozna_rozpatrzyc_sprzeciw %}
+  <form method="post" action="{% url 'czynnosc' ocena.pk 'rozpatrz-sprzeciw' %}" class="formularz">
+    {% csrf_token %}
+    <h3>Rozstrzygnięcie dyrektora generalnego</h3>
+    <p class="podpowiedz">System rejestruje rozstrzygnięcie - decyzję podejmuje dyrektor generalny (art. 83 ust. 3 i 4 u.s.c.).</p>
+    <label for="rozstrzygniecie">Rozstrzygnięcie</label>
+    <select name="rozstrzygniecie" id="rozstrzygniecie" required>
+      <option value="">- wybierz -</option>
+      <option value="zmiana">uwzględniony - zmiana oceny</option>
+      <option value="ponowne_sporzadzenie">uwzględniony - ponowne sporządzenie oceny</option>
+      <option value="nieuwzgledniony">nieuwzględniony</option>
+    </select>
+    <table class="tabela tabela-ocen">
+      <caption>Nowe oceny cząstkowe - tylko przy zmianie oceny (żadna nie może być niższa niż dotychczas)</caption>
+      <thead><tr><th scope="col">Kryterium</th>{% for pozycja in skala %}<th scope="col">{{ pozycja.punkty }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for wiersz in wiersze_zmiany %}
+        <tr><th scope="row">{{ wiersz.nazwa }}</th>
+          {% for pozycja in skala %}<td><input type="radio" name="ocena_{{ wiersz.numer }}" value="{{ pozycja.punkty }}" aria-label="{{ wiersz.nazwa }}: {{ pozycja.punkty }}"{% if wiersz.wartosc == pozycja.punkty %} checked{% endif %}></td>{% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <label for="uzasadnienie_sprzeciwu">Uzasadnienie rozstrzygnięcia</label>
+    <textarea name="uzasadnienie" id="uzasadnienie_sprzeciwu" rows="3"></textarea>
+    <button type="submit" class="przycisk" data-potwierdz="Wprowadzić rozstrzygnięcie sprzeciwu?">Wprowadź rozstrzygnięcie</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if skutki %}
+<section class="karta" aria-labelledby="n-skutki">
+  <h2 id="n-skutki">Co wynika z tej oceny</h2>
+  <ul class="skutki">
+    {% for skutek in skutki %}
+    <li class="skutek skutek-{{ skutek.kod|lower }}">{{ skutek.opis }} <small>({{ skutek.podstawa }})</small></li>
+    {% endfor %}
+  </ul>
+  {% if mozna_rozpoczac_kolejny_cykl %}
+  <form method="post" action="{% url 'czynnosc' ocena.pk 'kolejny-cykl' %}">
+    {% csrf_token %}
+    <button type="submit" class="przycisk">Rozpocznij kolejny cykl oceny</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+{% if nastepna %}<p class="komunikat komunikat-info">Po tej ocenie rozpoczęto <a href="{% url 'ocena' nastepna.pk %}">kolejny cykl oceny</a>.</p>{% endif %}
+
+</div>
+<aside class="kolumna-boczna">
+
+<section class="karta" aria-labelledby="n-terminy">
+  <h2 id="n-terminy">Terminy</h2>
+  <ul class="terminy">
+    {% for wiersz in terminy %}
+    <li class="termin termin-{{ wiersz.stan }}">
+      <span class="termin-data">{{ wiersz.data|date:"d.m.Y" }}</span>
+      <span class="termin-nazwa">{{ wiersz.nazwa }}</span>
+      {% if wiersz.podstawa %}<small>{{ wiersz.podstawa }}</small>{% endif %}
+      {% if wiersz.uwaga %}<small class="uwaga">{{ wiersz.uwaga }}</small>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if sa_terminy_do_kalendarza %}<p><a href="{% url 'kalendarz' ocena.pk %}" class="przycisk przycisk-drugi">Dodaj terminy do kalendarza (.ics)</a></p>{% endif %}
+
+  {% if mozna_zmienic_termin %}
+  <details>
+    <summary>Zmień termin oceny (art. 81 ust. 8 u.s.c.)</summary>
+    {% if wniosek_oczekuje %}
+    <form method="post" action="{% url 'czynnosc' ocena.pk 'rozpatrz-wniosek' %}" class="formularz">
+      {% csrf_token %}
+      <p><strong>Oceniany złożył wniosek o zmianę terminu.</strong></p>
+      <label for="nowy_termin_w">Nowy termin (gdy uwzględniasz wniosek)</label>
+      <input type="date" name="nowy_termin" id="nowy_termin_w">
+      <div class="przyciski">
+        <button type="submit" name="decyzja" value="uwzglednij" class="przycisk">Uwzględnij</button>
+        <button type="submit" name="decyzja" value="odrzuc" class="przycisk przycisk-drugi">Odrzuć</button>
+      </div>
+    </form>
+    {% else %}
+    <form method="post" action="{% url 'czynnosc' ocena.pk 'zmien-termin' %}" class="formularz">
+      {% csrf_token %}
+      <label for="nowy_termin">Nowy termin</label>
+      <input type="date" name="nowy_termin" id="nowy_termin" required>
+      <label for="przyczyna">Przyczyna (przypadek z art. 81 ust. 8 u.s.c.)</label>
+      <input type="text" name="przyczyna" id="przyczyna" required>
+      <button type="submit" class="przycisk przycisk-drugi">Zmień termin i zawiadom ocenianego</button>
+    </form>
+    {% endif %}
+  </details>
+  {% endif %}
+
+  {% if mozna_zlozyc_wniosek_o_termin %}
+  <details>
+    <summary>Złóż wniosek o zmianę terminu oceny</summary>
+    <form method="post" action="{% url 'czynnosc' ocena.pk 'wniosek-o-termin' %}" class="formularz">
+      {% csrf_token %}
+      <label for="uzasadnienie_wniosku">Uzasadnienie</label>
+      <textarea name="uzasadnienie" id="uzasadnienie_wniosku" rows="3"></textarea>
+      <button type="submit" class="przycisk przycisk-drugi">Złóż wniosek</button>
+    </form>
+  </details>
+  {% endif %}
+  {% for wniosek in wnioski_o_termin %}
+  <p class="wpis-maly">Wniosek o zmianę terminu z {{ wniosek.data|date:"d.m.Y" }}: <strong>{{ wniosek.status }}</strong></p>
+  {% endfor %}
+</section>
+
+<section class="karta" aria-labelledby="n-dokumenty">
+  <h2 id="n-dokumenty">Arkusz i dokumenty</h2>
+  <p class="przyciski">
+    <a href="{% url 'arkusz_pdf' ocena.pk %}" class="przycisk">Arkusz {{ proces.arkusz }} - PDF do podpisu</a>
+    <a href="{% url 'arkusz_docx' ocena.pk %}" class="przycisk przycisk-drugi">DOCX</a>
+  </p>
+  <p class="podpowiedz">Arkusz zgodny ze wzorem z rozporządzenia. Po wydrukowaniu podpisują go oceniający i oceniany;
+    oryginał trafia do akt osobowych (§ 12 ust. 2 rozp.).</p>
+  {% if dokumenty %}
+  <ul class="dokumenty">
+    {% for dokument in dokumenty %}
+    <li>{{ dokument.data|date:"d.m.Y" }} - {{ dokument.rodzaj }} <small>(adresat: {{ dokument.adresat.value }}{% if dokument.opis %}; {{ dokument.opis }}{% endif %})</small></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+
+{% if jestem_oceniajacym %}
+<section class="karta notatki" aria-labelledby="n-notatki">
+  <h2 id="n-notatki">Moje notatki z okresu oceny</h2>
+  <p class="podpowiedz">Notatki widzisz tylko Ty. Nie są częścią arkusza.</p>
+  {% if mozna_dodac_notatke %}
+  <form method="post" action="{% url 'czynnosc' ocena.pk 'notatka' %}" class="formularz">
+    {% csrf_token %}
+    <label for="tresc_notatki">Nowa notatka</label>
+    <textarea name="tresc" id="tresc_notatki" rows="3" required></textarea>
+    <button type="submit" class="przycisk przycisk-drugi">Zapisz notatkę</button>
+  </form>
+  {% endif %}
+  {% for notatka in notatki %}
+  <p class="wpis-maly"><strong>{{ notatka.data|date:"d.m.Y" }}</strong> {{ notatka.tresc }}</p>
+  {% empty %}
+  <p class="pusto">Brak notatek.</p>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section class="karta" aria-labelledby="n-dziennik">
+  <h2 id="n-dziennik">Historia czynności</h2>
+  <ol class="dziennik">
+    {% for zdarzenie in zdarzenia %}
+    <li><span class="termin-data">{{ zdarzenie.data|date:"d.m.Y" }}</span> {{ zdarzenie.czynnosc }}{% if zdarzenie.opis %} - {{ zdarzenie.opis }}{% endif %}
+      <small>{{ zdarzenie.podpis }}</small></li>
+    {% endfor %}
+  </ol>
+</section>
+
+</aside>
+</div>
+{% endblock %}
