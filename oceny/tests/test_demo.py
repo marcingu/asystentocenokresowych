@@ -186,7 +186,17 @@ class PrzegladStronDemoTest(TestCase):
         klient = Client()
         klient.force_login(get_user_model().objects.get(username="kadry"))
         self.assertNotContains(klient.get(reverse("kadry")), "Rozpocznij cykl oceny")
-        self.assertContains(klient.get(reverse("statystyki")), "Wydział Organizacyjny")
+        self.assertContains(klient.get(reverse("statystyki")), "Biuro Dyrektora Generalnego")
+
+    def test_pokaz_ma_strukture_kprm_z_gov_pl_a_osoby_fikcyjne_sa_w_jej_komorkach(self):
+        from oceny import struktura_kprm
+        from oceny.models import Pracownik, Wydzial
+
+        nazwy = set(Wydzial.objects.values_list("nazwa", flat=True))
+        self.assertEqual(nazwy, set(struktura_kprm.KOMORKI) | {"Kierownictwo urzędu"})
+        komorki = {login: Pracownik.objects.get(uzytkownik__username=login).komorka for login in ("naczelnik", "anna", "kadry")}
+        self.assertEqual(komorki, {"naczelnik": "Biuro Dyrektora Generalnego", "anna": "Biuro Dyrektora Generalnego",
+                                   "kadry": "Biuro Kadr i Rozwoju Zawodowego"})
 
     def test_pasek_demo_pozwala_przelaczac_konta(self):
         klient = Client()

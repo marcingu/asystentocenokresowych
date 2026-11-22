@@ -1,15 +1,25 @@
 {% extends "oceny/baza.html" %}
-{% block tytul %}Wydziały urzędu{% endblock %}
+{% block tytul %}Struktura urzędu{% endblock %}
 {% block tresc %}
-<h1>Wydziały urzędu</h1>
+<h1>Struktura urzędu</h1>
 {% include "oceny/_administracja_menu.html" with zakladka="wydzialy" %}
-<p>Kadry wybierają komórkę organizacyjną pracownika z tej listy. Zmiana nazwy wydziału nie zmienia przypisania pracowników.</p>
+<p>Kadry wybierają komórkę organizacyjną pracownika z tej listy. Zmiana nazwy komórki nie zmienia przypisania pracowników.</p>
+<section class="karta" aria-labelledby="struktura-kprm">
+  <h2 id="struktura-kprm">Struktura Kancelarii Prezesa Rady Ministrów</h2>
+  <p>System ma listę {{ liczba_kprm }} komórek organizacyjnych KPRM - biur, departamentów i Centrum Informacyjnego Rządu -
+    ze strony <a href="{{ zrodlo_kprm }}">Sekretariaty, Departamenty, Biura</a> w portalu gov.pl (odczyt {{ odczyt_kprm|date:"d.m.Y" }}).
+    Lista zawiera same nazwy komórek, bez nazwisk dyrekcji.</p>
+  <form method="post">{% csrf_token %}
+    <button type="submit" name="akcja" value="wczytaj" class="przycisk przycisk-drugi">Wczytaj brakujące komórki KPRM</button>
+  </form>
+  <p class="podpowiedz">Wczytanie dodaje komórki, których jeszcze nie ma. Istniejących nazw, obsady i przypisań pracowników nie zmienia i niczego nie usuwa.</p>
+</section>
 <section class="karta" aria-labelledby="nowy-wydzial">
-  <h2 id="nowy-wydzial">Dodaj wydział</h2>
+  <h2 id="nowy-wydzial">Dodaj komórkę organizacyjną</h2>
   <form method="post" class="formularz">{% csrf_token %}
-    <label for="nazwa-nowa">Nazwa nowego wydziału</label>
+    <label for="nazwa-nowa">Nazwa nowej komórki, np. departamentu, biura albo wydziału</label>
     <input id="nazwa-nowa" name="nazwa" maxlength="160" required>
-    <button type="submit" name="akcja" value="dodaj" class="przycisk">Dodaj wydział</button>
+    <button type="submit" name="akcja" value="dodaj" class="przycisk">Dodaj komórkę</button>
   </form>
 </section>
 <h2>Obecna struktura</h2>
@@ -18,7 +28,7 @@
   <h3 id="wydzial-{{ wpis.pk }}">{{ wpis.nazwa }}</h3>
   <form method="post" class="formularz">{% csrf_token %}
     <input type="hidden" name="pk" value="{{ wpis.pk }}">
-    <label for="nazwa-{{ wpis.pk }}">Nazwa wydziału</label>
+    <label for="nazwa-{{ wpis.pk }}">Nazwa komórki organizacyjnej</label>
     <input id="nazwa-{{ wpis.pk }}" name="nazwa" value="{{ wpis.nazwa }}" maxlength="160" required>
     <button type="submit" name="akcja" value="zmien" class="przycisk przycisk-drugi">Zapisz nazwę</button>
   </form>
@@ -28,17 +38,17 @@
     <select id="szef-{{ wpis.pk }}" name="kierownik"><option value="">Nie wyznaczono</option>
       {% for osoba in osoby %}<option value="{{ osoba.pk }}"{% if osoba.pk == wpis.kierownik_id %} selected{% endif %}>{{ osoba }} - {{ osoba.stanowisko }} (#{{ osoba.pk }})</option>{% endfor %}
     </select>
-    <label for="nadrzedny-{{ wpis.pk }}">Przełożony kierownika, jeśli sam pracuje w tym wydziale</label>
+    <label for="nadrzedny-{{ wpis.pk }}">Przełożony kierownika, jeśli sam pracuje w tej komórce</label>
     <select id="nadrzedny-{{ wpis.pk }}" name="zwierzchnik"><option value="">Nie wyznaczono</option>
       {% for osoba in osoby %}<option value="{{ osoba.pk }}"{% if osoba.pk == wpis.zwierzchnik_id %} selected{% endif %}>{{ osoba }} - {{ osoba.stanowisko }} (#{{ osoba.pk }})</option>{% endfor %}
     </select>
-    <button type="submit" name="akcja" value="obsada" class="przycisk przycisk-drugi">Zapisz obsadę wydziału</button>
+    <button type="submit" name="akcja" value="obsada" class="przycisk przycisk-drugi">Zapisz obsadę komórki</button>
   </form>
   <p>Liczba przypisanych pracowników: {{ wpis.liczba }}.</p>
   {% if not wpis.liczba %}<form method="post">{% csrf_token %}
     <input type="hidden" name="pk" value="{{ wpis.pk }}">
-    <button type="submit" name="akcja" value="usun" class="przycisk przycisk-drugi" data-potwierdz="Usunąć pusty wydział?">Usuń pusty wydział</button>
+    <button type="submit" name="akcja" value="usun" class="przycisk przycisk-drugi" data-potwierdz="Usunąć pustą komórkę?">Usuń pustą komórkę</button>
   </form>{% endif %}
 </section>
-{% empty %}<p>Lista jest pusta. Dodaj pierwszy wydział, aby kadry mogły przypisać do niego pracownika.</p>{% endfor %}
+{% empty %}<p>Lista jest pusta. Dodaj pierwszą komórkę organizacyjną, aby kadry mogły przypisać do niej pracownika.</p>{% endfor %}
 {% endblock %}

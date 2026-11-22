@@ -16,10 +16,12 @@ from asystent_ocen.kalendarz import czy_dzien_ustawowo_wolny, dodaj_miesiace
 from asystent_ocen.kryteria import kryteria_obowiazkowe
 
 from . import uslugi
+from . import struktura_kprm
 from .models import Pracownik, UstaleniaMonitoringu, Wydzial
 
-WYDZIAL = "Wydział Organizacyjny"
-KADRY = "Biuro Kadr i Szkoleń"
+# Komórki z listy KPRM (`struktura_kprm`); osoby w pokazie są fikcyjne.
+WYDZIAL = "Biuro Dyrektora Generalnego"
+KADRY = "Biuro Kadr i Rozwoju Zawodowego"
 
 
 def _roboczy(dzien: date) -> date:
@@ -71,6 +73,7 @@ def _do_oceniania(osoba, kadry, oceniajacy, *, poczatek: date, dodatkowe: list[s
 def zaladuj(dzien: date) -> dict[str, Pracownik]:
     """Buduje fikcyjny urząd z ocenami na każdym etapie procesu. Zwraca osoby według loginów."""
     dwa_lata_temu = dodaj_miesiace(dzien, -24)
+    struktura_kprm.wczytaj()  # słownik komórek organizacyjnych KPRM z gov.pl; obsada poniżej jest fikcyjna
 
     dyrektor = _osoba(
         "dyrektor", "Helena", "Dąbrowska", "dyrektor generalny urzędu", "Kierownictwo urzędu",
