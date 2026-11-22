@@ -1,8 +1,7 @@
 """Dane pracowników prowadzone przez komórkę kadr: dodanie pracownika i zmiana jego parametrów.
 
 Parametry decydują o przebiegu oceny: rodzaj zatrudnienia - czy osoba podlega ocenie (art. 81 ust. 1 u.s.c.),
-arkusz - które kryteria obowiązują (§ 3 i § 4 rozp.), przełożony - kto ocenia. Konto do logowania zakłada
-administrator w zapleczu; ten formularz nie nadaje uprawnień kadr ani dyrektora. Dodanie i każda zmiana trafiają
+arkusz - które kryteria obowiązują (§ 3 i § 4 rozp.), przełożony - kto ocenia. Zwykłe konto powstaje wraz z kartą; ten formularz nie nadaje uprawnień kadr ani dyrektora. Dodanie i każda zmiana trafiają
 do dziennika zdarzeń bez danych osobowych - z numerem pracownika i nazwami zmienionych pól.
 """
 
@@ -15,7 +14,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
-from . import dziennik, uprawnienia
+from . import dziennik, umowy, uprawnienia
 from .models import Pracownik, Wydzial, rodzaje_zatrudnienia
 from .podleglosc import PodlegloscZKomorki
 
@@ -43,9 +42,37 @@ class FormularzPracownika(PodlegloscZKomorki, forms.ModelForm):
         help_text="Od rodzaju zatrudnienia zależy, czy osoba podlega ocenie okresowej (art. 81 ust. 1 u.s.c.).",
     )
     arkusz = forms.ChoiceField(
-        label="Arkusz oceny", choices=ARKUSZE,
+        label="Arkusz oceny okresowej", choices=ARKUSZE, required=False,
         help_text="Arkusz wynika ze stanowiska (§ 3 rozp.) i wyznacza kryteria obowiązkowe (§ 4 rozp.).",
     )
+
+    kwalifikacja = forms.ChoiceField(label="Podstawa umowy terminowej", choices=umowy.KWALIFIKACJE, required=False,
+        help_text="Potwierdź historię w całej służbie cywilnej, nie tylko w tym urzędzie.")
+    ustalenie = umowy.data_formularza("Data ustalenia przez strony pierwszej oceny przy zastępstwie", required=False)
+    koniec_umowy = umowy.data_formularza("Ostatni dzień umowy innej niż pierwsza 12-miesięczna", required=False)
+
+    def clean(self):
+        pola = super().clean()
+        if getattr(self.instance, "umowa", None):
+            if "rodzaj_zatrudnienia" in self.changed_data or "data_zatrudnienia" in self.changed_data or pola.get("data_mianowania"):
+                self.add_error("rodzaj_zatrudnienia", "Zarejestrowaną umowę zmieniaj w sekcji umowy, nie przez nadpisanie karty.")
+        elif pola.get("rodzaj_zatrudnienia") == umowy.TERMINOWA and not pola.get("data_mianowania"):
+            tryb = pola.get("kwalifikacja")
+            if tryb == "zastepstwo_ocena" and (not pola.get("ustalenie") or not pola.get("data_zatrudnienia") or not pola.get("koniec_umowy") or not pola["data_zatrudnienia"] <= pola["ustalenie"] <= pola["koniec_umowy"]):
+                self.add_error("ustalenie", "Podaj datę ustalenia przez strony w okresie umowy.")
+            if not tryb:
+                self.add_error("kwalifikacja", "Wskaż podstawę umowy terminowej.")
+            elif tryb not in ("pierwsza", "ksap"):
+                if not pola.get("koniec_umowy") or (pola.get("data_zatrudnienia") and pola["koniec_umowy"] < pola["data_zatrudnienia"]):
+                    self.add_error("koniec_umowy", "Podaj ostatni dzień wynikający z umowy.")
+            elif pola.get("koniec_umowy"):
+                self.add_error("koniec_umowy", "Dla tej umowy system wylicza 12 miesięcy.")
+        if not pola.get("arkusz"):
+            if pola.get("rodzaj_zatrudnienia") == umowy.TERMINOWA:
+                pola["arkusz"] = self.instance.arkusz
+            elif "arkusz" not in self.errors:
+                self.add_error("arkusz", "Wybierz arkusz oceny okresowej.")
+        return pola
 
     class Meta:
         model = Pracownik
@@ -86,6 +113,9 @@ class FormularzPracownika(PodlegloscZKomorki, forms.ModelForm):
             self.fields["data_mianowania"].help_text += f" Dotychczas zapisano tylko rok: {self.instance.rok_mianowania}."
         self.fields["wydzial"].queryset = Wydzial.objects.select_related("kierownik", "zwierzchnik")
         self.fields["wydzial"].widget.osoba_id = self.instance.pk
+        if getattr(self.instance, "umowa", None):
+            for nazwa in ("kwalifikacja", "koniec_umowy", "ustalenie"):
+                self.fields.pop(nazwa)
         if self.instance.pk:
             self.initial["arkusz"] = self.instance.arkusz
 
@@ -124,7 +154,11 @@ def pracownik(request, pk: int | None = None):
     if request.method == "POST" and formularz.is_valid():
         with transaction.atomic():
             zapisana = formularz.save()
+            if zapisana.rodzaj_zatrudnienia == umowy.TERMINOWA and not hasattr(zapisana, "umowa"):
+                umowy.zaloz_umowe(zapisana, formularz.cleaned_data)
             if osoba is None:
+                from .widoki_administracji import _utworz_konto
+                _utworz_konto(request, zapisana, email="", administrator=False, wydaj_link=False)
                 dziennik.zapisz(
                     dziennik.PRACOWNIK_DODANY, request=request, dotyczy=f"pracownik {zapisana.pk}",
                     opis=f"arkusz {zapisana.arkusz}; {zapisana.rodzaj_zatrudnienia_opis}",

@@ -8,7 +8,8 @@
   <h2 id="n-dane">Dane i parametry oceny</h2>
   <p class="podpowiedz">Arkusz wynika ze stanowiska (§ 3 rozp.): A - kierownik urzędu, B - osoba kierująca bezpośrednio pracownikami,
     C - pozostali. Zmiana arkusza albo rodzaju zatrudnienia obowiązuje od kolejnego cyklu oceny - cykl, który trwa, zostaje
-    przy dotychczasowym arkuszu. Konto do logowania zakłada administrator systemu i wiąże je z pracownikiem.</p>
+    przy dotychczasowym arkuszu. Konto do logowania powstaje automatycznie; administrator wydaje link do ustawienia hasła.</p>
+  {% if osoba.umowa %}<p><a href="{% url 'karta_umowy' osoba.umowa.pk %}">Umowa: terminy, zakończenie lub nowa umowa</a></p>{% endif %}
   <form method="post" class="formularz">
     {% csrf_token %}
     {% for blad in formularz.non_field_errors %}<div class="komunikat komunikat-error" role="alert">{{ blad }}</div>{% endfor %}

@@ -57,7 +57,7 @@ def _status(wiersz: dict) -> str:
 
 def wiersze_pracownikow(dzien: date) -> list[dict]:
     wiersze = []
-    osoby = Pracownik.objects.select_related("przelozony", "wydzial").prefetch_related("oceny", "nieobecnosci")
+    osoby = Pracownik.objects.select_related("przelozony", "wydzial", "umowa__pierwsza").prefetch_related("oceny", "nieobecnosci")
     for osoba in osoby:
         biezaca = max(osoba.oceny.all(), key=lambda ocena: (ocena.poczatek_cyklu, ocena.pk), default=None)
         wiersz = {

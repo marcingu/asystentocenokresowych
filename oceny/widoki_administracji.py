@@ -123,7 +123,7 @@ def _czlon_loginu(nazwa):
     return czlon
 
 
-def _utworz_konto(request, osoba, *, email, administrator):
+def _utworz_konto(request, osoba, *, email, administrator, wydaj_link=True):
     konta = get_user_model().objects
     limit = get_user_model()._meta.get_field("username").max_length
     imie, nazwisko = _czlon_loginu(osoba.imie), _czlon_loginu(osoba.nazwisko)
@@ -144,7 +144,8 @@ def _utworz_konto(request, osoba, *, email, administrator):
                     raise forms.ValidationError("Dane pracownika zmieniły się lub ma on już konto. Odśwież listę.")
                 dziennik.zapisz(dziennik.KONTO_UTWORZONE, request=request, dotyczy=login,
                                opis="z uprawnieniami administratora" if administrator else "")
-                _wydaj_link(request, nowe)
+                if wydaj_link:
+                    _wydaj_link(request, nowe)
                 return nowe
         except IntegrityError:
             # Inny zapis mógł zająć login między sprawdzeniem a utworzeniem konta.

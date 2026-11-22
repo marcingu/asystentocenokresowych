@@ -1,0 +1,10 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Umowa pracownika{% endblock %}
+{% block tresc %}
+<p><a href="{% url 'kadry' %}">Kadry</a></p>
+<h1>Umowa pracownika: {{ umowa.osoba }}</h1>
+<p>Umowa terminowa: {{ umowa.poczatek|date:"d.m.Y" }} - {{ umowa.koniec|date:"d.m.Y" }} włącznie.</p>
+{% if umowa.stala_od %}<p>Umowa na czas nieokreślony od {{ umowa.stala_od|date:"d.m.Y" }}. Dostęp bez przerwy.</p>
+{% else %}<p>Bez kolejnej umowy konto zostanie zablokowane po ostatnim dniu zatrudnienia. Sam wynik oceny nie zmienia umowy.</p>
+<form class="formularz" method="post">{% csrf_token %}{{ formularz.as_div }}<button class="przycisk" type="submit">Zapisz w ewidencji</button></form>{% endif %}
+{% endblock %}

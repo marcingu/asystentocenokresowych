@@ -2,7 +2,7 @@
 from django import forms
 from django.db import transaction
 
-from .models import Pracownik
+from .models import PierwszaOcena, Pracownik
 
 
 def sprawdz_lancuch(osoba_id, szef_id, powiazania):
@@ -28,6 +28,12 @@ def ustaw_obsade(wydzial, kierownik, zwierzchnik):
     wydzial.save(update_fields=["kierownik", "zwierzchnik"])
     wydzial.pracownicy.exclude(pk=wydzial.kierownik_id).update(przelozony_id=wydzial.kierownik_id)
     if kierownik:
+        # Dopełniamy wyłącznie wakaty; obsada już utrwalona na arkuszu pozostaje bez zmian.
+        oczekujace = PierwszaOcena.objects.filter(umowa__osoba__wydzial=wydzial)
+        oczekujace.filter(kierujacy=None).update(kierujacy=kierownik)
+        oczekujace.filter(szef=None).exclude(umowa__osoba=kierownik).update(szef=kierownik)
+        if zwierzchnik:
+            oczekujace.filter(szef=None, umowa__osoba=kierownik).update(szef=zwierzchnik)
         wydzial.pracownicy.filter(pk=kierownik.pk).update(przelozony_id=wydzial.zwierzchnik_id)
 
 

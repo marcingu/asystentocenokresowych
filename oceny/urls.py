@@ -4,9 +4,11 @@ from django.contrib.auth.decorators import login_not_required
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import panel_przepisow, urzad, views, widoki_administracji, widoki_kadr, widoki_kont, wydzialy
+from . import pierwsza, umowy, panel_przepisow, urzad, views, widoki_administracji, widoki_kadr, widoki_kont, wydzialy
 
 urlpatterns = [
+    path("pierwsza-ocena/<int:pk>/", pierwsza.karta, name="pierwsza_ocena"),
+    path("kadry/umowa/<int:pk>/", umowy.karta_umowy, name="karta_umowy"),
     path("administracja/wydzialy/", wydzialy.struktura, name="wydzialy"),
     path("administracja/urzad/", urzad.ustawienia, name="administracja_urzad"),
     path("logowanie/", login_not_required(widoki_kont.Logowanie.as_view()), name="logowanie"),

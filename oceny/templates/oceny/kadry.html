@@ -41,7 +41,7 @@
   <caption id="t-kadry" class="ukryte">Pracownicy urzędu i stan ich ocen okresowych</caption>
   <thead>
     <tr><th scope="col">Pracownik</th><th scope="col">Zatrudnienie</th><th scope="col">Arkusz</th><th scope="col">Oceniający</th>
-      <th scope="col">Ocena okresowa</th><th scope="col">Nieobecności</th></tr>
+      <th scope="col">Proces oceny</th><th scope="col">Nieobecności</th></tr>
   </thead>
   <tbody>
     {% for wiersz in wiersze %}
@@ -51,7 +51,9 @@
       <td>{% if wiersz.osoba.podlega_ocenie %}{{ wiersz.osoba.arkusz }}{% else %}-{% endif %}</td>
       <td>{{ wiersz.osoba.przelozony.imie_i_nazwisko|default:"-" }}</td>
       <td>
-        {% if not wiersz.osoba.podlega_ocenie %}
+        {% if wiersz.osoba.umowa.pierwsza and not wiersz.osoba.podlega_ocenie %}
+        Pierwsza ocena w służbie cywilnej <small><a href="{% url 'karta_umowy' wiersz.osoba.umowa.pk %}">Terminy i kontynuacja umowy</a></small>
+        {% elif not wiersz.osoba.podlega_ocenie %}
         <span class="stan stan-bez_terminu">nie podlega ocenie</span><small>art. 81 ust. 1 u.s.c.</small>
         {% elif wiersz.ocena %}
         <a href="{% url 'ocena' wiersz.ocena.pk %}">{{ wiersz.ocena.etap_opis }}</a>

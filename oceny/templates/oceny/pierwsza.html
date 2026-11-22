@@ -1,0 +1,19 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Pierwsza ocena w służbie cywilnej{% endblock %}
+{% block tresc %}
+<p><a href="{% url 'zadania' %}">Moje zadania</a></p>
+<h1>Pierwsza ocena w służbie cywilnej</h1>
+<p>{{ ocena.umowa.osoba }} - {{ ocena.umowa.osoba.stanowisko }}, {{ ocena.umowa.osoba.komorka }}.</p>
+<p>Przełożony: {{ ocena.szef|default:"brak obsady" }}. Kierujący komórką: {{ ocena.kierujacy|default:"brak obsady" }}.</p>
+<p>Umowa: {{ ocena.umowa.poczatek|date:"d.m.Y" }} - {{ ocena.umowa.koniec|date:"d.m.Y" }}. Rozmowa wstępna do {{ termin_wstepnej|date:"d.m.Y" }}. Okres oceny: {{ od|date:"d.m.Y" }} - {{ do|date:"d.m.Y" }} (art. 38 ust. 1).</p>
+{% if dane.wstepna %}<h2>Rozmowa wstępna</h2><p>Data: {{ dane.wstepna.rozmowa }}. Termin sprawozdania: {{ dane.wstepna.od }} - {{ dane.wstepna.do }}.</p>{% endif %}
+{% if dane.raport %}<h2>Sprawozdanie pracownika</h2><p>Złożono {{ dane.raport.data }}.</p>{{ dane.raport.tresc|linebreaks }}{% endif %}
+{% if dane.ocena %}<h2>Wynik: {{ dane.ocena.wynik }}</h2><p>Rozmowa oceniająca: {{ dane.ocena.rozmowa }}. Ocena: {{ dane.ocena.data }}. Średnia: {{ dane.ocena.srednia }}.</p>
+<ul>{% for nazwa, pkt in punkty %}<li>{{ nazwa }}: {{ pkt }} pkt</li>{% endfor %}</ul>
+<p>Egzamin: {{ dane.ocena.egzamin }}. Sprawozdanie w terminie: {{ dane.ocena.na_czas|yesno:"tak,nie" }}.</p>
+{{ dane.ocena.uzasadnienie|linebreaks }}{{ dane.ocena.rozwoj|linebreaks }}{% endif %}
+{% if wniosek %}<h2>Wniosek do dyrektora generalnego</h2><p>{{ wniosek }} ({{ dane.wniosek.data }}). Wniosek nie jest zawarciem ani rozwiązaniem umowy.</p>{% endif %}
+{% for kod, formularz in formularze.items %}<section class="karta"><h2>{% if kod == 'wstepna' %}Zapisz rozmowę wstępną{% elif kod == 'termin' %}Zmień termin sprawozdania{% elif kod == 'raport' %}Złóż sprawozdanie{% elif kod == 'ocena' %}Dokonaj pierwszej oceny{% else %}Złóż wniosek do dyrektora generalnego{% endif %}</h2>
+<form method="post" class="formularz">{% csrf_token %}<input type="hidden" name="akcja" value="{{ kod }}">{{ formularz.as_div }}<button type="submit" class="przycisk">Zatwierdź</button></form></section>{% endfor %}
+<p>Arkusz roboczy. Podpisy, wydanie kopii i przekazanie dokumentów do akt wykonaj na urzędowych wzorach (<a href="https://eli.gov.pl/api/acts/DU/2015/1144/text.pdf">Dz. U. 2015 poz. 1144, zał. 2 i 3</a>).</p>
+{% endblock %}

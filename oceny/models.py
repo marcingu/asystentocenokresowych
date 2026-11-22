@@ -476,3 +476,19 @@ class KonfiguracjaProcesu(models.Model):
     @classmethod
     def aktualna(cls):
         return cls.objects.filter(pk=1).first() or cls(pk=1)
+
+
+class UmowaTerminowa(models.Model):
+    """Ewidencja pierwszej lub innej umowy terminowej i jej bezpośredniej kontynuacji w POC."""
+    osoba = models.OneToOneField(Pracownik, related_name="umowa", on_delete=models.PROTECT)
+    kwalifikacja = models.CharField(max_length=24)
+    poczatek = models.DateField()
+    koniec = models.DateField()
+    stala_od = models.DateField(null=True, blank=True)
+
+
+class PierwszaOcena(models.Model):
+    umowa = models.OneToOneField(UmowaTerminowa, related_name="pierwsza", on_delete=models.PROTECT)
+    szef = models.ForeignKey(Pracownik, null=True, related_name="pierwsze_jako_szef", on_delete=models.PROTECT)
+    kierujacy = models.ForeignKey(Pracownik, null=True, related_name="pierwsze_jako_kierujacy", on_delete=models.PROTECT)
+    dane = models.JSONField(default=dict)

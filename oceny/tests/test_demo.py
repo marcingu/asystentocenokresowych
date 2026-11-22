@@ -22,6 +22,12 @@ def zaladuj(dzien: str = "2026-11-21") -> None:
 
 
 class DaneDemoTest(TestCase):
+    def test_jan_ma_arkusz_pierwszej_oceny(self):
+        zaladuj()
+        jan = Pracownik.objects.get(uzytkownik__username="jan")
+        self.assertTrue(hasattr(jan, "umowa"))
+        self.assertEqual(jan.umowa.pierwsza.szef, jan.przelozony)
+
     def test_powstaja_oceny_na_kazdym_etapie(self):
         zaladuj()
         etapy = set(Ocena.objects.values_list("etap", flat=True))

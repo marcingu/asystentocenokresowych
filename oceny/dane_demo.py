@@ -247,11 +247,14 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
         "Prowadzenie spraw z zakresu dostępu do informacji publicznej.",
         data_zatrudnienia=_dni(dzien, -3),
     )
-    podwladny(
+    jan = podwladny(
         "jan", "Jan", "Wójcik", "referent",
         "Wsparcie obsługi kancelaryjnej wydziału.",
         rodzaj_zatrudnienia="umowa_na_czas_okreslony", data_zatrudnienia=dodaj_miesiace(dzien, -5),
     )
+
+    from .umowy import zaloz_umowe
+    zaloz_umowe(jan, {"kwalifikacja": "pierwsza"})
 
     # --- oceny prowadzone przez dyrektor generalną: naczelnik (arkusz B) i kadry ---
     _do_oceniania(

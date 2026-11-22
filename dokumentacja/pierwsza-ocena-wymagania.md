@@ -1,6 +1,6 @@
-# Pierwsza ocena w służbie cywilnej - wymagania do wdrożenia
+# Pierwsza ocena w służbie cywilnej - wymagania i zakres prototypu
 
-**Status:** specyfikacja, nie opis funkcji już dostępnej. Pierwsza ocena w rozumieniu art. 37-38 ustawy o służbie cywilnej jest odrębna od pierwszej **oceny okresowej** danej osoby (art. 81). Nie stosujemy do niej arkuszy A/B/C, skali ocen okresowych ani ich harmonogramu.
+**Status:** prototyp obsługuje kwalifikację kadrową umowy terminowej, wyliczenie dat, roboczy arkusz i sprawozdanie, ocenę, wniosek oraz niezależną ewidencję bezpośredniej kontynuacji lub końca umowy. Podpisy na urzędowych wzorach, wydanie kopii i złożenie do akt odbywają się poza aplikacją. Brak wyniku w prototypie nie zastępuje weryfikacji dokumentów w aktach. Pierwsza ocena w rozumieniu art. 37-38 ustawy o służbie cywilnej jest odrębna od pierwszej **oceny okresowej** danej osoby (art. 81). Nie stosujemy do niej arkuszy A/B/C, skali ocen okresowych ani ich harmonogramu.
 
 **Podstawy:** [ustawa z dnia 21 listopada 2008 r. o służbie cywilnej](https://eli.gov.pl/eli/DU/2026/590/ogl), zwłaszcza art. 35-38; [rozporządzenie Prezesa Rady Ministrów z dnia 23 lipca 2015 r. w sprawie szczegółowych warunków i sposobu dokonywania pierwszej oceny w służbie cywilnej](https://eli.gov.pl/api/acts/DU/2015/1144/text.html) (Dz. U. z 2015 r. poz. 1144). [Urzędowe wzory i opisy w załącznikach](https://api.sejm.gov.pl/eli/acts/DU/2015/1144/text.pdf). Rozporządzenie wydano na podstawie art. 38 ust. 4. Obowiązuje od 27.08.2015 r.; dla osób zatrudnionych przed tą datą § 12 odsyła do przepisów dotychczasowych.
 

@@ -2,6 +2,8 @@
 {% block tytul %}Moje zadania{% endblock %}
 {% block tresc %}
 <h1>Moje zadania</h1>
+{% if pierwsze %}<h2>Pierwsza ocena w służbie cywilnej</h2>
+<ul>{% for pierwsza in pierwsze %}<li><a href="{% url 'pierwsza_ocena' pierwsza.pk %}">{{ pierwsza.umowa.osoba }} - arkusz pierwszej oceny</a></li>{% endfor %}</ul>{% endif %}
 {% if zadania %}
 <div class="przewijana" role="region" aria-labelledby="t-zadania" tabindex="0">
 <table class="tabela">

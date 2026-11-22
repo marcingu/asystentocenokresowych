@@ -73,6 +73,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    "oceny.umowy.RozliczenieUmow",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     # Każdy widok wymaga zalogowania, o ile nie jest wprost oznaczony jako publiczny.
     "django.contrib.auth.middleware.LoginRequiredMiddleware",

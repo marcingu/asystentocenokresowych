@@ -46,12 +46,14 @@ def _ocena_uzytkownika(request, pk: int) -> Ocena:
 
 @require_GET
 def zadania(request):
+    from .pierwsza import widoczne as pierwsze_widoczne
     from .zadania import sprzeciwy_uzytkownika  # import przy użyciu - nazwa modułu pokrywa się z nazwą tego widoku
 
     dzien = dzis()
     widoczne = uprawnienia.oceny_widoczne(request.user)
     return render(request, "oceny/zadania.html", {
         "zadania": zadania_uzytkownika(request.user, dzien),
+        "pierwsze": pierwsze_widoczne(request.user),
         "sprzeciwy": sprzeciwy_uzytkownika(request.user, dzien),
         "moje_oceny": [ocena for ocena in widoczne if ocena.oceniany == uprawnienia.pracownik_uzytkownika(request.user)],
         "oceny_podwladnych": [

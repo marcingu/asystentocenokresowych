@@ -4,7 +4,7 @@ Wymaganie: decyzja prowadzącego projekt z 21.11.2026. Podstawy: § 3 rozp. (ark
 osoba jest kierownikiem urzędu albo kieruje bezpośrednio pracownikami) i art. 81 ust. 1 u.s.c. (obowiązek oceny
 wynika z rodzaju zatrudnienia).
 
-Decyzje projektowe: dane pracownika prowadzi komórka kadr, a konto do logowania zakłada administrator; formularz
+Decyzje projektowe: dane pracownika prowadzi komórka kadr, a konto do logowania powstaje przy dodaniu pracownika; formularz
 nie nadaje uprawnień kadr ani dyrektora; dodanie i zmiana zostają w dzienniku zdarzeń bez danych osobowych;
 arkusz cyklu, który trwa, się nie zmienia.
 """
@@ -69,7 +69,7 @@ class DostepTest(Podstawa):
         for etykieta in ("Arkusz oceny", "Rodzaj zatrudnienia", "Bezpośredni przełożony", "Komórka organizacyjna"):
             self.assertContains(odpowiedz, etykieta)
         self.assertContains(odpowiedz, "§ 3 rozp.")
-        self.assertContains(odpowiedz, "Konto do logowania zakłada administrator")
+        self.assertContains(odpowiedz, "Konto do logowania powstaje automatycznie")
         self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])
 
 
@@ -79,7 +79,7 @@ class DodawanieTest(Podstawa):
 
         osoba = Pracownik.objects.get(nazwisko="Nowicki")
         self.assertEqual((osoba.arkusz, osoba.kieruje_pracownikami, osoba.kierownik_urzedu), ("B", True, False))
-        self.assertEqual((osoba.przelozony, osoba.uzytkownik), (self.z.szef, None))
+        self.assertEqual((osoba.przelozony, osoba.uzytkownik.username), (self.z.szef, "jan.nowicki"))
         self.assertContains(odpowiedz, "Dodano pracownika: Jan Nowicki.")
         self.assertContains(odpowiedz, f'href="{self.edycja(osoba)}"')
 
@@ -118,7 +118,8 @@ class DodawanieTest(Podstawa):
         self.kadry.post(NOWY, dane(rola_kadry="on", rola_dyrektor="on", uzytkownik=str(self.z.kadry.uzytkownik.pk)))
 
         osoba = Pracownik.objects.get(nazwisko="Nowicki")
-        self.assertEqual((osoba.rola_kadry, osoba.rola_dyrektor, osoba.uzytkownik), (False, False, None))
+        self.assertNotEqual(osoba.uzytkownik_id, self.z.kadry.uzytkownik_id)
+        self.assertEqual((osoba.rola_kadry, osoba.rola_dyrektor, osoba.uzytkownik.is_superuser), (False, False, False))
 
 
 class ZmianaTest(Podstawa):

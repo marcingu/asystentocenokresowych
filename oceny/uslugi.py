@@ -131,7 +131,7 @@ def rozpocznij_cykl(
             raise BladWalidacji(bledy)
         ocena = Ocena.utworz(
             oceniany=pracownik, oceniajacy=pracownik.przelozony,
-            poczatek_cyklu=poczatek_cyklu or pracownik.data_zatrudnienia,
+            poczatek_cyklu=poczatek_cyklu or getattr(getattr(pracownik, "umowa", None), "stala_od", None) or pracownik.data_zatrudnienia,
         )
         _zapisz_zdarzenie(ocena, uzytkownik, "rozpoczęcie cyklu oceny", data)
     return ocena
