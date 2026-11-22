@@ -84,6 +84,8 @@ def test_odkladany_wypoczynek_prowadzi_do_planu_urlopu():
     assert sygnal.kod == "ODKLADANY_WYPOCZYNEK"
     assert sygnal.obserwacja.startswith("Obserwujemy odkładany wypoczynek")
     assert "art. 162 i 163 KP" in podstawy(sygnal) and "art. 168 KP" in podstawy(sygnal)
+    # art. 163 § 1[1] KP: urząd bez planu urlopów ustala termin po porozumieniu z pracownikiem
+    assert "w planie urlopów albo ustalony po porozumieniu" in sygnal.dzialania[0].tekst
     assert "art. 168 KP" not in podstawy(sygnaly(karty("DLUGI_WYPOCZYNEK"))[0])  # bez urlopu zaległego nie ma jego podstawy
 
 

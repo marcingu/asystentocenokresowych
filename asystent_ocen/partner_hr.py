@@ -109,7 +109,7 @@ def sygnaly(karty: Sequence[KartaObserwacji]) -> tuple[Sygnal, ...]:
             "może rodzić ryzyko przemęczenia.",
             "Kiedy w najbliższych miesiącach chciałaby Pani/chciałby Pan wziąć dłuższy urlop i co musimy przygotować, żeby było to możliwe?",
             (
-                Dzialanie("Termin urlopu, w tym części trwającej co najmniej 14 kolejnych dni, wpisany do planu urlopów.", urlop),
+                Dzialanie("Termin urlopu, w tym części trwającej co najmniej 14 kolejnych dni - w planie urlopów albo ustalony po porozumieniu.", urlop),
                 Dzialanie("Zastępstwo na czas urlopu, żeby sprawy nie czekały na powrót.", _ORGANIZACJA),
                 Dzialanie("Lista spraw do zamknięcia i do przekazania przed urlopem.", _ORGANIZACJA),
             ), kody(wypoczynek)))
