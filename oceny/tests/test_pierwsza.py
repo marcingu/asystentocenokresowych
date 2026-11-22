@@ -560,14 +560,14 @@ class PierwszaTest(Podstawa):
             # rozmowa: nie wcześniej niż zatrudnienie i nie później niż dziś; bez podpowiedzianej daty
             self.assertEqual(pole(html, "id_wstepna_rozmowa"), ("2026-01-01", "2026-09-10", None))
             # termin sprawozdania: w okresie oceny, a podpowiedź nie zaczyna się w przeszłości
-            self.assertEqual(pole(html, "id_wstepna_od"), ("2026-09-01", "2026-11-30", "2026-09-10"))
-            self.assertEqual(pole(html, "id_wstepna_do"), ("2026-09-01", "2026-11-30", "2026-11-30"))
+            self.assertEqual(pole(html, "id_wstepna_od"), ("2026-09-01", "2026-11-29", "2026-09-10"))
+            self.assertEqual(pole(html, "id_wstepna_do"), ("2026-09-01", "2026-11-29", "2026-11-29"))
             self.assertEqual(pole(html, "id_egzamin_dzien_egzaminu"), ("2026-01-01", "2026-09-10", None))
             self.assertEqual(bledy_dostepnosci(html), [])
             # przełożony wpisuje dzisiejszą rozmowę i zostawia podpowiedziany termin - zapis przechodzi
-            zapis = {"akcja": "wstepna", "rozmowa": "2026-09-10", "od": "2026-09-10", "do": "2026-11-30"}
+            zapis = {"akcja": "wstepna", "rozmowa": "2026-09-10", "od": "2026-09-10", "do": "2026-11-29"}
             self.assertEqual(szef.post(adres, zapis).status_code, 302)
-            self.assertEqual(pole(szef.get(adres).content.decode(), "id_termin_od")[:2], ("2026-09-01", "2026-11-30"))
+            self.assertEqual(pole(szef.get(adres).content.decode(), "id_termin_od")[:2], ("2026-09-01", "2026-11-29"))
             raport = {"akcja": "raport", "zadania": "Zadania", "problemy": "Brak", "wiedza": "Narzędzia", "wnioski": "Instrukcja", "okres": "on"}
             self.assertEqual(klient(osoba).post(adres, raport).status_code, 302)
         with self.settings(ASYSTENT_DZIS="2026-09-15"):  # rozmowa oceniająca: w okresie oceny i nie później niż dziś
@@ -727,3 +727,58 @@ class PierwszaTest(Podstawa):
             odpowiedz = szef.get(kalendarz, follow=True)
             self.assertRedirects(odpowiedz, adres)
             self.assertContains(odpowiedz, "nie biegnie żaden termin")
+
+    # --- termin sprawozdania zostawia dzień na ocenę ---
+
+    BLAD_OSTATNIEGO_DNIA = ("Termin sprawozdania nie może kończyć się w ostatnim dniu okresu dokonania pierwszej oceny (30.11.2026). "
+                            "Wskaż najpóźniej 29.11.2026 - po upływie terminu potrzebny jest jeszcze dzień na rozmowę oceniającą i ocenę "
+                            "(§ 4 ust. 1 i § 8 ust. 1 rozp.).")
+
+    def test_termin_sprawozdania_nie_konczy_sie_w_ostatnim_dniu_okresu_oceny(self):
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        szef = klient(self.z.szef)
+        szef.raise_request_exception = False
+        rozmowa = {"akcja": "wstepna", "rozmowa": "2026-09-10", "od": "2026-09-10"}
+        with self.settings(ASYSTENT_DZIS="2026-09-10"):
+            self.assertContains(szef.get(adres), "Termin sprawozdania musi skończyć się najpóźniej 29.11.2026")
+            odrzucony = szef.post(adres, {**rozmowa, "do": "2026-11-30"})
+            self.assertEqual(odrzucony.status_code, 200)
+            self.assertContains(odrzucony, f'<li id="id_wstepna_do_error">Termin złożenia sprawozdania - do: {self.BLAD_OSTATNIEGO_DNIA}</li>')
+            self.assertEqual(bledy_dostepnosci(odrzucony.content.decode()), [])
+            osoba.umowa.pierwsza.refresh_from_db()
+            self.assertNotIn("wstepna", osoba.umowa.pierwsza.dane)
+            self.assertEqual(szef.post(adres, {**rozmowa, "do": "2026-11-29"}).status_code, 302)  # przedostatni dzień jest dozwolony
+            osoba.umowa.pierwsza.refresh_from_db()
+            self.assertEqual(osoba.umowa.pierwsza.dane["wstepna"]["do"], "2026-11-29")
+
+    def test_nowy_termin_sprawozdania_tez_zostawia_dzien_na_ocene(self):
+        osoba, adres, szef = self.przygotuj_arkusz()  # termin sprawozdania 03.09 - 20.09.2026
+        szef.raise_request_exception = False
+        with self.settings(ASYSTENT_DZIS="2026-09-10"):
+            odrzucony = szef.post(adres, {"akcja": "termin", "od": "2026-09-10", "do": "2026-11-30", "pismo": "on"})
+            self.assertEqual(odrzucony.status_code, 200)
+            self.assertContains(odrzucony, f'<li id="id_termin_do_error">Nowy koniec terminu sprawozdania: {self.BLAD_OSTATNIEGO_DNIA}</li>')
+            osoba.umowa.pierwsza.refresh_from_db()
+            self.assertEqual(osoba.umowa.pierwsza.dane["wstepna"]["do"], "2026-09-20")
+            self.assertEqual(szef.post(adres, {"akcja": "termin", "od": "2026-09-10", "do": "2026-11-29", "pismo": "on"}).status_code, 302)
+            osoba.umowa.pierwsza.refresh_from_db()
+            self.assertEqual(osoba.umowa.pierwsza.dane["wstepna"]["do"], "2026-11-29")
+
+    def test_w_ostatnim_dniu_okresu_oceny_karta_mowi_ze_terminu_nie_da_sie_juz_wyznaczyc(self):
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        szef = klient(self.z.szef)
+        szef.raise_request_exception = False
+        with self.settings(ASYSTENT_DZIS="2026-11-29"):  # został jeden dzień: termin może skończyć się dziś
+            self.assertNotContains(szef.get(adres), "nie da się już wyznaczyć")
+        with self.settings(ASYSTENT_DZIS="2026-11-30"):
+            strona = szef.get(adres)
+            self.assertContains(strona, "Terminu sprawozdania nie da się już wyznaczyć tak, żeby po jego upływie został dzień na ocenę: "
+                                        "okres dokonania pierwszej oceny kończy się 30.11.2026.")
+            self.assertEqual(bledy_dostepnosci(strona.content.decode()), [])
+            odrzucony = szef.post(adres, {"akcja": "wstepna", "rozmowa": "2026-11-30", "od": "2026-11-30", "do": "2026-11-30"})
+            self.assertEqual(odrzucony.status_code, 200)
+            self.assertContains(odrzucony, "Termin sprawozdania nie może kończyć się w ostatnim dniu okresu dokonania pierwszej oceny (30.11.2026).")
+        osoba.umowa.pierwsza.refresh_from_db()
+        self.assertNotIn("wstepna", osoba.umowa.pierwsza.dane)

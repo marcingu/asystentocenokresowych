@@ -131,6 +131,11 @@ def zapisz_etap(akcja, formularz, ocena, dzien, od, do):
     dane, pola = ocena.dane, dict(formularz.cleaned_data)
     zapis = {k: v.isoformat() if isinstance(v, date) else v for k, v in pola.items()}
     zapis["data"] = dzien.isoformat()
+    # § 8 ust. 1 rozp.: rozmowa oceniająca jest po złożeniu sprawozdania albo po upływie jego terminu. Termin kończący się
+    # w ostatnim dniu okresu oceny nie zostawia na nią dnia, a § 4 ust. 1 wymaga terminu, który pozwala ocenić w tym okresie.
+    ostatni_dzien = (f"Termin sprawozdania nie może kończyć się w ostatnim dniu okresu dokonania pierwszej oceny ({do:%d.%m.%Y}). "
+                     f"Wskaż najpóźniej {do - DZIEN:%d.%m.%Y} - po upływie terminu potrzebny jest jeszcze dzień na rozmowę oceniającą "
+                     "i ocenę (§ 4 ust. 1 i § 8 ust. 1 rozp.).")
     if akcja == "wstepna":
         poczatek, ostatni = poczatek_biegu(ocena), min(dzien, ocena.umowa.koniec)
         rozmowa_w_zakresie = poczatek <= pola["rozmowa"] <= ostatni
@@ -143,11 +148,15 @@ def zapisz_etap(akcja, formularz, ocena, dzien, od, do):
             formularz.add_error("do", "Koniec terminu nie może być wcześniejszy niż jego początek.")
         elif not od <= pola["od"] <= pola["do"] <= do:
             formularz.add_error("do", f"Termin sprawozdania musi mieścić się w okresie dokonania pierwszej oceny: {od:%d.%m.%Y} - {do:%d.%m.%Y}.")
+        elif pola["do"] == do:
+            formularz.add_error("do", ostatni_dzien)
         elif rozmowa_w_zakresie and pola["rozmowa"] > pola["od"]:  # przy błędnej dacie rozmowy nie dokładamy błędu wtórnego
             formularz.add_error("od", f"Termin sprawozdania nie może zaczynać się przed rozmową wstępną ({pola['rozmowa']:%d.%m.%Y}).")
     elif akcja == "termin":
         if not od <= pola["od"] <= pola["do"] <= do or pola["do"].isoformat() <= dane["wstepna"]["do"] or pola["do"] < dzien:
             formularz.add_error("do", "Wskaż późniejszy termin w okresie oceny.")
+        elif pola["do"] == do:
+            formularz.add_error("do", ostatni_dzien)
         else:
             dane.setdefault("historia_terminow", []).append(dict(dane["wstepna"]))
             dane["wstepna"].update(od=zapis["od"], do=zapis["do"])
@@ -200,6 +209,7 @@ def karta(request, pk):
     osoba = uprawnienia.pracownik_uzytkownika(request.user)
     dane, umowa, dzien = ocena.dane, ocena.umowa, dzis()
     od, do, termin_wstepnej = terminy_sprawy(ocena)
+    koniec_sprawozdania = do - DZIEN  # najpóźniejszy koniec terminu sprawozdania: po nim zostaje dzień na ocenę
     akcja = request.POST.get("akcja") if request.method == "POST" else None
     formularze = {}
 
@@ -217,7 +227,8 @@ def karta(request, pk):
     if "wstepna" not in dane:
         if jest_szefem:
             # Podpowiedziany termin sprawozdania nie zaczyna się w przeszłości: przy spóźnionej rozmowie byłby wcześniejszy niż ona.
-            dodaj("wstepna", Wstepna, initial={"rozmowa": dzien if dzien <= termin_wstepnej else None, "od": min(max(od, dzien), do), "do": do})
+            dodaj("wstepna", Wstepna, initial={"rozmowa": dzien if dzien <= termin_wstepnej else None,
+                                               "od": min(max(od, dzien), koniec_sprawozdania), "do": koniec_sprawozdania})
     elif "ocena" not in dane:
         if jest_szefem and "raport" not in dane:
             dodaj("termin", NowyTermin)
@@ -239,8 +250,8 @@ def karta(request, pk):
 
     ostatni = min(dzien, umowa.koniec)  # czynności, które już się odbyły, nie mają daty późniejszej niż dziś
     zakres("wstepna", ["rozmowa"], poczatek_biegu(ocena), ostatni)
-    zakres("wstepna", ["od", "do"], od, do)
-    zakres("termin", ["od", "do"], od, do)
+    zakres("wstepna", ["od", "do"], od, koniec_sprawozdania)
+    zakres("termin", ["od", "do"], od, koniec_sprawozdania)
     zakres("egzamin", ["dzien_egzaminu"], umowa.poczatek, ostatni)
     zakres("ocena", ["rozmowa"], od, min(dzien, do))
     if request.method == "POST":

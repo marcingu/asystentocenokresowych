@@ -57,6 +57,9 @@
   {% if spozniona_wstepna %}
   <p class="komunikat komunikat-warning">Termin rozmowy wstępnej upłynął {{ termin_wstepnej|date:"d.m.Y" }}. Wpisz dzień, w którym rozmowa faktycznie się odbyła.</p>
   {% endif %}
+  {% if brak_dnia_na_termin %}
+  <p class="komunikat komunikat-warning">Terminu sprawozdania nie da się już wyznaczyć tak, żeby po jego upływie został dzień na ocenę: okres dokonania pierwszej oceny kończy się {{ do|date:"d.m.Y" }}.</p>
+  {% endif %}
   <form method="post" class="formularz">
     {% csrf_token %}
     <input type="hidden" name="akcja" value="wstepna">
@@ -67,7 +70,7 @@
     {{ f.od }}
     {{ f.do.label_tag }}
     {{ f.do }}
-    <p class="podpowiedz">Okres dokonania pierwszej oceny: {{ od|date:"d.m.Y" }} - {{ do|date:"d.m.Y" }} (art. 38 ust. 1 u.s.c.). Termin sprawozdania musi mieścić się w tym okresie - tak, żeby pierwszej oceny można było dokonać w terminie (§ 4 ust. 1 rozp.).</p>
+    <p class="podpowiedz">Okres dokonania pierwszej oceny: {{ od|date:"d.m.Y" }} - {{ do|date:"d.m.Y" }} (art. 38 ust. 1 u.s.c.). Termin sprawozdania musi skończyć się najpóźniej {{ koniec_sprawozdania|date:"d.m.Y" }} - dzień przed końcem tego okresu, żeby po upływie terminu można było jeszcze przeprowadzić rozmowę oceniającą i dokonać oceny (§ 4 ust. 1 i § 8 ust. 1 rozp.).</p>
     <button type="submit" class="przycisk">Zapisz rozmowę i termin</button>
   </form>
   {% endwith %}
