@@ -147,6 +147,14 @@
   </ul>
 </section>
 
+<section class="karta" aria-labelledby="n-praktyki">
+  <h2 id="n-praktyki">Dobre praktyki zarządcze</h2>
+  {% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.informacja_zwrotna %}
+  {% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.mocne_strony %}
+  {% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.zarzadzanie %}
+  {% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.rozmowa %}
+</section>
+
 </aside>
 </div>
 {% endblock %}

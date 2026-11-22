@@ -54,6 +54,7 @@
     <li>omawiasz oczekiwania co do postawy, zaangażowania i postępów w pracy, relacji ze współpracownikami oraz terminowości wykonywania zadań, biorąc pod uwagę opisy elementów oceny z załącznika nr 1 do rozporządzenia,</li>
     <li>wyznaczasz termin na złożenie sprawozdania.</li>
   </ol>
+  {% if praktyki %}{% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.rozmowa %}{% endif %}
   {% if spozniona_wstepna %}
   <p class="komunikat komunikat-warning">Termin rozmowy wstępnej upłynął {{ termin_wstepnej|date:"d.m.Y" }}. Wpisz dzień, w którym rozmowa faktycznie się odbyła.</p>
   {% endif %}
@@ -182,8 +183,13 @@
 
     <label for="{{ f.uzasadnienie.id_for_label }}">{{ f.uzasadnienie.label }} <span class="wymagane">wymagane przy ocenie negatywnej (§ 10 ust. 4 rozp.)</span></label>
     {{ f.uzasadnienie }}
+    {% if praktyki %}
+    {% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.informacja_zwrotna %}
+    {% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.mocne_strony %}
+    {% endif %}
     <label for="{{ f.rozwoj.id_for_label }}">{{ f.rozwoj.label }}<small>tylko przy ocenie pozytywnej, nieobowiązkowe (§ 10 ust. 6 rozp.)</small></label>
     {{ f.rozwoj }}
+    {% if praktyki %}{% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.zarzadzanie %}{% endif %}
     <label class="pole-wyboru">{{ f.porozumienie }} {{ f.porozumienie.label }}</label>
 
     <div class="przyciski">

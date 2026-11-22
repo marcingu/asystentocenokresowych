@@ -24,6 +24,7 @@ from asystent_ocen.przebieg import DOBROSTAN, OBSERWACJA, OSIAGNIECIE
 
 from . import dziennik, uprawnienia
 from .czas import dzis
+from .dobre_praktyki import PRAKTYKI
 from .models import Ocena
 from .notatki import POWROTY, RODZAJ_DLA_KARTY, RODZAJE_NOTATEK
 from .radar import WYLACZONY, radar_oceny
@@ -104,6 +105,7 @@ def kontekst_przegladu(pracownik, prowadzone: list[Ocena], parametry, dzien: dat
         "radar": None if radar.stan == WYLACZONY else radar,
         "mozna_dodac_notatke": not biezaca.zakonczona,
         "rodzaje_notatek": RODZAJE_NOTATEK,
+        "praktyki": PRAKTYKI,
     }
 
 
@@ -135,5 +137,5 @@ def nowa_notatka(request, pk: int):
         "powrot": powrot if powrot in POWROTY else "",
         "wybrany_rodzaj": RODZAJ_DLA_KARTY[karta.rodzaj] if karta else rodzaj if rodzaj in dict(RODZAJE_NOTATEK) else OBSERWACJA,
         "tresc_notatki": f"{karta.tytul}: " if karta else "",
-        "rodzaje_notatek": RODZAJE_NOTATEK,
+        "rodzaje_notatek": RODZAJE_NOTATEK, "praktyki": PRAKTYKI,
     })

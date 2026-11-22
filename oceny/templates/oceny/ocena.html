@@ -51,6 +51,7 @@
   <h3>Przygotuj rozmowę o kryteriach</h3>
   <p>Omów z pracownikiem główne obowiązki z opisu stanowiska, kryteria oceny, oczekiwania co do ich spełniania oraz ewentualne cele zadaniowe i sposób ich realizacji. Po rozmowie wpisz wybór kryteriów i termin oceny w części I.</p>
   {% if not ocena.poprzednia_id %}<p>Przy pierwszej ocenie okresowej po zatrudnieniu na czas nieokreślony na rozmowę i zapoznanie z kryteriami masz 30 dni. Ten proces jest odrębny od pierwszej oceny w służbie cywilnej.</p>{% endif %}
+  {% if praktyki %}{% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.rozmowa %}{% endif %}
   <form method="post" action="{% url 'czynnosc' ocena.pk 'wyznacz-kryteria' %}" class="formularz">
     {% csrf_token %}
     <fieldset>
@@ -216,6 +217,7 @@
   </ol>
   <p class="podpowiedz">Rozmowa ma być dialogiem oceniającego z ocenianym, a nie monologiem oceniającego (Poradnik KPRM, pkt 6.2.4).
     Jej celem jest też zmotywowanie pracownika i zaplanowanie jego rozwoju zawodowego.</p>
+  {% if praktyki %}{% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.rozmowa %}{% endif %}
   {% if copilot.rozmowa_dostepna %}
   <div class="copilot">
     <p class="podpowiedz"><span class="etykieta-ai">AI</span> Wirtualny HR partner ułoży z Twoich notatek z okresu oceny
@@ -354,6 +356,10 @@
 
     <label for="uzasadnienie">Uzasadnienie przyznanej oceny {% if f.podglad and f.podglad.ocena == 'NEGATYWNA' %}<span class="wymagane">wymagane przy ocenie negatywnej (§ 11 ust. 3 rozp.)</span>{% endif %}</label>
     <textarea name="uzasadnienie" id="uzasadnienie" rows="5">{{ f.uzasadnienie }}</textarea>
+    {% if praktyki %}
+    {% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.informacja_zwrotna %}
+    {% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.mocne_strony %}
+    {% endif %}
 
     {% if copilot.dostepny %}
     <div class="copilot">
@@ -386,6 +392,7 @@
 
     <label for="wnioski_iprz">Wnioski dotyczące indywidualnego programu rozwoju zawodowego <span class="wymagane">wymagane</span></label>
     <textarea name="wnioski_iprz" id="wnioski_iprz" rows="4">{{ f.wnioski_iprz }}</textarea>
+    {% if praktyki %}{% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.zarzadzanie %}{% endif %}
 
     {% if f.urzednik %}
     <fieldset>

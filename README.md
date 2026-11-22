@@ -27,6 +27,7 @@ Pokaz włącza - wyłącznie na danych fikcyjnych - trzy funkcje modelu językow
 - **Kadry**: lista pracowników z wyszukiwaniem, filtrami (komórka organizacyjna, status oceny) i sortowaniem.
 - **Notatki oceniającego**: obserwacje z pracy, dodatkowe osiągnięcia pracownika, wpisy o dobrostanie i organizacji pracy oraz - przy pierwszej ocenie - wynik egzaminu ze służby przygotowawczej. Notatkę dodaje się z karty oceny albo jednym kliknięciem z listy „Oceny, które prowadzę”. Wpisy o dobrostanie nie są podstawą oceny i nie trafiają do modelu językowego.
 - **Przegląd współpracy**: strona przełożonego o jednym pracowniku - jego notatki obok kart Radaru tego samego rodzaju (dobrostan przy dobrostanie, osiągnięcia przy docenieniu), nieobecności i oceny, które prowadzi. Zakres dat: bieżący okres oceny (domyślnie), ostatnie 3 albo 12 miesięcy, cały okres zatrudnienia albo własne daty. Stronę widzi tylko oceniający; każde otwarcie zostaje w dzienniku.
+- **Dobre praktyki zarządcze:** przy polach, które wypełnia przełożony - uzasadnieniu oceny, wnioskach do IPRZ, rozmowie i notatce - są rozwijane podpowiedzi: jak formułować konstruktywną informację zwrotną, jak opisywać mocne strony i obszary do rozwoju, jak przełożyć wynik oceny na codzienne zarządzanie zespołem. Każda ma kilka wskazówek, parę „zamiast - napisz” i punkt Poradnika KPRM „Oceny okresowe w służbie cywilnej”, na którym się opiera. To stałe teksty, nie odpowiedzi modelu; widzi je tylko oceniający albo bezpośredni przełożony, także przy pierwszej ocenie i zebrane na „Przeglądzie współpracy”.
 - **Moje dane z EZD RP** - strona pracownika: na jaki poziom w jego kryteriach wskazują fakty z EZD RP według jawnych progów urzędu, bez modelu AI. Jest w menu tylko przy włączonej integracji z EZD RP. Mówi wprost, że to przypuszczenie, i niczego nie zapisuje.
 - **Wydruk arkusza** zgodnego ze wzorem z rozporządzenia (PDF do podpisu, DOCX) i terminy do kalendarza (iCalendar).
 - **Asystent AI** na lokalnym modelu PLLuM: odpowiada na pytania o procedurę, wskazuje przepisy i ostrzega, gdy odpowiedź modelu powołuje przepis albo liczbę spoza źródeł.
@@ -42,7 +43,7 @@ Pokaz włącza - wyłącznie na danych fikcyjnych - trzy funkcje modelu językow
 - **Radar Dobrostanu i Doceniania**: na karcie oceny pracownik i jego przełożony widzą te same karty obserwacji - fakty z systemu kadrowego i EZD RP, np. urlop zaległy z terminem z Kodeksu pracy, godziny nadliczbowe, sprawy przejęte po nieobecnych, terminowość. Karty liczy zwykły kod według progów urzędu (`asystent_ocen/radar.toml`): bez punktów, rankingu i wniosków o zdrowiu albo emocjach. Radar działa po spełnieniu tych samych warunków Kodeksu pracy co karta z EZD RP. Przy karcie przełożony zapisuje ustalenie albo osiągnięcie jako notatkę właściwego rodzaju. W pokazie liczby są przykładowe - prototyp nie ma połączenia z systemem kadrowym.
 - **Pytania do kart obserwacji** (po instalacji wyłączone): model układa do każdej karty jedno pytanie otwarte dla przełożonego. Dostaje same karty, bez danych osobowych; pytanie o zdrowie, emocje albo sprawy prywatne jest odrzucane. To funkcja wysokiego ryzyka - włącza ją decyzja urzędu.
 
-Testy: 750 testów rdzenia i 513 testów aplikacji.
+Testy: 750 testów rdzenia i 521 testów aplikacji.
 
 ## Założenia
 

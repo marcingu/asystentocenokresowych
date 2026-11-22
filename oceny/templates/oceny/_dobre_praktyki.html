@@ -1,0 +1,10 @@
+{# Podpowiedź dla przełożonego przy polu formularza. Parametr: praktyka (oceny.dobre_praktyki.Praktyka). #}
+<details class="praktyki">
+  <summary>Dobre praktyki: {{ praktyka.tytul }}</summary>
+  <ul>
+    {% for wskazowka in praktyka.wskazowki %}<li>{{ wskazowka }}</li>
+    {% endfor %}
+  </ul>
+  <p class="przyklad"><strong>Zamiast:</strong> „{{ praktyka.zamiast }}”<br><strong>Napisz:</strong> „{{ praktyka.napisz }}”</p>
+  <p class="podpowiedz">Podpowiedź dla przełożonego, nie przepis.{% if praktyka.zrodlo %} {{ praktyka.zrodlo }}{% endif %}</p>
+</details>

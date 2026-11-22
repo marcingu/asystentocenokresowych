@@ -782,3 +782,20 @@ class PierwszaTest(Podstawa):
             self.assertContains(odrzucony, "Termin sprawozdania nie może kończyć się w ostatnim dniu okresu dokonania pierwszej oceny (30.11.2026).")
         osoba.umowa.pierwsza.refresh_from_db()
         self.assertNotIn("wstepna", osoba.umowa.pierwsza.dane)
+
+    # --- dobre praktyki zarządcze przy formularzach bezpośredniego przełożonego ---
+
+    def test_przelozony_ma_podpowiedzi_przy_rozmowie_wstepnej_i_przy_ocenie_a_oceniany_ich_nie_widzi(self):
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        szef = klient(self.z.szef)
+        self.assertContains(szef.get(adres), "<summary>Dobre praktyki: jak prowadzić rozmowę z pracownikiem</summary>")
+        self.assertNotContains(klient(osoba).get(adres), "Dobre praktyki")
+        self.assertEqual(szef.post(adres, self.WSTEPNA).status_code, 302)
+        with self.settings(ASYSTENT_DZIS="2026-09-21"):  # po terminie sprawozdania przełożony ma formularz oceny
+            html = szef.get(adres).content.decode()
+            for tytul in ("jak formułować konstruktywną informację zwrotną", "jak opisywać mocne strony i obszary do rozwoju",
+                          "jak przełożyć wynik oceny na codzienne zarządzanie zespołem"):
+                self.assertIn(f"<summary>Dobre praktyki: {tytul}</summary>", html)
+            self.assertEqual(bledy_dostepnosci(html), [])
+            self.assertNotContains(klient(osoba).get(adres), "Dobre praktyki")

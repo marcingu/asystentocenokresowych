@@ -200,6 +200,10 @@ summary { cursor: pointer; color: var(--granat); font-weight: 600; }
 .zakresy a[aria-current="true"] { background: var(--granat); color: #fff; font-weight: 700; }
 .formularz-zakres { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem 1rem; align-items: end; max-width: 40rem; }
 .formularz-zakres label { display: block; margin-top: 0; }
+
+/* dobre praktyki zarządcze - podpowiedzi dla przełożonego przy polach formularzy */
+.praktyki ul { margin: .4rem 0; padding-left: 1.2rem; }
+.praktyki .przyklad { background: var(--szare-tlo); border-left: 3px solid var(--granat); padding: .5rem .7rem; margin: .4rem 0; }
 .konfiguracja { background: #10202f; color: #e6edf5; padding: 1rem; border-radius: 4px; overflow: auto; max-height: 34rem; font-size: .85rem; line-height: 1.45; }
 
 /* statystyki */

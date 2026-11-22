@@ -20,6 +20,7 @@ from asystent_ocen.wynik import NEGATYWNA, bledy_ocen_czastkowych, formatuj_sred
 from . import drukowanie
 from .formularze import nazwy_kryteriow
 from .kontekst_ezd import karta_kontekstu
+from .dobre_praktyki import PRAKTYKI
 from .notatki import RODZAJE_NOTATEK
 from .radar import radar_oceny
 from .models import Ocena, WniosekOTermin
@@ -351,6 +352,7 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
         kontekst["osiagniecia"] = [notatka for notatka in notatki if notatka.rodzaj == OSIAGNIECIE]
         kontekst["dobrostan"] = [notatka for notatka in notatki if notatka.rodzaj == DOBROSTAN]
         kontekst["rodzaje_notatek"] = RODZAJE_NOTATEK
+        kontekst["praktyki"] = PRAKTYKI  # podpowiedzi dla przełożonego przy polach formularzy
         kontekst["egzamin"] = next((notatka for notatka in notatki if notatka.rodzaj == EGZAMIN), None)
         kontekst["mozna_dodac_notatke"] = not zakonczona
         kontekst["mozna_zapisac_egzamin"] = not zakonczona and ocena.pierwsza

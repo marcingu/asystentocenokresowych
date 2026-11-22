@@ -13,3 +13,4 @@
   <textarea name="tresc" id="tresc_notatki" rows="3" required>{{ tresc_notatki }}</textarea>
   <button type="submit" class="przycisk przycisk-drugi">Zapisz wpis</button>
 </form>
+{% if praktyki %}{% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.notatka %}{% endif %}

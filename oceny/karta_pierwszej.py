@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import date
 
+from .dobre_praktyki import PRAKTYKI
 from .karta import opis_stanu_terminu, stan_terminu  # te same stany i opisy terminów co na karcie oceny okresowej
 from .pierwsza import CZESCI_RAPORTU, DZIEN, ELEMENTY, OPISY_EGZAMINU, SKALA, WNIOSKI
 from .umowy import koniec_okresu
@@ -296,6 +297,7 @@ def kontekst_karty(ocena, osoba, dzien: date, *, od: date, do: date, termin_wste
         "spozniona_wstepna": not wstepna and dzien > termin_wstepnej,
         # Koniec terminu sprawozdania zostawia dzień na rozmowę oceniającą i ocenę (§ 4 ust. 1 i § 8 ust. 1 rozp.).
         "koniec_sprawozdania": do - DZIEN,
+        "praktyki": PRAKTYKI if jest_szefem else None,  # podpowiedzi dla przełożonego przy polach formularzy
         "brak_dnia_na_termin": not wstepna and dzien >= do,
         "po_terminie_raportu": bool(wstepna and dzien.isoformat() > wstepna["do"]),
         "zastepstwo": umowa.kwalifikacja == ZASTEPSTWO,
