@@ -17,9 +17,7 @@ from .models import PierwszaOcena, UmowaTerminowa
 TERMINOWA = "umowa_na_czas_okreslony"
 STALA = "umowa_na_czas_nieokreslony"
 DZIEN = timedelta(days=1)
-KWALIFIKACJE = (
-    ("", "- wybierz dla umowy terminowej -"),
-    ("pierwsza", "Pierwsze zatrudnienie w służbie cywilnej - 12 miesięcy"),
+WYJATKI_TERMINOWE = (
     ("ksap", "Pierwsza umowa - absolwent KSAP z wnioskiem o mianowanie"),
     ("zastepstwo", "Zastępstwo - bez pierwszej oceny"),
     ("zastepstwo_ocena", "Zastępstwo - strony ustaliły pierwszą ocenę"),
@@ -67,6 +65,8 @@ def rozlicz_umowy():
                 osoba = umowa.osoba
                 osoba.rodzaj_zatrudnienia = STALA
                 osoba.save(update_fields=["rodzaj_zatrudnienia"])
+                from .cykle import uzgodnij
+                uzgodnij(osoba.pk)
             else:
                 zablokuj_konto(umowa.osoba.uzytkownik, wykonawca=None, powod="Upłynął okres zatrudnienia.")
             zmiany += 1

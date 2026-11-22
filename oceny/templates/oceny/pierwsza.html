@@ -15,5 +15,10 @@
 {% if wniosek %}<h2>Wniosek do dyrektora generalnego</h2><p>{{ wniosek }} ({{ dane.wniosek.data }}). Wniosek nie jest zawarciem ani rozwiązaniem umowy.</p>{% endif %}
 {% for kod, formularz in formularze.items %}<section class="karta"><h2>{% if kod == 'wstepna' %}Zapisz rozmowę wstępną{% elif kod == 'termin' %}Zmień termin sprawozdania{% elif kod == 'raport' %}Złóż sprawozdanie{% elif kod == 'ocena' %}Dokonaj pierwszej oceny{% else %}Złóż wniosek do dyrektora generalnego{% endif %}</h2>
 <form method="post" class="formularz">{% csrf_token %}<input type="hidden" name="akcja" value="{{ kod }}">{{ formularz.as_div }}<button type="submit" class="przycisk">Zatwierdź</button></form></section>{% endfor %}
-<p>Arkusz roboczy. Podpisy, wydanie kopii i przekazanie dokumentów do akt wykonaj na urzędowych wzorach (<a href="https://eli.gov.pl/api/acts/DU/2015/1144/text.pdf">Dz. U. 2015 poz. 1144, zał. 2 i 3</a>).</p>
+<section class="karta" aria-labelledby="wydruki"><h2 id="wydruki">Dokumenty do podpisu</h2>
+<p>Dokumenty zawierają dane zapisane do tej pory. Niewypełnione pola i miejsca na podpis pozostają puste.</p>
+<ul>
+<li>Arkusz pierwszej oceny - zał. 2: <a href="{% url 'pierwsza_wydruk' ocena.pk 'arkusz' 'docx' %}">Arkusz pierwszej oceny - zał. 2 (DOCX)</a>, <a href="{% url 'pierwsza_wydruk' ocena.pk 'arkusz' 'pdf' %}">Arkusz pierwszej oceny - zał. 2 (PDF)</a></li>
+<li>Sprawozdanie - zał. 3: <a href="{% url 'pierwsza_wydruk' ocena.pk 'sprawozdanie' 'docx' %}">Sprawozdanie - zał. 3 (DOCX)</a>, <a href="{% url 'pierwsza_wydruk' ocena.pk 'sprawozdanie' 'pdf' %}">Sprawozdanie - zał. 3 (PDF)</a></li>
+</ul><p><a href="https://www.gov.pl/web/sluzbacywilna/pierwsza-ocena">Źródło wzorów: Serwis Służby Cywilnej</a>.</p></section>
 {% endblock %}

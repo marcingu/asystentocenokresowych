@@ -160,7 +160,16 @@ class Pracownik(models.Model):
             raise ValidationError({"przelozony": "Pracownik nie może być własnym przełożonym."})
 
 
+class AktywneArkusze(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(omylkowa=False)
+
+
 class Ocena(models.Model):
+    # Wycofanie błędnie otwartej sprawy nie jest wynikiem ani usunięciem historii.
+    omylkowa = models.BooleanField(default=False)
+    objects = AktywneArkusze()
+    wszystkie = models.Manager()
     oceniany = models.ForeignKey(Pracownik, on_delete=models.PROTECT, related_name="oceny")
     oceniajacy = models.ForeignKey(Pracownik, on_delete=models.PROTECT, related_name="oceny_wystawiane")
     poprzednia = models.OneToOneField(

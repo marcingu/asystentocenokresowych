@@ -6,6 +6,7 @@ albo komunikat rdzenia razem z podstawą prawną.
 
 from __future__ import annotations
 
+
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
@@ -235,12 +236,6 @@ def _rozpatrz_sprzeciw(request, wybrana: Ocena):
     messages.success(request, "Rozstrzygnięcie sprzeciwu zostało wprowadzone.")
 
 
-def _kolejny_cykl(request, wybrana: Ocena):
-    nowa = uslugi.rozpocznij_kolejny_cykl(wybrana, request.user)
-    messages.success(request, "Rozpoczęto kolejny cykl oceny.")
-    return redirect("ocena", pk=nowa.pk)
-
-
 CZYNNOSCI = {
     "wyznacz-kryteria": _wyznacz_kryteria,
     "potwierdz-kryteria": _potwierdz_kryteria,
@@ -259,7 +254,6 @@ CZYNNOSCI = {
     "fikcja-zapoznania": _fikcja_zapoznania,
     "sprzeciw": _sprzeciw,
     "rozpatrz-sprzeciw": _rozpatrz_sprzeciw,
-    "kolejny-cykl": _kolejny_cykl,
 }
 
 
@@ -272,6 +266,9 @@ def czynnosc(request, pk: int, nazwa: str):
     wybrana = _ocena_uzytkownika(request, pk)
     try:
         odpowiedz = obsluga(request, wybrana)
+        if nazwa in ("potwierdz-zapoznanie", "fikcja-zapoznania", "rozpatrz-sprzeciw") and wybrana.zakonczona:
+            from .cykle import uzgodnij
+            uzgodnij(wybrana.oceniany_id)
     except BladWalidacji as wyjatek:
         _zglos_bledy(request, wyjatek)
         odpowiedz = None
@@ -345,19 +342,6 @@ def moje_dane_ezd(request):
     if pracownik is None:
         raise Http404
     return render(request, "oceny/wskazania_ezd.html", dane_wskazan(pracownik, dzis()))
-
-
-@require_POST
-def kadry_rozpocznij(request, pk: int):
-    _wymagaj_kadr(request)
-    osoba = get_object_or_404(Pracownik, pk=pk)
-    try:
-        nowa = uslugi.rozpocznij_cykl(osoba, request.user)
-    except BladWalidacji as wyjatek:
-        _zglos_bledy(request, wyjatek)
-        return redirect("kadry")
-    messages.success(request, f"Rozpoczęto cykl oceny: {osoba.imie_i_nazwisko}.")
-    return redirect("ocena", pk=nowa.pk)
 
 
 @require_POST

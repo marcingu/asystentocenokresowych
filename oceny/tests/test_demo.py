@@ -184,7 +184,7 @@ class PrzegladStronDemoTest(TestCase):
     def test_panel_kadr_i_statystyki_dzialaja_na_danych_demo(self):
         klient = Client()
         klient.force_login(get_user_model().objects.get(username="kadry"))
-        self.assertContains(klient.get(reverse("kadry")), "Rozpocznij cykl oceny")
+        self.assertNotContains(klient.get(reverse("kadry")), "Rozpocznij cykl oceny")
         self.assertContains(klient.get(reverse("statystyki")), "Wydział Organizacyjny")
 
     def test_pasek_demo_pozwala_przelaczac_konta(self):

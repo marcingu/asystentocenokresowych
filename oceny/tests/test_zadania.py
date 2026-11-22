@@ -78,20 +78,14 @@ class ZadaniaTest(TestCase):
 
         self.assertEqual((zadanie.kod, zadanie.termin, zadanie.stan), ("ZAPOZNAJ_SIE_Z_OCENA", None, "bez_terminu"))
 
-    def test_po_zakonczeniu_kadry_rozpoczynaja_kolejny_cykl_w_terminie_na_nowe_kryteria(self):
-        self.z.ocena_zakonczona()
-
-        zadania = zadania_uzytkownika(self.z.kadry.uzytkownik, DZIEN_OCENY)
-
-        self.assertEqual(kody(zadania), ["ROZPOCZNIJ_KOLEJNY_CYKL"])
-        self.assertEqual(zadania[0].termin, terminy.termin_wyznaczenia_kryteriow(DZIEN_OCENY))
-
-    def test_po_ocenie_negatywnej_termin_na_nowe_kryteria_jest_krotszy(self):
-        """§ 7 pkt 2 rozp.: 7 dni od sporządzenia negatywnej oceny."""
-        self.z.ocena_zakonczona(punkty=1)
-
-        zadanie = zadania_uzytkownika(self.z.kadry.uzytkownik, DZIEN_OCENY)[0]
-
+    def test_po_zakonczeniu_system_otwiera_kolejny_cykl_bez_zadania_dla_kadr(self):
+        from oceny.cykle import uzgodnij
+        ocena = self.z.ocena_zakonczona(punkty=1)
+        nowa = uzgodnij(ocena.oceniany_id)
+        self.assertEqual(nowa.poprzednia, ocena)
+        self.assertIsNone(uzgodnij(ocena.oceniany_id))
+        self.assertEqual(zadania_uzytkownika(self.z.kadry.uzytkownik, DZIEN_OCENY), [])
+        zadanie = zadania_uzytkownika(self.z.szef.uzytkownik, DZIEN_OCENY)[0]
         self.assertEqual(zadanie.termin, terminy.termin_wyznaczenia_kryteriow(DZIEN_OCENY, po_negatywnej=True))
 
     def test_sprzeciw_wstrzymuje_kolejny_cykl_i_daje_dyrektorowi_generalnemu_termin_rozpatrzenia(self):

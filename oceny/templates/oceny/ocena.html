@@ -579,12 +579,6 @@
     <li class="skutek skutek-{{ skutek.kod|lower }}">{{ skutek.opis }} <small>({{ skutek.podstawa }})</small></li>
     {% endfor %}
   </ul>
-  {% if mozna_rozpoczac_kolejny_cykl %}
-  <form method="post" action="{% url 'czynnosc' ocena.pk 'kolejny-cykl' %}">
-    {% csrf_token %}
-    <button type="submit" class="przycisk">Rozpocznij kolejny cykl oceny</button>
-  </form>
-  {% endif %}
 </section>
 {% endif %}
 {% if nastepna %}<p class="komunikat komunikat-info">Po tej ocenie rozpoczęto <a href="{% url 'ocena' nastepna.pk %}">kolejny cykl oceny</a>.</p>{% endif %}

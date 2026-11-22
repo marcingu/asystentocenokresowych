@@ -95,7 +95,7 @@ def zadania_oceny(ocena: Ocena, role: set[Rola], dzien: date) -> list[Zadanie]:
             )
     elif etap == Etap.OCENA_DO_ZAPOZNANIA:
         dodaj(Rola.OCENIANY, "ZAPOZNAJ_SIE_Z_OCENA", "Zapoznaj się z oceną okresową", None, "§ 12 ust. 1 rozp.")
-    elif etap == Etap.ZAKONCZONA and not _ma_nastepna(ocena):
+    elif etap == Etap.ZAKONCZONA:
         w_toku = [sprzeciw for sprzeciw in ocena.sprzeciwy.all() if not sprzeciw.rozpatrzony]
         if w_toku:
             if Rola.OCENIANY not in role:  # sprzeciwu od własnej oceny dyrektor generalny nie rozstrzyga
@@ -103,14 +103,6 @@ def zadania_oceny(ocena: Ocena, role: set[Rola], dzien: date) -> list[Zadanie]:
                     Rola.DYREKTOR_GENERALNY, "ROZPATRZ_SPRZECIW", "Rozpatrz sprzeciw od oceny",
                     terminy.termin_rozpatrzenia_sprzeciwu(w_toku[0].data_wniesienia), "art. 83 ust. 1 i 3 u.s.c.",
                 )
-        else:
-            negatywna = ocena.wynik == NEGATYWNA
-            data_sporzadzenia = ocena.proces().data_sporzadzenia
-            dodaj(
-                Rola.ZARZADZAJACY, "ROZPOCZNIJ_KOLEJNY_CYKL", "Rozpocznij kolejny cykl oceny",
-                terminy.termin_wyznaczenia_kryteriow(data_sporzadzenia, negatywna) if data_sporzadzenia else None,
-                f"§ 7 pkt {2 if negatywna else 1} rozp.",
-            )
     return zadania
 
 

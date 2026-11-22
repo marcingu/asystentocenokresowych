@@ -363,7 +363,7 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
         kontekst["pouczenie"] = pouczenie_o_sprzeciwie(
             proces.arkusz, urzad_ma_dyrektora_generalnego=not settings.ASYSTENT_BEZ_DYREKTORA_GENERALNEGO
         )
-        if oceniany and not sprzeciwy and nastepna is None:
+        if oceniany and not sprzeciwy:
             kontekst["mozna_wniesc_sprzeciw"] = True
             kontekst["termin_sprzeciwu"] = terminy.termin_sprzeciwu(proces.data_zapoznania_z_ocena)
         # Sprzeciw rozstrzyga dyrektor generalny (art. 83 ust. 1 u.s.c.) - poza sprzeciwem od własnej oceny.
@@ -374,8 +374,6 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
                 {"numer": numer, "nazwa": nazwa, "wartosc": proces.oceny.get(nazwa)}
                 for numer, nazwa in enumerate(nazwy_kryteriow(proces))
             ]
-        if kadry and not sprzeciw_w_toku and nastepna is None:
-            kontekst["mozna_rozpoczac_kolejny_cykl"] = True
         if kadry or oceniajacy:
             kontekst["skutki"] = opisy_skutkow(ocena)
     # Fakty z EZD RP są jawne dla obu stron oceny; komórka kadr ich nie potrzebuje (minimalizacja danych).

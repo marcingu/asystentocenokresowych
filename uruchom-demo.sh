@@ -56,6 +56,7 @@ NOWA_BAZA=0
 if [ "$NOWA_BAZA" = 1 ]; then
   .venv/bin/python manage.py demo
 fi
+.venv/bin/python manage.py uzgodnij_cykle
 
 echo "Pokaz działa pod adresem http://127.0.0.1:$PORT/ (zatrzymanie: Ctrl+C)"
 exec .venv/bin/python manage.py runserver "127.0.0.1:$PORT" --noreload

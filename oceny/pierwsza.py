@@ -156,3 +156,29 @@ def karta(request, pk):
         "punkty": [(n, dane.get("ocena", {}).get(f"pkt{i}")) for i,n in enumerate(ELEMENTY)],
         "wniosek": WNIOSKI.get(dane.get("wniosek", {}).get("wybor")),
         "termin_wstepnej": koniec_terminu_dni(date.fromisoformat(dane.get("ustalenie", umowa.poczatek.isoformat())), 21)})
+
+
+@require_http_methods(["GET"])
+def wydruk(request, pk, rodzaj, format):
+    from django.contrib import messages
+    from django.http import Http404
+    from . import drukowanie
+    from .pierwsza_druk import dokument
+    from .views import _plik
+
+    if rodzaj not in ("arkusz", "sprawozdanie") or format not in ("docx", "pdf"):
+        raise Http404
+    ocena = get_object_or_404(widoczne(request.user), pk=pk)
+    tresc = dokument(ocena, rodzaj)
+    typ = drukowanie.TYP_DOCX
+    if format == "pdf":
+        try:
+            tresc = drukowanie.docx_do_pdf(tresc)
+        except drukowanie.BladKonwersji as blad:
+            messages.error(request, str(blad))
+            return redirect("pierwsza_ocena", pk=pk)
+        typ = "application/pdf"
+    dziennik.zapisz(dziennik.POBRANIE_ARKUSZA, request=request, dotyczy=f"pierwsza ocena {pk}", opis=f"{rodzaj} {format}")
+    odpowiedz = _plik(tresc, typ, f"pierwsza-ocena-{pk}-{rodzaj}.{format}")
+    odpowiedz["Cache-Control"] = "private, no-store"
+    return odpowiedz

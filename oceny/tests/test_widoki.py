@@ -139,6 +139,9 @@ class PrzebiegPrzezPrzegladarkeTest(TestCase):
         z_bazy = Ocena.objects.get(pk=self.ocena.pk)
         self.assertEqual((z_bazy.etap, z_bazy.wynik, z_bazy.data_zapoznania), ("ZAKONCZONA", "POZYTYWNA", DZIEN_OCENY))
         self.assertEqual(z_bazy.zdarzenia.count(), 5)
+        kolejna = Ocena.objects.get(poprzednia=z_bazy)
+        self.assertEqual(kolejna.oceniany_id, z_bazy.oceniany_id)
+        self.assertContains(ola.get(self.adres), "sprzeciw")
 
     def test_blad_walidacji_pokazuje_komunikat_z_podstawa_prawna(self):
         """§ 5 ust. 2 rozp. - to samo kryterium wybrane dwa razy."""
@@ -251,15 +254,9 @@ class KadryTest(TestCase):
         self.assertEqual(klient(self.z.szef).get(reverse("kadry")).status_code, 403)
         self.assertEqual(klient(self.z.ola).get(reverse("kadry")).status_code, 403)
 
-    def test_kadry_rozpoczynaja_cykl_z_panelu(self):
-        odpowiedz = klient(self.z.kadry).post(reverse("kadry_rozpocznij", args=[self.z.ola.pk]))
-
-        ocena = Ocena.objects.get(oceniany=self.z.ola)
-        self.assertRedirects(odpowiedz, reverse("ocena", args=[ocena.pk]))
-        self.assertEqual((ocena.oceniajacy, ocena.poczatek_cyklu), (self.z.szef, POCZATEK))
-
-    def test_inna_osoba_nie_rozpocznie_cyklu(self):
-        self.assertEqual(klient(self.z.szef).post(reverse("kadry_rozpocznij", args=[self.z.ola.pk])).status_code, 403)
+    def test_reczny_start_nie_jest_juz_czynnoscia_dostepna_z_panelu(self):
+        for rola in (self.z.kadry, self.z.szef):
+            self.assertEqual(klient(rola).post(f"/kadry/pracownik/{self.z.ola.pk}/rozpocznij/").status_code, 404)
         self.assertFalse(Ocena.objects.exists())
 
     def test_panel_pokazuje_kto_nie_podlega_ocenie_i_dlaczego(self):

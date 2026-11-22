@@ -35,6 +35,9 @@ def ustaw_obsade(wydzial, kierownik, zwierzchnik):
         if zwierzchnik:
             oczekujace.filter(szef=None, umowa__osoba=kierownik).update(szef=zwierzchnik)
         wydzial.pracownicy.filter(pk=kierownik.pk).update(przelozony_id=wydzial.zwierzchnik_id)
+        from .cykle import uzgodnij
+        for pk in osoby:
+            uzgodnij(pk)
 
 
 class PodlegloscZKomorki:

@@ -13,7 +13,7 @@ from .dostepnosc_html import bledy_dostepnosci
 @override_settings(ASYSTENT_DZIS="2026-01-01")
 class PierwszaTest(Podstawa):
     def dodaj(self, **pola):
-        parametry = dict(rodzaj_zatrudnienia="umowa_na_czas_okreslony", kwalifikacja="pierwsza", data_zatrudnienia="2026-01-01")
+        parametry = dict(rodzaj_zatrudnienia="umowa_na_czas_okreslony", data_zatrudnienia="2026-01-01")
         parametry.update(pola)
         self.assertEqual(self.kadry.post(NOWY, dane(**parametry)).status_code, 302)
         return Pracownik.objects.get(nazwisko=parametry.get("nazwisko", "Nowicki"))
@@ -54,7 +54,7 @@ class PierwszaTest(Podstawa):
 
     def test_wyjatki_i_udokumentowane_przedluzenie(self):
         for tryb, podlega in (("inna", False), ("ksap", False), ("zastepstwo", False), ("zastepstwo_ocena", True)):
-            osoba = self.dodaj(nazwisko=f"Test{tryb}", kwalifikacja=tryb, ustalenie="2026-01-01" if tryb == "zastepstwo_ocena" else "", koniec_umowy="" if tryb == "ksap" else "2026-12-31")
+            osoba = self.dodaj(nazwisko=f"Test{tryb}", rodzaj_zatrudnienia=f"terminowa_{tryb}", ustalenie="2026-01-01" if tryb == "zastepstwo_ocena" else "", koniec_umowy="" if tryb == "ksap" else "2026-12-31")
             self.assertEqual(hasattr(osoba.umowa, "pierwsza"), podlega)
         osoba = self.dodaj()
         adres = f"/kadry/umowa/{osoba.umowa.pk}/"
@@ -107,7 +107,7 @@ class PierwszaTest(Podstawa):
             self.assertTrue(osoba.uzytkownik.is_active)
 
     def test_zastepstwo_z_ocena_wymaga_daty_ustalenia_stron(self):
-        odp = self.kadry.post(NOWY, dane(rodzaj_zatrudnienia="umowa_na_czas_okreslony", kwalifikacja="zastepstwo_ocena", koniec_umowy="2027-12-31"))
+        odp = self.kadry.post(NOWY, dane(rodzaj_zatrudnienia="terminowa_zastepstwo_ocena", koniec_umowy="2027-12-31"))
         self.assertContains(odp, "Podaj datę ustalenia")
 
     def test_brak_obsady_mozna_uzupelnic_bez_nadpisania_przypisanych(self):
@@ -174,5 +174,89 @@ class PierwszaTest(Podstawa):
         with self.settings(ASYSTENT_DZIS="2027-01-01"):
             self.kadry.get(LISTA)
             osoba.refresh_from_db()
-            okresowa = uslugi.rozpocznij_cykl(osoba, self.z.kadry.uzytkownik)
+            okresowa = osoba.oceny.get()
             self.assertEqual(okresowa.poczatek_cyklu, date(2027,1,1))
+
+    def test_jeden_wybor_umowy_bez_dodatkowego_pola(self):
+        formularz = self.kadry.get(NOWY)
+        self.assertNotContains(formularz, 'name="kwalifikacja"')
+        self.assertContains(formularz, "12 miesięcy")
+        self.assertEqual(formularz.context["formularz"].initial["rodzaj_zatrudnienia"], "umowa_na_czas_okreslony")
+        self.assertEqual(self.dodaj().umowa.kwalifikacja, "pierwsza")
+
+    def test_stala_automatycznie_raz_po_dodaniu_i_edycji(self):
+        osoba = self.dodaj(rodzaj_zatrudnienia="umowa_na_czas_nieokreslony")
+        pierwsza = osoba.oceny.get()
+        self.assertEqual(pierwsza.oceniajacy, self.z.szef)
+        self.kadry.post(self.edycja(osoba), dane(data_zatrudnienia="2026-01-01"))
+        self.assertEqual(osoba.oceny.get().pk, pierwsza.pk)
+        self.assertNotContains(self.kadry.get(LISTA), "Rozpocznij cykl oceny")
+
+    def test_korekta_zostawia_stary_arkusz_poza_zadaniami(self):
+        from oceny.korekta import skoryguj
+        from oceny.models import Ocena, UmowaTerminowa
+        osoba = self.z.ola
+        osoba.data_zatrudnienia = date(2026, 1, 1)
+        osoba.rodzaj_zatrudnienia = "umowa_na_czas_okreslony"
+        osoba.save()
+        stara = Ocena.utworz(oceniany=osoba, oceniajacy=self.z.szef, poczatek_cyklu=osoba.data_zatrudnienia)
+        stara.szkic = {"uwaga": "w toku"}
+        stara.save()
+        with self.assertRaises(ValueError):
+            skoryguj(osoba.pk, stara.pk)
+        self.assertFalse(UmowaTerminowa.objects.filter(osoba=osoba).exists())
+        stara.szkic = None
+        stara.save()
+        nowa = skoryguj(osoba.pk, stara.pk)
+        self.assertEqual(skoryguj(osoba.pk, stara.pk), nowa)
+        self.assertFalse(osoba.oceny.exists())
+        self.assertEqual(Ocena.wszystkie.get(pk=stara.pk).stan, stara.stan)
+        self.assertTrue(stara.zdarzenia.filter(czynnosc="korekta rodzaju oceny").exists())
+        sesja = klient(osoba)
+        self.assertContains(sesja.get("/"), f'/pierwsza-ocena/{nowa.pk}/')
+        self.assertNotContains(sesja.get("/"), f'href="/oceny/{stara.pk}/"')
+        self.assertEqual(sesja.get(f'/oceny/{stara.pk}/').status_code, 404)
+
+    def test_dwa_urzedowe_wzory_tylko_dla_uprawnionych(self):
+        from io import BytesIO
+        from zipfile import ZipFile
+        from lxml import etree
+        osoba, adres, szef = self.przygotuj_arkusz()
+        for typ, nr in (("arkusz", 2), ("sprawozdanie", 3)):
+            url = adres + typ + ".docx"
+            self.assertContains(klient(osoba).get(adres), url)
+            self.assertEqual(klient(self.z.obcy).get(url).status_code, 404)
+            r = szef.get(url)
+            self.assertEqual(r.status_code, 200)
+            with ZipFile(BytesIO(r.content)) as plik:
+                self.assertIn('word/footnotes.xml', plik.namelist())
+                xml = etree.fromstring(plik.read('word/document.xml'))
+                tekst = ''.join(xml.itertext())
+            for pole in (f'Załącznik nr {nr}', osoba.nazwisko, "03.09.2026", "20.09.2026", "podpis ocenianego"):
+                self.assertIn(pole, tekst)
+
+    def test_wynik_na_arkuszu_i_tresc_w_sprawozdaniu_bez_podpisu(self):
+        from io import BytesIO
+        from zipfile import ZipFile
+        from docx.oxml import parse_xml
+        osoba, adres, szef = self.przygotuj_arkusz()
+        opis = "Rozwiązałem trudny problem.\nWdrożyłem usprawnienie."
+        with self.settings(ASYSTENT_DZIS="2026-09-03"):
+            r = klient(osoba).post(adres, {"akcja": "raport", "tresc": opis, "okres": "on"})
+            self.assertEqual(r.status_code, 302)
+        with self.settings(ASYSTENT_DZIS="2026-09-21"):
+            self.assertEqual(szef.post(adres, self.ocena_dane(rozwoj="Nauka analizy danych.")).status_code, 302)
+            for typ in ("arkusz", "sprawozdanie"):
+                r = szef.get(adres + typ + ".docx")
+                with ZipFile(BytesIO(r.content)) as z:
+                    p = parse_xml(z.read("word/document.xml")).xpath(".//w:body//w:p")
+                    tekst = lambda nr: "".join(p[nr].xpath(".//w:t/text()"))
+                    if typ == "arkusz":
+                        for i in (102, 106, 110, 114, 118, 126, 134, 140):
+                            self.assertEqual(tekst(i), "X")
+                        self.assertEqual(tekst(142), "")
+                        self.assertEqual(tekst(164), "Nauka analizy danych.")
+                        self.assertTrue(tekst(177).startswith("…"))
+                    else:
+                        self.assertIn("Wdrożyłem usprawnienie.", tekst(23))
+                        self.assertTrue(tekst(26).startswith("…"))

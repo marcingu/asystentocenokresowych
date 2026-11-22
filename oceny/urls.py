@@ -8,6 +8,7 @@ from . import pierwsza, umowy, panel_przepisow, urzad, views, widoki_administrac
 
 urlpatterns = [
     path("pierwsza-ocena/<int:pk>/", pierwsza.karta, name="pierwsza_ocena"),
+    path("pierwsza-ocena/<int:pk>/<slug:rodzaj>.<slug:format>", pierwsza.wydruk, name="pierwsza_wydruk"),
     path("kadry/umowa/<int:pk>/", umowy.karta_umowy, name="karta_umowy"),
     path("administracja/wydzialy/", wydzialy.struktura, name="wydzialy"),
     path("administracja/urzad/", urzad.ustawienia, name="administracja_urzad"),
@@ -35,7 +36,6 @@ urlpatterns = [
     path("kadry/", views.kadry, name="kadry"),
     path("kadry/pracownik/nowy/", widoki_kadr.pracownik, name="kadry_pracownik_nowy"),
     path("kadry/pracownik/<int:pk>/", widoki_kadr.pracownik, name="kadry_pracownik"),
-    path("kadry/pracownik/<int:pk>/rozpocznij/", views.kadry_rozpocznij, name="kadry_rozpocznij"),
     path("kadry/pracownik/<int:pk>/nieobecnosc/", views.kadry_nieobecnosc, name="kadry_nieobecnosc"),
     path("kadry/ezd/", views.kadry_ezd, name="kadry_ezd"),
     path("moje-dane-ezd/", views.moje_dane_ezd, name="moje_dane_ezd"),

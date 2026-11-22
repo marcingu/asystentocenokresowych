@@ -14,7 +14,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
-from . import dziennik, umowy, uprawnienia
+from . import cykle, dziennik, umowy, uprawnienia
 from .models import Pracownik, Wydzial, rodzaje_zatrudnienia
 from .podleglosc import PodlegloscZKomorki
 
@@ -39,30 +39,34 @@ class WyborWydzialu(forms.Select):
 class FormularzPracownika(PodlegloscZKomorki, forms.ModelForm):
     rodzaj_zatrudnienia = forms.ChoiceField(
         label="Rodzaj zatrudnienia",
-        help_text="Od rodzaju zatrudnienia zależy, czy osoba podlega ocenie okresowej (art. 81 ust. 1 u.s.c.).",
+        help_text="Dla zwykłej umowy 12-miesięcznej system obliczy datę końca i otworzy pierwszą ocenę. Przy zastępstwie lub innej podstawie wybierz odpowiedni wariant.",
     )
     arkusz = forms.ChoiceField(
         label="Arkusz oceny okresowej", choices=ARKUSZE, required=False,
         help_text="Arkusz wynika ze stanowiska (§ 3 rozp.) i wyznacza kryteria obowiązkowe (§ 4 rozp.).",
     )
 
-    kwalifikacja = forms.ChoiceField(label="Podstawa umowy terminowej", choices=umowy.KWALIFIKACJE, required=False,
-        help_text="Potwierdź historię w całej służbie cywilnej, nie tylko w tym urzędzie.")
     ustalenie = umowy.data_formularza("Data ustalenia przez strony pierwszej oceny przy zastępstwie", required=False)
     koniec_umowy = umowy.data_formularza("Ostatni dzień umowy innej niż pierwsza 12-miesięczna", required=False)
 
     def clean(self):
         pola = super().clean()
+        rodzaj = pola.get("rodzaj_zatrudnienia", "")
+        tryb = "pierwsza" if rodzaj == umowy.TERMINOWA else rodzaj.removeprefix("terminowa_")
+        if rodzaj.startswith("terminowa_"):
+            pola["rodzaj_zatrudnienia"] = umowy.TERMINOWA
         if getattr(self.instance, "umowa", None):
             if "rodzaj_zatrudnienia" in self.changed_data or "data_zatrudnienia" in self.changed_data or pola.get("data_mianowania"):
                 self.add_error("rodzaj_zatrudnienia", "Zarejestrowaną umowę zmieniaj w sekcji umowy, nie przez nadpisanie karty.")
         elif pola.get("rodzaj_zatrudnienia") == umowy.TERMINOWA and not pola.get("data_mianowania"):
-            tryb = pola.get("kwalifikacja")
+            pola["kwalifikacja"] = tryb
+            if self.instance.pk and self.instance.oceny.exists():
+                self.add_error("rodzaj_zatrudnienia", "Najpierw sprawdź i skoryguj istniejący arkusz okresowy. Nie otwarto drugiej sprawy.")
+            if self.data.get("kwalifikacja") not in (None, "", tryb):
+                self.add_error("rodzaj_zatrudnienia", "Odśwież formularz i wybierz właściwą umowę z jednej listy.")
             if tryb == "zastepstwo_ocena" and (not pola.get("ustalenie") or not pola.get("data_zatrudnienia") or not pola.get("koniec_umowy") or not pola["data_zatrudnienia"] <= pola["ustalenie"] <= pola["koniec_umowy"]):
                 self.add_error("ustalenie", "Podaj datę ustalenia przez strony w okresie umowy.")
-            if not tryb:
-                self.add_error("kwalifikacja", "Wskaż podstawę umowy terminowej.")
-            elif tryb not in ("pierwsza", "ksap"):
+            if tryb not in ("pierwsza", "ksap"):
                 if not pola.get("koniec_umowy") or (pola.get("data_zatrudnienia") and pola["koniec_umowy"] < pola["data_zatrudnienia"]):
                     self.add_error("koniec_umowy", "Podaj ostatni dzień wynikający z umowy.")
             elif pola.get("koniec_umowy"):
@@ -106,7 +110,25 @@ class FormularzPracownika(PodlegloscZKomorki, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["rodzaj_zatrudnienia"].choices = rodzaje_zatrudnienia()
+        rodzaje = rodzaje_zatrudnienia()
+        umowa = getattr(self.instance, "umowa", None)
+        opcje = []
+        for kod, nazwa in rodzaje:
+            if kod != umowy.TERMINOWA:
+                opcje.append((kod, nazwa))
+            elif umowa:
+                opis = dict(umowy.WYJATKI_TERMINOWE).get(umowa.kwalifikacja, "Umowa na czas określony - 12 miesięcy")
+                opcje.append((kod, opis))
+            else:
+                opcje.append((kod, "Umowa na czas określony - 12 miesięcy (art. 35 ust. 3)"))
+                opcje.extend((f"terminowa_{tryb}", opis) for tryb, opis in umowy.WYJATKI_TERMINOWE)
+        if not self.instance.pk and umowy.TERMINOWA in dict(rodzaje):
+            self.initial["rodzaj_zatrudnienia"] = umowy.TERMINOWA
+        elif self.instance.pk and not umowa and self.instance.rodzaj_zatrudnienia == umowy.TERMINOWA:
+            # Stary rekord nie określał podstawy ani końca umowy. Nie zgaduj ich przy zwykłej edycji danych.
+            opcje.insert(0, ("", "- wybierz rodzaj zgodnie z umową pracownika -"))
+            self.initial["rodzaj_zatrudnienia"] = ""
+        self.fields["rodzaj_zatrudnienia"].choices = opcje
         self.fields["wydzial"].empty_label = "- wybierz wydział -"
         self.fields["wydzial"].required = True
         if self.instance.rok_mianowania and not self.instance.data_mianowania:
@@ -114,7 +136,7 @@ class FormularzPracownika(PodlegloscZKomorki, forms.ModelForm):
         self.fields["wydzial"].queryset = Wydzial.objects.select_related("kierownik", "zwierzchnik")
         self.fields["wydzial"].widget.osoba_id = self.instance.pk
         if getattr(self.instance, "umowa", None):
-            for nazwa in ("kwalifikacja", "koniec_umowy", "ustalenie"):
+            for nazwa in ("koniec_umowy", "ustalenie"):
                 self.fields.pop(nazwa)
         if self.instance.pk:
             self.initial["arkusz"] = self.instance.arkusz
@@ -168,6 +190,7 @@ def pracownik(request, pk: int | None = None):
                     dziennik.PRACOWNIK_ZMIENIONY, request=request, dotyczy=f"pracownik {zapisana.pk}",
                     opis=_opis_zmian(formularz, arkusz_przed),
                 )
+            cykle.uzgodnij(zapisana.pk)
         if osoba is None:
             messages.success(request, f"Dodano pracownika: {zapisana.imie_i_nazwisko}.")
         else:

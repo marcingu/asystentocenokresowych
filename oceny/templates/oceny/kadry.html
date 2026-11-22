@@ -59,9 +59,8 @@
         <a href="{% url 'ocena' wiersz.ocena.pk %}">{{ wiersz.ocena.etap_opis }}</a>
         {% if wiersz.ocena.wynik %}<small>{{ wiersz.ocena.wynik|lower }}, {{ wiersz.ocena.poziom }}</small>{% endif %}
         {% if wiersz.ocena.termin and not wiersz.ocena.zakonczona %}<small>termin: {{ wiersz.ocena.termin|date:"d.m.Y" }}{% if wiersz.po_terminie %} <span class="stan stan-po_terminie">po terminie</span>{% endif %}</small>{% endif %}
-        {% elif wiersz.mozna_rozpoczac %}
-        <form method="post" action="{% url 'kadry_rozpocznij' wiersz.osoba.pk %}">{% csrf_token %}
-          <button type="submit" class="przycisk przycisk-maly">Rozpocznij cykl oceny</button></form>
+        {% else %}
+        <small>Cykl rozpocznie się automatycznie po uzupełnieniu przełożonego i opisu stanowiska.</small>
         {% endif %}
       </td>
       <td>
