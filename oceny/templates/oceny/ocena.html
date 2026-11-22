@@ -48,6 +48,9 @@
   <ul class="kryteria">{% for nazwa in kryteria_obowiazkowe %}<li>{{ nazwa }}</li>{% endfor %}</ul>
 
   {% if formularz_kryteriow %}
+  <h3>Przygotuj rozmowę o kryteriach</h3>
+  <p>Omów z pracownikiem główne obowiązki z opisu stanowiska, kryteria oceny, oczekiwania co do ich spełniania oraz ewentualne cele zadaniowe i sposób ich realizacji. Po rozmowie wpisz wybór kryteriów i termin oceny w części I.</p>
+  {% if not ocena.poprzednia_id %}<p>Przy pierwszej ocenie okresowej po zatrudnieniu na czas nieokreślony na rozmowę i zapoznanie z kryteriami masz 30 dni. Ten proces jest odrębny od pierwszej oceny w służbie cywilnej.</p>{% endif %}
   <form method="post" action="{% url 'czynnosc' ocena.pk 'wyznacz-kryteria' %}" class="formularz">
     {% csrf_token %}
     <fieldset>

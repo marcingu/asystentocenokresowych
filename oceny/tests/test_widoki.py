@@ -112,6 +112,13 @@ class PrzebiegPrzezPrzegladarkeTest(TestCase):
         self.ocena = self.z.nowa_ocena()
         self.adres = reverse("ocena", args=[self.ocena.pk])
 
+    def test_pierwsza_okresowa_ma_wlasne_przygotowanie_rozmowy(self):
+        strona = klient(self.z.szef).get(self.adres)
+        self.assertContains(strona, "Przygotuj rozmowę o kryteriach")
+        self.assertContains(strona, "cele zadaniowe")
+        self.assertContains(strona, 'name="kryterium_1"')
+        self.assertNotContains(strona, 'name="zadania"')
+
     def test_pelny_przebieg_oceny(self):
         z = self.z
         szef, ola = klient(z.szef), klient(z.ola)

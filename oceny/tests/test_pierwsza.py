@@ -84,7 +84,7 @@ class PierwszaTest(Podstawa):
     def test_pozytywny_wynik_i_wniosek_nie_sa_nowa_umowa(self):
         from .pomocnicze import dyrektor_generalny
         osoba, adres, szef = self.przygotuj_arkusz()
-        raport = {"akcja": "raport", "tresc": "Zadania, usprawnienia, wnioski i zdobyta wiedza.", "okres": "on"}
+        raport = {"akcja": "raport", "zadania": "Realizacja zadań", "problemy": "Brak", "wiedza": "Nowe narzędzie", "wnioski": "Nowa instrukcja", "okres": "on"}
         with self.settings(ASYSTENT_DZIS="2026-09-03"):
             self.assertEqual(klient(osoba).post(adres, raport).status_code, 302)
         with self.settings(ASYSTENT_DZIS="2026-09-21"):
@@ -242,7 +242,7 @@ class PierwszaTest(Podstawa):
         osoba, adres, szef = self.przygotuj_arkusz()
         opis = "Rozwiązałem trudny problem.\nWdrożyłem usprawnienie."
         with self.settings(ASYSTENT_DZIS="2026-09-03"):
-            r = klient(osoba).post(adres, {"akcja": "raport", "tresc": opis, "okres": "on"})
+            r = klient(osoba).post(adres, {"akcja": "raport", "zadania": opis, "problemy": "Brak", "wiedza": "Analiza", "wnioski": "Instrukcja", "okres": "on"})
             self.assertEqual(r.status_code, 302)
         with self.settings(ASYSTENT_DZIS="2026-09-21"):
             self.assertEqual(szef.post(adres, self.ocena_dane(rozwoj="Nauka analizy danych.")).status_code, 302)
@@ -260,3 +260,65 @@ class PierwszaTest(Podstawa):
                     else:
                         self.assertIn("Wdrożyłem usprawnienie.", tekst(23))
                         self.assertTrue(tekst(26).startswith("…"))
+
+    def test_pracownik_od_poczatku_przygotowuje_szkic_bez_skladania(self):
+        from zipfile import ZipFile
+        from io import BytesIO
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        pracownik, szef = klient(osoba), klient(self.z.szef)
+        strona = pracownik.get(adres)
+        self.assertContains(strona, "Zapisz szkic")
+        self.assertNotContains(strona, 'value="raport"')
+        pola = {"akcja": "szkic", "zadania": "Moja robocza treść"}
+        self.assertEqual(pracownik.post(adres, pola).status_code, 302)
+        self.assertContains(pracownik.get(adres), pola["zadania"])
+        self.assertNotContains(szef.get(adres), pola["zadania"])
+        self.assertEqual(szef.post(adres, pola).status_code, 403)
+        self.assertEqual(pracownik.post(adres, {**pola, "akcja": "raport"}).status_code, 403)
+        osoba.umowa.pierwsza.refresh_from_db()
+        self.assertNotIn("raport", osoba.umowa.pierwsza.dane)
+        with ZipFile(BytesIO(szef.get(adres + "sprawozdanie.docx").content)) as z:
+            self.assertNotIn(pola["zadania"], z.read("word/document.xml").decode())
+
+    def test_przygotowanie_szefa_i_poufna_obserwacja(self):
+        from io import BytesIO
+        from zipfile import ZipFile
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        szef, pracownik = klient(self.z.szef), klient(osoba)
+        pola = {"akcja": "obserwacja", "element": "Komunikacja", "opis": "Fakt do rozmowy z zespołem"}
+        self.assertContains(szef.get(adres), "Zapisz obserwację")
+        self.assertEqual(pracownik.post(adres, pola).status_code, 403)
+        self.assertEqual(szef.post(adres, pola).status_code, 302)
+        self.assertContains(szef.get(adres), pola["opis"])
+        self.assertNotContains(pracownik.get(adres), pola["opis"])
+        for typ in ("arkusz", "sprawozdanie"):
+            with ZipFile(BytesIO(pracownik.get(adres + typ + ".docx").content)) as z:
+                self.assertNotIn(pola["opis"], z.read("word/document.xml").decode())
+        egzamin = {"akcja": "egzamin", "wynik": "tak", "dzien_egzaminu": "2026-01-10"}
+        self.assertEqual(pracownik.post(adres, egzamin).status_code, 403)
+        self.assertContains(szef.post(adres, egzamin), "faktyczną datę")
+        with self.settings(ASYSTENT_DZIS="2026-03-10"):
+            self.assertEqual(szef.post(adres, egzamin).status_code, 302)
+            self.assertContains(pracownik.get(adres), "Egzamin: zaliczony")
+            self.assertNotContains(pracownik.get(adres), 'value="obserwacja"')
+            osoba.umowa.pierwsza.refresh_from_db()
+            self.assertNotIn("ocena", osoba.umowa.pierwsza.dane)
+
+    def test_rozpiska_wskazuje_osobe_i_nie_miesza_cykli(self):
+        osoba = self.dodaj()
+        strona = klient(osoba).get(f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/")
+        for tekst in ("Przebieg pierwszej oceny", "Służba przygotowawcza", "Rozmowa wstępna", "Wniosek do dyrektora"):
+            self.assertContains(strona, tekst)
+        self.assertEqual(bledy_dostepnosci(strona.content.decode()), [])
+        self.assertNotContains(strona, 'name="kryterium_1"')
+
+    def test_przed_wyznaczonym_terminem_jest_tylko_szkic(self):
+        osoba, adres, szef = self.przygotuj_arkusz()
+        with self.settings(ASYSTENT_DZIS="2026-09-02"):
+            pracownik = klient(osoba)
+            self.assertContains(pracownik.get(adres), "Zapisz szkic")
+            self.assertNotContains(pracownik.get(adres), 'value="raport"')
+            self.assertEqual(pracownik.post(adres, {"akcja": "raport"}).status_code, 403)
+            self.assertNotContains(szef.get(adres), 'value="ocena"')

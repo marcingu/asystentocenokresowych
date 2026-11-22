@@ -2,6 +2,7 @@
 from datetime import date
 
 from django import forms
+from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q
@@ -35,19 +36,44 @@ class Wstepna(forms.Form):
     do = data_formularza("Termin złożenia sprawozdania - do")
 
 
+class Obserwacja(forms.Form):
+    element = forms.ChoiceField(label="Element oceny", choices=[(n, n) for n in ELEMENTY])
+    opis = forms.CharField(label="Co zaobserwowano przy wykonywaniu zadań?", max_length=2000,
+        widget=forms.Textarea(attrs={"rows": 3}), help_text="Zapisz fakt z pracy, bez danych o zdrowiu i spraw prywatnych.")
+
+
+class Egzamin(forms.Form):
+    dzien_egzaminu = data_formularza("Data egzaminu według dokumentacji")
+    wynik = forms.ChoiceField(label="Udokumentowany wynik", choices=(("", "- wybierz -"), ("tak", "Zaliczony"), ("nie", "Niezaliczony")))
+
+
 class NowyTermin(forms.Form):
     od = data_formularza("Nowy początek terminu sprawozdania")
     do = data_formularza("Nowy koniec terminu sprawozdania")
-    pismo = forms.BooleanField(label="Potwierdzam podstawę z § 6 rozporządzenia oraz pisemne zawiadomienie pracownika. Kopię należy dołączyć do arkusza.")
+    pismo = forms.BooleanField(label="Potwierdzam podstawę z § 5 rozporządzenia oraz pisemne zawiadomienie pracownika. Kopię należy dołączyć do arkusza.")
 
 
 def wynik_pozytywny(punkty, egzamin, na_czas):
     return na_czas and egzamin != "nie" and punkty.count(3) <= 1 and sum(punkty) >= 5 * len(punkty)
 
 
+CZESCI_RAPORTU = {
+    "zadania": "Wykonane zadania",
+    "problemy": "Napotkane problemy i sposób ich rozwiązania",
+    "wiedza": "Zdobyta wiedza i nowe umiejętności",
+    "wnioski": "Propozycje usprawnień",
+}
+
+
 class Raport(forms.Form):
-    tresc = forms.CharField(label="Sprawozdanie: wykonane zadania, problemy i rozwiązania, zdobyta wiedza i umiejętności, propozycje usprawnień", widget=forms.Textarea, max_length=20000)
-    okres = forms.BooleanField(label="Sprawozdanie obejmuje co najmniej 7 przepracowanych miesięcy.")
+    def __init__(self, *args, skladanie=False, mozna_zlozyc=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        for kod, nazwa in CZESCI_RAPORTU.items():
+            self.fields[kod] = forms.CharField(label=nazwa, required=skladanie, max_length=5000,
+                widget=forms.Textarea(attrs={"rows": 3}))
+        if mozna_zlozyc:
+            self.fields["okres"] = forms.BooleanField(required=skladanie,
+                label="Potwierdzam, że sprawozdanie obejmuje co najmniej 7 przepracowanych miesięcy (przy składaniu).")
 
 
 class Ocena(forms.Form):
@@ -89,7 +115,13 @@ def zapisz_etap(akcja, formularz, ocena, dzien, od, do):
         else:
             dane.setdefault("historia_terminow", []).append(dict(dane["wstepna"]))
             dane["wstepna"].update(od=zapis["od"], do=zapis["do"])
+    elif akcja == "egzamin":
+        if not ocena.umowa.poczatek <= pola["dzien_egzaminu"] <= min(dzien, ocena.umowa.koniec):
+            formularz.add_error("dzien_egzaminu", "Podaj faktyczną datę egzaminu w okresie zatrudnienia, nie późniejszą niż dziś.")
+    elif akcja == "szkic":
+        zapis = {k: pola[k] for k in CZESCI_RAPORTU}
     elif akcja == "raport":
+        zapis["tresc"] = "\n\n".join(f"{etykieta}:\n{pola[k]}" for k, etykieta in CZESCI_RAPORTU.items())
         if dzien < od or dzien > do:
             formularz.add_error(None, "Sprawozdanie poza okresem pierwszej oceny.")
     elif akcja == "ocena":
@@ -101,6 +133,8 @@ def zapisz_etap(akcja, formularz, ocena, dzien, od, do):
         if not od <= rozmowa <= dzien <= do or not (po_sprawozdaniu or po_terminie):
             formularz.add_error("rozmowa", "Rozmowa i ocena muszą przypadać w okresie oceny, po złożeniu sprawozdania albo upływie jego terminu.")
         na_czas = dane["wstepna"]["od"] <= raport <= koniec
+        if "egzamin" in dane and pola["egzamin"] != dane["egzamin"]["wynik"]:
+            formularz.add_error("egzamin", "Wynik musi odpowiadać zapisowi egzaminu. W razie pomyłki najpierw popraw zapis egzaminu.")
         punkty = [pola[f"pkt{i}"] for i in range(len(ELEMENTY))]
         srednia = sum(punkty) / len(punkty)
         pozytywna = wynik_pozytywny(punkty, pola["egzamin"], na_czas)
@@ -111,7 +145,12 @@ def zapisz_etap(akcja, formularz, ocena, dzien, od, do):
         zapis.update(wynik="Pozytywna" if pozytywna else "Negatywna", srednia=srednia, na_czas=na_czas)
     if formularz.errors:
         return False
-    dane[akcja] = zapis
+    if akcja == "raport":
+        dane.pop("szkic", None)
+    if akcja == "obserwacja":
+        dane.setdefault("obserwacje", []).append(zapis)
+    else:
+        dane[akcja] = zapis
     ocena.save(update_fields=["dane"])
     return True
 
@@ -131,36 +170,56 @@ def karta(request, pk):
     def dodaj(kod, klasa, **opcje):
         formularze[kod] = klasa(request.POST if akcja == kod else None, auto_id=f"id_{kod}_%s", **opcje)
 
+    edytuje_raport = osoba == umowa.osoba and "raport" not in dane and "ocena" not in dane
+    ustalony = dane.get("wstepna", {})
+    mozna_zlozyc = bool(edytuje_raport and ustalony and od <= dzien <= do and dzien.isoformat() >= ustalony["od"])
+    edytor = None
+    if edytuje_raport:
+        edytor = Raport(request.POST if akcja in ("szkic", "raport") else None, initial=dane.get("szkic", {}),
+            auto_id="id_raport_%s", skladanie=akcja == "raport", mozna_zlozyc=mozna_zlozyc)
+    jest_szefem = osoba == ocena.szef and osoba != umowa.osoba
+    termin_wstepnej = koniec_terminu_dni(date.fromisoformat(dane.get("ustalenie", umowa.poczatek.isoformat())), 21)
     if "wstepna" not in dane:
-        if osoba == ocena.szef:
-            dodaj("wstepna", Wstepna, initial={"rozmowa": dzien, "od": od, "do": do})
+        if jest_szefem:
+            dodaj("wstepna", Wstepna, initial={"rozmowa": dzien if dzien <= termin_wstepnej else None, "od": od, "do": do})
     elif "ocena" not in dane:
-        if osoba == umowa.osoba and "raport" not in dane:
-            dodaj("raport", Raport)
-        if osoba == ocena.szef and "raport" not in dane:
+        if jest_szefem and "raport" not in dane:
             dodaj("termin", NowyTermin)
-        if osoba == ocena.szef and ocena.kierujacy_id and osoba != umowa.osoba:
-            dodaj("ocena", Ocena, zastepstwo=umowa.kwalifikacja == "zastepstwo_ocena", initial={"rozmowa": dzien})
+        czas_oceny = od <= dzien <= do and ("raport" in dane or dzien.isoformat() > ustalony["do"])
+        if jest_szefem and ocena.kierujacy_id and (czas_oceny or akcja == "ocena"):
+            dodaj("ocena", Ocena, zastepstwo=umowa.kwalifikacja == "zastepstwo_ocena", initial={"rozmowa": dzien, "egzamin": dane.get("egzamin", {}).get("wynik", "")})
     elif "wniosek" not in dane and osoba == ocena.kierujacy:
         dodaj("wniosek", Wniosek, pozytywna=dane["ocena"]["wynik"] == "Pozytywna")
+    if jest_szefem and "ocena" not in dane:
+        dodaj("obserwacja", Obserwacja)
+        if umowa.kwalifikacja != "zastepstwo_ocena":
+            dodaj("egzamin", Egzamin, initial=dane.get("egzamin", {}))
     if request.method == "POST":
-        if akcja not in formularze:
+        if (akcja == "szkic" and edytuje_raport) or (akcja == "raport" and mozna_zlozyc):
+            formularz = edytor
+        elif akcja in formularze:
+            formularz = formularze[akcja]
+        else:
             raise PermissionDenied
-        formularz = formularze[akcja]
         if formularz.is_valid() and zapisz_etap(akcja, formularz, ocena, dzien, od, do):
             dziennik.zapisz(dziennik.PIERWSZA_CZYNNOSC, request=request, dotyczy=f"pierwsza ocena {pk}", opis=akcja)
+            messages.success(request, {"szkic": "Zapisano prywatny szkic. Sprawozdanie nie zostało złożone.",
+                "raport": "Sprawozdanie zostało złożone."}.get(akcja, "Zapisano czynność w arkuszu."))
             return redirect("pierwsza_ocena", pk=pk)
     else:
         dziennik.zapisz(dziennik.ODCZYT_OCENY, request=request, dotyczy=f"pierwsza ocena {pk}")
     return render(request, "oceny/pierwsza.html", {"ocena": ocena, "dane": dane, "od": od, "do": do, "formularze": formularze,
+        "edytor": edytor, "mozna_zlozyc": mozna_zlozyc, "po_terminie_raportu": bool(ustalony and dzien.isoformat() > ustalony["do"]),
         "punkty": [(n, dane.get("ocena", {}).get(f"pkt{i}")) for i,n in enumerate(ELEMENTY)],
         "wniosek": WNIOSKI.get(dane.get("wniosek", {}).get("wybor")),
-        "termin_wstepnej": koniec_terminu_dni(date.fromisoformat(dane.get("ustalenie", umowa.poczatek.isoformat())), 21)})
+        "termin_wstepnej": termin_wstepnej, "spozniona_wstepna": not dane.get("wstepna") and dzien > termin_wstepnej,
+        "obserwacje": dane.get("obserwacje", []) if jest_szefem else [],
+        "koniec_sluzby": koniec_okresu(umowa.poczatek, 8),
+        "wynik_egzaminu": {"tak": "zaliczony", "nie": "niezaliczony"}.get(dane.get("egzamin", {}).get("wynik"))})
 
 
 @require_http_methods(["GET"])
 def wydruk(request, pk, rodzaj, format):
-    from django.contrib import messages
     from django.http import Http404
     from . import drukowanie
     from .pierwsza_druk import dokument

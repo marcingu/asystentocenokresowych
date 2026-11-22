@@ -6,6 +6,16 @@
 <p>{{ ocena.umowa.osoba }} - {{ ocena.umowa.osoba.stanowisko }}, {{ ocena.umowa.osoba.komorka }}.</p>
 <p>Przełożony: {{ ocena.szef|default:"brak obsady" }}. Kierujący komórką: {{ ocena.kierujacy|default:"brak obsady" }}.</p>
 <p>Umowa: {{ ocena.umowa.poczatek|date:"d.m.Y" }} - {{ ocena.umowa.koniec|date:"d.m.Y" }}. Rozmowa wstępna do {{ termin_wstepnej|date:"d.m.Y" }}. Okres oceny: {{ od|date:"d.m.Y" }} - {{ do|date:"d.m.Y" }} (art. 38 ust. 1).</p>
+<section class="karta" aria-labelledby="przebieg"><h2 id="przebieg">Przebieg pierwszej oceny</h2>
+<p>Ten formularz dotyczy pierwszej oceny w służbie cywilnej. Nie stosuje się tu kryteriów dodatkowych ani arkuszy A, B lub C z oceny okresowej.</p>
+<ol>
+<li><strong>Rozmowa wstępna</strong> - przełożony: {% if dane.wstepna %}zapisana{% elif spozniona_wstepna %}upłynął termin, brak zapisu rozmowy{% else %}do zapisania{% endif %}.</li>
+<li><strong>Służba przygotowawcza i egzamin</strong> - jeśli służba jest wymagana, trwa do 4 miesięcy i kończy się najpóźniej {{ koniec_sluzby|date:"d.m.Y" }}. {% if wynik_egzaminu %}Egzamin: {{ wynik_egzaminu }} ({{ dane.egzamin.dzien_egzaminu }}).{% elif dane.ocena %}Wynik uwzględniono przy ocenie.{% elif ocena.umowa.kwalifikacja == 'zastepstwo_ocena' %}Egzamin nie dotyczy zastępstwa.{% else %}Brak zapisanego wyniku. Zwolnienie przez dyrektora z odbywania służby na wniosek kierującego nie zwalnia z egzaminu.{% endif %}</li>
+<li><strong>Sprawozdanie</strong> - pracownik: {% if dane.raport %}złożone{% elif dane.ocena %}nie złożono przed oceną{% else %}może przygotować prywatny szkic{% endif %}.</li>
+<li><strong>Rozmowa oceniająca i wynik</strong> - bezpośredni przełożony w porozumieniu z kierującym komórką: {% if dane.ocena %}{{ dane.ocena.wynik|lower }}{% else %}po złożeniu sprawozdania albo po upływie wyznaczonego terminu{% endif %}.</li>
+<li><strong>Wniosek do dyrektora generalnego</strong> - kierujący komórką: {% if wniosek %}złożony{% elif dane.ocena %}do złożenia{% else %}po dokonaniu oceny{% endif %}.</li>
+</ol>
+{% if edytor %}<p><a href="#sprawozdanie">Przejdź do swojego sprawozdania</a></p>{% elif formularze.wstepna %}<p><a href="#etap-wstepna">Przejdź do zapisu rozmowy</a></p>{% endif %}</section>
 {% if dane.wstepna %}<h2>Rozmowa wstępna</h2><p>Data: {{ dane.wstepna.rozmowa }}. Termin sprawozdania: {{ dane.wstepna.od }} - {{ dane.wstepna.do }}.</p>{% endif %}
 {% if dane.raport %}<h2>Sprawozdanie pracownika</h2><p>Złożono {{ dane.raport.data }}.</p>{{ dane.raport.tresc|linebreaks }}{% endif %}
 {% if dane.ocena %}<h2>Wynik: {{ dane.ocena.wynik }}</h2><p>Rozmowa oceniająca: {{ dane.ocena.rozmowa }}. Ocena: {{ dane.ocena.data }}. Średnia: {{ dane.ocena.srednia }}.</p>
@@ -13,10 +23,25 @@
 <p>Egzamin: {{ dane.ocena.egzamin }}. Sprawozdanie w terminie: {{ dane.ocena.na_czas|yesno:"tak,nie" }}.</p>
 {{ dane.ocena.uzasadnienie|linebreaks }}{{ dane.ocena.rozwoj|linebreaks }}{% endif %}
 {% if wniosek %}<h2>Wniosek do dyrektora generalnego</h2><p>{{ wniosek }} ({{ dane.wniosek.data }}). Wniosek nie jest zawarciem ani rozwiązaniem umowy.</p>{% endif %}
-{% for kod, formularz in formularze.items %}<section class="karta"><h2>{% if kod == 'wstepna' %}Zapisz rozmowę wstępną{% elif kod == 'termin' %}Zmień termin sprawozdania{% elif kod == 'raport' %}Złóż sprawozdanie{% elif kod == 'ocena' %}Dokonaj pierwszej oceny{% else %}Złóż wniosek do dyrektora generalnego{% endif %}</h2>
-<form method="post" class="formularz">{% csrf_token %}<input type="hidden" name="akcja" value="{{ kod }}">{{ formularz.as_div }}<button type="submit" class="przycisk">Zatwierdź</button></form></section>{% endfor %}
+{% if edytor %}
+<section class="karta" aria-labelledby="sprawozdanie"><h2 id="sprawozdanie">Twoje sprawozdanie</h2>
+<p>Opisz pracę w czterech polach. Szkic możesz zapisać częściowo i wrócić do niego później. Dopiero po złożeniu treść zobaczą pozostali uczestnicy i trafi ona do wydruku.</p>
+<form method="post" class="formularz">{% csrf_token %}{{ edytor.as_div }}
+<button type="submit" name="akcja" value="szkic" class="przycisk" formnovalidate>Zapisz szkic</button>
+{% if mozna_zlozyc %}{% if po_terminie_raportu %}<p class="komunikat komunikat-warning">Wyznaczony termin już minął. Złożone dziś sprawozdanie zostanie zapisane jako spóźnione.</p>{% endif %}<button type="submit" name="akcja" value="raport" class="przycisk">Złóż sprawozdanie</button>
+{% elif not dane.wstepna %}<p>Możesz już pisać. Złożenie będzie możliwe po zapisaniu rozmowy wstępnej przez przełożonego i w okresie pierwszej oceny.</p>
+{% else %}<p>Dziś możesz zapisać tylko szkic. Wyznaczony termin złożenia: {{ dane.wstepna.od }} - {{ dane.wstepna.do }}. Okres na dokonanie pierwszej oceny: {{ od|date:"d.m.Y" }} - {{ do|date:"d.m.Y" }}.</p>{% endif %}
+</form></section>{% endif %}
+{% for kod, formularz in formularze.items %}<section class="karta" aria-labelledby="etap-{{ kod }}">
+<h2 id="etap-{{ kod }}">{% if kod == 'wstepna' %}Zapisz rozmowę wstępną{% elif kod == 'termin' %}Zmień termin sprawozdania{% elif kod == 'ocena' %}Dokonaj pierwszej oceny{% elif kod == 'obserwacja' %}Twoje obserwacje z pracy{% elif kod == 'egzamin' %}Wpisz wynik egzaminu{% else %}Wniosek do dyrektora generalnego{% endif %}</h2>
+{% if kod == 'wstepna' %}<p>Omów sposób oceny, obowiązki na stanowisku i oczekiwania dotyczące ich wykonania. Wyjaśnij pięć elementów oceny i ustal termin sprawozdania. Wpisz datę faktycznej rozmowy.</p>
+{% elif kod == 'obserwacja' %}<p>Notatki widzisz tylko Ty jako oceniający. Nie pojawią się na wydruku.</p>
+{% elif kod == 'egzamin' %}<p>Przepisz wynik z dokumentacji. Ten wpis nie jest skierowaniem na służbę ani zwolnieniem z egzaminu.</p>{% endif %}
+<form method="post" class="formularz">{% csrf_token %}<input type="hidden" name="akcja" value="{{ kod }}">{{ formularz.as_div }}
+<button type="submit" class="przycisk">{% if kod == 'wstepna' %}Zapisz rozmowę i termin{% elif kod == 'termin' %}Zapisz zmianę terminu{% elif kod == 'ocena' %}Zatwierdź ocenę{% elif kod == 'obserwacja' %}Zapisz obserwację{% elif kod == 'egzamin' %}Zapisz wynik egzaminu{% else %}Złóż wniosek{% endif %}</button></form></section>{% endfor %}
+{% if obserwacje %}<section class="karta"><h2>Zapisane prywatne obserwacje</h2><ul>{% for wpis in obserwacje %}<li><strong>{{ wpis.data }} - {{ wpis.element }}</strong>{{ wpis.opis|linebreaks }}</li>{% endfor %}</ul></section>{% endif %}
 <section class="karta" aria-labelledby="wydruki"><h2 id="wydruki">Dokumenty do podpisu</h2>
-<p>Dokumenty zawierają dane zapisane do tej pory. Niewypełnione pola i miejsca na podpis pozostają puste.</p>
+<p>Formularz wypełniasz powyżej. Wydruki pobierają zapisane dane formalne, bez szkiców i notatek. Sam zapis w aplikacji nie jest podpisem. Po rozmowie wstępnej pracownik podpisuje potwierdzenie i otrzymuje kopię części I i II arkusza.</p>
 <ul>
 <li>Arkusz pierwszej oceny - zał. 2: <a href="{% url 'pierwsza_wydruk' ocena.pk 'arkusz' 'docx' %}">Arkusz pierwszej oceny - zał. 2 (DOCX)</a>, <a href="{% url 'pierwsza_wydruk' ocena.pk 'arkusz' 'pdf' %}">Arkusz pierwszej oceny - zał. 2 (PDF)</a></li>
 <li>Sprawozdanie - zał. 3: <a href="{% url 'pierwsza_wydruk' ocena.pk 'sprawozdanie' 'docx' %}">Sprawozdanie - zał. 3 (DOCX)</a>, <a href="{% url 'pierwsza_wydruk' ocena.pk 'sprawozdanie' 'pdf' %}">Sprawozdanie - zał. 3 (PDF)</a></li>
