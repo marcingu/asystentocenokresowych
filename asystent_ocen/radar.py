@@ -26,6 +26,7 @@ from pathlib import Path
 from .asystent_ai import BladModelu, Model, _liczby, _normalizuj, _zapytaj
 from .kalendarz import dodaj_miesiace
 from .przygotowanie_rozmowy import _dotyczy_spraw_prywatnych
+from .zasady_hr import polecenie_dla_modelu
 from .zgodnosc import Wymogi, wymagaj_dozwolonej_funkcji_ai
 
 DOBROSTAN = "dobrostan"
@@ -207,7 +208,8 @@ def karty_obserwacji(dane: DaneRadaru, progi: ProgiRadaru | None = None) -> tupl
 # --- pytania do kart układane przez model językowy (funkcja wysokiego ryzyka) ---
 
 ZASADY_RADARU = (
-    "Pomagasz przełożonemu w służbie cywilnej przygotować rozmowę z pracownikiem. Dostajesz karty obserwacji: "
+    f"{polecenie_dla_modelu()} "
+    "Zadanie: pomagasz przełożonemu przygotować rozmowę z pracownikiem. Dostajesz karty obserwacji: "
     "każda ma kod, tytuł i fakt z liczbami. Do każdej karty ułóż jedno pytanie otwarte, które przełożony zada "
     "pracownikowi. Pytanie ma dotyczyć organizacji pracy, planów albo wsparcia, kończyć się znakiem zapytania "
     "i zwracać się w formie „Pani/Pan”. Nie pytaj o zdrowie, emocje, rodzinę ani inne sprawy prywatne. Nie stawiaj "
@@ -223,7 +225,11 @@ _WZOR_PYTANIA = [
 ]
 # Radar nie wnioskuje o emocjach ani zdrowiu. Wzorce działają na tekście bez znaków diakrytycznych.
 _EMOCJE_I_DIAGNOZY = tuple(
-    re.compile(wzorzec) for wzorzec in (r"\bwypal", r"\bstres", r"\bdepres", r"\bemocj", r"\bpsychi", r"\bprzemecz", r"\bwyczerpan")
+    re.compile(wzorzec) for wzorzec in (
+        r"\bwypal", r"\bstres", r"\bdepres", r"\bemocj", r"\bpsychi", r"\bprzemecz", r"\bwyczerpan",
+        # pytania o stan osoby zamiast o organizację pracy (obserwacja z pokazu na lokalnym modelu)
+        r"\bodczuc", r"\bodczuw", r"\bsamopoczuc", r"\bczuj", r"\bczuc", r"\bregenerac", r"\bzmecz", r"\bnastroj",
+    )
 )
 
 

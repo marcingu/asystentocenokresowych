@@ -25,7 +25,8 @@ NOTATKA = "Dobre praktyki: jak pisać notatkę"
 
 class TrescTest(TestCase):
     def test_kazda_praktyka_ma_wskazowki_i_przyklad(self):
-        self.assertEqual(set(dobre_praktyki.PRAKTYKI), {"informacja_zwrotna", "mocne_strony", "zarzadzanie", "rozmowa", "notatka"})
+        self.assertEqual(set(dobre_praktyki.PRAKTYKI), {"informacja_zwrotna", "mocne_strony", "zarzadzanie", "rozmowa", "notatka",
+                                                        "dobrostan", "docenianie"})
         for kod, praktyka in dobre_praktyki.PRAKTYKI.items():
             with self.subTest(kod=kod):
                 self.assertGreaterEqual(len(praktyka.wskazowki), 3)

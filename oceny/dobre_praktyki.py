@@ -80,6 +80,36 @@ PRAKTYKI = {
         "potrzebuje Pani ode mnie. Proszę przemyśleć dwa tematy, które są dla Pani ważne.",
         "Poradnik KPRM, pkt 6.2.4: rozmowa oceniająca ma być dialogiem oceniającego z ocenianym, a nie monologiem.",
     ),
+    "dobrostan": Praktyka(
+        "jak rozmawiać o obciążeniu i organizacji pracy",
+        (
+            "Zacznij od faktu z karty obserwacji, nie od wrażenia - liczba spraw, godzin albo dni mówi sama za siebie.",
+            "Pytaj o organizację pracy i potrzeby. Nie pytaj o zdrowie ani sprawy prywatne - pracownik sam zdecyduje, czym chce się podzielić.",
+            "Na co dzień zwracaj uwagę na zmiany w pracy: mniej inicjatywy, wycofanie z zadań zespołowych, więcej opóźnień niż zwykle. "
+            "To powód do rozmowy, nie do oceny.",
+            "Ustalcie jedno albo dwa działania i termin, w którym do nich wrócicie. Ustalenie zapisz w notatce „dobrostan i organizacja pracy”.",
+            "Działaj, zanim pojawią się trudności: przy dobrych wynikach i dużym obciążeniu jednocześnie doceń i odciąż.",
+        ),
+        "Wygląda Pan na przemęczonego.",
+        "W tym roku ma Pan 92 godziny nadliczbowe i 24 sprawy w toku. Chciałbym ustalić, co możemy przesunąć albo oddać, "
+        "żeby było tego mniej. Od czego Pana zdaniem zacząć?",
+        "Standardy zarządzania zasobami ludzkimi w służbie cywilnej, cz. IV pkt 4 i 6: narzędzia motywacyjne dobiera się do potrzeb "
+        "pracownika, a informacja zwrotna odnosi się do zachowań i faktów.",
+    ),
+    "docenianie": Praktyka(
+        "jak doceniać, żeby to działało",
+        (
+            "Doceniaj od razu po zdarzeniu i konkretnie: co zostało zrobione i co to dało sprawie albo zespołowi.",
+            "Dobierz formę do osoby: jedni wolą podziękowanie przy zespole, inni w cztery oczy albo na piśmie.",
+            "Przy szczególnych osiągnięciach złóż wniosek o nagrodę z funduszu nagród i opisz w uzasadnieniu konkretne osiągnięcia.",
+            "Docenieniem jest też zaufanie: ciekawsze zadanie, większa samodzielność, rola mentora.",
+        ),
+        "Dobra robota.",
+        "Dziękuję za przejęcie siedmiu spraw po koleżance w marcu. Dzięki temu żadna odpowiedź nie wyszła po terminie. "
+        "Powiem o tym na odprawie w poniedziałek.",
+        "Art. 93 ust. 1 ustawy o służbie cywilnej (nagroda za szczególne osiągnięcia) oraz Standardy zarządzania zasobami ludzkimi "
+        "w służbie cywilnej, cz. IV pkt 2 i 4 (nagrody, pochwały, wyróżnienia).",
+    ),
     "notatka": Praktyka(
         "jak pisać notatkę",
         (

@@ -131,11 +131,24 @@ def nowa_notatka(request, pk: int):
     rodzaj = request.GET.get("rodzaj", "")
     # Notatka do karty Radaru: rodzaj wynika z rodzaju karty, a treść zaczyna się od jej tytułu.
     kod = request.GET.get("karta", "")
-    karta = next((karta for karta in radar_oceny(ocena, dzis()).karty if karta.kod == kod), None) if kod else None
+    radar = radar_oceny(ocena, dzis()) if kod or request.GET.get("sygnal") else None
+    karta = next((karta for karta in radar.karty if karta.kod == kod), None) if kod else None
+    # Notatka z działania partnera HR: rodzaj jak rodzaj sygnału, a treść zaczyna się od uzgadnianego działania.
+    sygnal, dzialanie = _dzialanie_partnera(radar, request.GET) if radar and not karta else (None, None)
+    zrodlo = karta or sygnal
     return render(request, "oceny/nowa_notatka.html", {
         "ocena": ocena, "pracownik": ocena.oceniany, "karta": karta,
         "powrot": powrot if powrot in POWROTY else "",
-        "wybrany_rodzaj": RODZAJ_DLA_KARTY[karta.rodzaj] if karta else rodzaj if rodzaj in dict(RODZAJE_NOTATEK) else OBSERWACJA,
-        "tresc_notatki": f"{karta.tytul}: " if karta else "",
+        "wybrany_rodzaj": RODZAJ_DLA_KARTY[zrodlo.rodzaj] if zrodlo else rodzaj if rodzaj in dict(RODZAJE_NOTATEK) else OBSERWACJA,
+        "tresc_notatki": f"{karta.tytul}: " if karta else f"{sygnal.tytul}: {dzialanie.tekst} " if dzialanie else "",
         "rodzaje_notatek": RODZAJE_NOTATEK, "praktyki": PRAKTYKI,
     })
+
+
+def _dzialanie_partnera(radar, parametry):
+    """Sygnał i działanie wskazane w adresie; nieznany kod albo numer to po prostu pusty formularz."""
+    sygnal = next((sygnal for sygnal in radar.partner if sygnal.kod == parametry.get("sygnal")), None)
+    numer = parametry.get("dzialanie", "")
+    if sygnal is None or not numer.isdecimal() or int(numer) >= len(sygnal.dzialania):
+        return None, None
+    return sygnal, sygnal.dzialania[int(numer)]

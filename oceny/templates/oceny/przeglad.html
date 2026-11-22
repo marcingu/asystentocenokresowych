@@ -39,6 +39,12 @@
 <div class="uklad">
 <div class="kolumna-glowna">
 
+{% if radar.partner %}
+<section class="karta" aria-labelledby="n-partner">
+  {% include "oceny/_partner_hr.html" with ocena=biezaca poziom="h2" powrot="przeglad" praktyki=None %}
+</section>
+{% endif %}
+
 <section class="karta" aria-labelledby="n-dobrostan">
   <h2 id="n-dobrostan">Dobrostan i organizacja pracy</h2>
   {% if radar.stan == 'GOTOWY' %}
@@ -153,6 +159,8 @@
   {% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.mocne_strony %}
   {% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.zarzadzanie %}
   {% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.rozmowa %}
+  {% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.dobrostan %}
+  {% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.docenianie %}
 </section>
 
 </aside>

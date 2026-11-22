@@ -1,0 +1,39 @@
+{# Partner HR: obraz sytuacji i działania do rozmowy. Parametry: radar, ocena, poziom ("h2" w przeglądzie, domyślnie "h3"),
+   mozna_dodac_notatke i praktyki (tylko przełożony), powrot (opcjonalnie - nazwa strony powrotu po notatce). #}
+{% if radar.partner %}
+{% if poziom == "h2" %}<h2 id="n-partner">Partner HR - obraz sytuacji i możliwe działania</h2>{% else %}<h3 id="n-partner">Partner HR - obraz sytuacji i możliwe działania</h3>{% endif %}
+<p class="podpowiedz">Sygnały liczy zwykły kod z kart obserwacji - to nie jest system AI. Opisują organizację pracy i to, co z niej
+  może wynikać, a nie osobę: system nie ocenia pracownika ani jego zaangażowania. To punkt wyjścia do rozmowy, nie polecenie:
+  lista działań pokazuje możliwości, a nie zobowiązania, i o wyborze decydują razem przełożony i pracownik.
+  Te same sygnały i działania widzą obie strony.</p>
+{% for sygnal in radar.partner %}
+<article class="sygnal{% if sygnal.rodzaj == 'docenienie' %} sygnal-docenienie{% endif %}">
+  {% if poziom == "h2" %}<h3>{{ sygnal.tytul }}</h3>{% else %}<h4>{{ sygnal.tytul }}</h4>{% endif %}
+  <p>{{ sygnal.obserwacja }}</p>
+  <p><strong>Na początek rozmowy:</strong> „{{ sygnal.rozmowa }}”</p>
+  <p><strong>{% if sygnal.rodzaj == 'docenienie' %}Formy docenienia do wyboru:{% else %}Co można razem ustalić:{% endif %}</strong></p>
+  <ul>
+    {% for dzialanie in sygnal.dzialania %}
+    <li>{{ dzialanie.tekst }}
+      <small>W ramach: {{ dzialanie.podstawa }}</small>
+      {% if mozna_dodac_notatke %}<a href="{% url 'nowa_notatka' ocena.pk %}?sygnal={{ sygnal.kod }}&amp;dzialanie={{ forloop.counter0 }}{% if powrot %}&amp;powrot={{ powrot }}{% endif %}" aria-label="Zanotuj ustalenie - {{ sygnal.tytul }}, działanie {{ forloop.counter }}">Zanotuj ustalenie</a>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</article>
+{% endfor %}
+<p class="podpowiedz">Podstawy działań: ustawa o służbie cywilnej (u.s.c.), Kodeks pracy (KP) oraz {{ radar.standardy_zzl }} -
+  w skrócie „Standardy ZZL”. Standardy są zaleceniami: o tym, które narzędzia działają w urzędzie, decyduje urząd.</p>
+<details class="praktyki">
+  <summary>Zasady, którymi kieruje się partner HR</summary>
+  <p><strong>Cel:</strong> {{ radar.cel_partnera }}</p>
+  <ol>
+    {% for zasada in radar.zasady_partnera %}<li>{{ zasada }}</li>
+    {% endfor %}
+  </ol>
+</details>
+{% if praktyki %}
+{% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.dobrostan %}
+{% include "oceny/_dobre_praktyki.html" with praktyka=praktyki.docenianie %}
+{% endif %}
+{% endif %}

@@ -254,4 +254,13 @@ summary { cursor: pointer; color: var(--granat); font-weight: 600; }
 .obserwacja strong { color: var(--granat-ciemny); }
 .obserwacja small { color: var(--szary); overflow-wrap: anywhere; }
 
+/* partner HR: sygnał z obserwacją, pytaniem na początek rozmowy i działaniami do ustalenia */
+.sygnal { border: 1px solid var(--linia); border-left: 5px solid var(--granat); border-radius: 2px; padding: .6rem .8rem; margin: .6rem 0; background: var(--karta); }
+.sygnal-docenienie { border-left-color: var(--zielony); }
+.sygnal h3, .sygnal h4 { margin: 0 0 .3rem; color: var(--granat-ciemny); }
+.sygnal p { margin: .3rem 0; }
+.sygnal ul { margin: .2rem 0 .3rem; padding-left: 1.2rem; }
+.sygnal li { margin-bottom: .4rem; }
+.sygnal li small { display: block; color: var(--szary); overflow-wrap: anywhere; }
+
 .logo-urzedu { height: 2.6rem; max-width: 5rem; object-fit: contain; flex: none; }

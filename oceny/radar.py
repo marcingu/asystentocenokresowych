@@ -14,6 +14,7 @@ from datetime import date
 from django.conf import settings
 
 from asystent_ocen.bledy import Blad
+from asystent_ocen.partner_hr import CEL, STANDARDY, ZASADY, Sygnal, sygnaly
 from asystent_ocen.radar import DOBROSTAN, DOCENIENIE, DaneRadaru, KartaObserwacji, karty_obserwacji
 
 from . import radar_przyklad
@@ -44,6 +45,16 @@ class Radar:
     @property
     def docenienie(self) -> tuple[KartaObserwacji, ...]:
         return tuple(karta for karta in self.karty if karta.rodzaj == DOCENIENIE)
+
+    # Jawne zasady partnera HR i pełna nazwa Standardów - pokazywane obu stronom obok sygnałów.
+    cel_partnera = CEL
+    zasady_partnera = ZASADY
+    standardy_zzl = STANDARDY
+
+    @property
+    def partner(self) -> tuple[Sygnal, ...]:
+        """Partner HR: obraz sytuacji i działania do rozmowy - zwykły kod na kartach, tylko gdy radar ma dane."""
+        return sygnaly(self.karty) if self.stan == GOTOWY else ()
 
 
 def _dane_zrodlowe(identyfikator: str, dzien: date) -> DaneRadaru | None:

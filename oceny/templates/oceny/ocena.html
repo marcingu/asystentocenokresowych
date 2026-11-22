@@ -162,6 +162,7 @@
   {% else %}
   <p>Żadna liczba nie osiągnęła progu ustalonego przez urząd - radar nie ma dziś kart do pokazania.</p>
   {% endif %}
+  {% include "oceny/_partner_hr.html" %}
   <p class="podpowiedz">Karta powstaje, gdy liczba osiąga próg ustalony przez urząd (plik <code>radar.toml</code>) albo termin z Kodeksu pracy.
     Ustalenia pracodawcy: {{ radar.podstawa }} Pracowników poinformowano {{ radar.poinformowano|date:"d.m.Y" }}
     (art. 22[2] § 6 i 7 w zw. z art. 22[3] § 3 i 4 KP).</p>

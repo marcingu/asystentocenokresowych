@@ -237,6 +237,12 @@ def test_bez_kart_model_nie_jest_pytany(pokaz):
         "Czy nadgodziny wynikają z problemów zdrowotnych?",
         "Czy stres w pracy wpływa na Pani/Pana rodzinę?",
         "Czy ma Pani/Pan depresję?",
+        # pytania, które lokalny model ułożył w pokazie 22.11.2026 - o stan osoby, a nie o organizację pracy
+        "Jak Pani/Pan ocenia swój poziom regeneracji po ostatnim dłuższym wypoczynku?",
+        "Jakie są Pani/Pana odczucia związane z częstymi zastępstwami i jak można wesprzeć Panią/Pana w tej roli?",
+        "Jak się Pani/Pan czuje przy tylu sprawach w toku?",
+        "Jakie jest Pani/Pana samopoczucie po ostatnim kwartale?",
+        "Czy odczuwa Pani/Pan zmęczenie pracą w godzinach nadliczbowych?",
     ],
 )
 def test_pytanie_o_zdrowie_emocje_albo_sprawy_prywatne_jest_odrzucane(pokaz, pytanie):
