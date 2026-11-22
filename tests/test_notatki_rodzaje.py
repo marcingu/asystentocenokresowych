@@ -10,7 +10,7 @@ w służbie cywilnej (art. 38 ust. 2 pkt 2 u.s.c.); w ocenie okresowej jest info
 import pytest
 
 from asystent_ocen.bledy import BladWalidacji
-from asystent_ocen.przebieg import EGZAMIN, OBSERWACJA, OSIAGNIECIE, BladUprawnien, ProcesOceny, Rola
+from asystent_ocen.przebieg import DOBROSTAN, EGZAMIN, OBSERWACJA, OSIAGNIECIE, BladUprawnien, ProcesOceny, Rola
 from asystent_ocen.zapis import proces_do_slownika, proces_ze_slownika
 from stale import d
 
@@ -43,6 +43,18 @@ def test_oceniajacy_zapisuje_dodatkowe_osiagniecie_pracownika():
     p = proces()
     p.dodaj_notatke(Rola.OCENIAJACY, "Opracował wzór decyzji przyjęty w całym urzędzie.", data=DZIEN, rodzaj=OSIAGNIECIE)
     assert [(n.rodzaj, n.tresc) for n in p.notatki] == [(OSIAGNIECIE, "Opracował wzór decyzji przyjęty w całym urzędzie.")]
+
+
+def test_oceniajacy_zapisuje_notatke_o_dobrostanie_i_zapis_ja_zachowuje():
+    """Decyzja prowadzącego projekt z 22.11.2026: notatki łączą się z Radarem Dobrostanu przez rodzaj wpisu -
+    ten sam kod co rodzaj karty obserwacji w `asystent_ocen.radar`."""
+    from asystent_ocen import radar
+
+    p = proces()
+    p.dodaj_notatke(Rola.OCENIAJACY, "Ustalony urlop 14 dni w lipcu.", data=DZIEN, rodzaj=DOBROSTAN)
+    assert [(n.rodzaj, n.tresc) for n in p.notatki] == [(DOBROSTAN, "Ustalony urlop 14 dni w lipcu.")]
+    assert proces_ze_slownika(proces_do_slownika(p)).notatki == p.notatki
+    assert DOBROSTAN == radar.DOBROSTAN
 
 
 @pytest.mark.parametrize("rodzaj", ["pochwała", "", EGZAMIN], ids=["nieznany", "pusty", "egzamin poza formularzem"])

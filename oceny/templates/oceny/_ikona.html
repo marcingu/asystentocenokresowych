@@ -1,0 +1,5 @@
+{# Ikona dekoracyjna obok podpisu: nazwę przycisku daje tekst, nie obrazek. Parametr: nazwa. #}
+<svg class="ikona" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+{% if nazwa == "notatka" %}<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13 7l4 4"/>
+{% elif nazwa == "przeglad" %}<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.3-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 5h6M16 10h6M18 15h4"/>
+{% endif %}</svg>

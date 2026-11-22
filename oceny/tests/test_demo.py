@@ -82,6 +82,7 @@ class DaneDemoTest(TestCase):
             return [notatka.tresc for notatka in proces.notatki if notatka.rodzaj == rodzaj]
 
         self.assertEqual(len(notatki("anna", "osiagniecie")), 1)
+        self.assertEqual(len(notatki("anna", "dobrostan")), 1)
         self.assertIn("w pierwszym terminie", notatki("katarzyna", "egzamin")[0])
         self.assertIn("po egzaminie poprawkowym", notatki("piotr", "egzamin")[0])
 

@@ -82,6 +82,10 @@
     <a href="{% url 'ocena' ocena.pk %}">{{ ocena.oceniany.imie_i_nazwisko }}</a>
     <span class="etap">{{ ocena.etap_opis }}</span>
     {% if ocena.termin %}<span>termin oceny: {{ ocena.termin|date:"d.m.Y" }}</span>{% endif %}
+    <span class="akcje-wiersza">
+      <a href="{% url 'nowa_notatka' ocena.pk %}?powrot=zadania" class="przycisk przycisk-drugi przycisk-maly" aria-label="Dodaj notatkę - {{ ocena.oceniany.imie_i_nazwisko }}">{% include "oceny/_ikona.html" with nazwa="notatka" only %}Dodaj notatkę</a>
+      <a href="{% url 'przeglad_wspolpracy' ocena.oceniany.pk %}" class="przycisk przycisk-drugi przycisk-maly" aria-label="Przegląd współpracy - {{ ocena.oceniany.imie_i_nazwisko }}">{% include "oceny/_ikona.html" with nazwa="przeglad" only %}Przegląd współpracy</a>
+    </span>
   </li>
   {% endfor %}
 </ul>

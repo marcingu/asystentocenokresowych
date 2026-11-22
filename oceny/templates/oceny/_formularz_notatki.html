@@ -1,0 +1,15 @@
+{# Formularz notatki oceniającego: karta oceny, szybka notatka i przegląd współpracy. Parametry: ocena, rodzaje_notatek, wybrany_rodzaj, tresc_notatki, powrot. #}
+<form method="post" action="{% url 'czynnosc' ocena.pk 'notatka' %}" class="formularz">
+  {% csrf_token %}
+  {% if powrot %}<input type="hidden" name="powrot" value="{{ powrot }}">{% endif %}
+  <label for="rodzaj_notatki">Rodzaj wpisu</label>
+  <select name="rodzaj" id="rodzaj_notatki" aria-describedby="rodzaj_notatki_opis">
+    {% for kod, nazwa in rodzaje_notatek %}<option value="{{ kod }}"{% if kod == wybrany_rodzaj %} selected{% endif %}>{{ nazwa }}</option>
+    {% endfor %}
+  </select>
+  <p class="podpowiedz" id="rodzaj_notatki_opis">Dobrostan i organizacja pracy: fakty i ustalenia o urlopie, obciążeniu, godzinach nadliczbowych
+    i zastępstwach - bez informacji o zdrowiu i sprawach prywatnych. Te wpisy nie są podstawą oceny i nie trafiają do modelu językowego.</p>
+  <label for="tresc_notatki">Treść</label>
+  <textarea name="tresc" id="tresc_notatki" rows="3" required>{{ tresc_notatki }}</textarea>
+  <button type="submit" class="przycisk przycisk-drugi">Zapisz wpis</button>
+</form>

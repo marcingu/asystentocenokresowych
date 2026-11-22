@@ -379,7 +379,7 @@ def projekt_uzasadnienia(ocena: Ocena, uzytkownik, *, redaktor, data: date | Non
     _wymagaj_roli(uzytkownik, biezaca, Rola.OCENIAJACY)
     if biezaca.etap != Etap.OCENIANIE.name:
         raise BladEtapu("Projekt uzasadnienia można przygotować tylko na etapie dokonywania oceny.")
-    notatki = [notatka.tresc for notatka in sorted(biezaca.proces().notatki, key=lambda notatka: notatka.data)]
+    notatki = [notatka.tresc for notatka in sorted(biezaca.proces().notatki_do_oceny(), key=lambda notatka: notatka.data)]
     oceniany = biezaca.oceniany
     wynik = redaktor(notatki, [oceniany.imie_i_nazwisko, oceniany.imie, oceniany.nazwisko])
     projekt = wynik.get("projekt")
@@ -391,10 +391,11 @@ def projekt_uzasadnienia(ocena: Ocena, uzytkownik, *, redaktor, data: date | Non
 
 
 def _notatki_dla_modelu(proces) -> list[str]:
-    """To, co oceniający sam zapisał: obserwacje, dodatkowe osiągnięcia i wynik egzaminu - od najstarszej."""
+    """To, co oceniający sam zapisał: obserwacje, dodatkowe osiągnięcia i wynik egzaminu - od najstarszej.
+    Wpisy o dobrostanie nie są podstawą oceny, więc model ich nie dostaje."""
     return [
         f"Dodatkowe osiągnięcie: {notatka.tresc}" if notatka.rodzaj == OSIAGNIECIE else notatka.tresc
-        for notatka in sorted(proces.notatki, key=lambda notatka: notatka.data)
+        for notatka in sorted(proces.notatki_do_oceny(), key=lambda notatka: notatka.data)
     ]
 
 

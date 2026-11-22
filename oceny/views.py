@@ -18,11 +18,11 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from asystent_ocen.bledy import Blad, BladWalidacji
 from asystent_ocen.konfiguracja import wczytaj_przepisy
-from asystent_ocen.przebieg import OBSERWACJA, OSIAGNIECIE, BladEtapu, BladUprawnien, Etap, Rola
+from asystent_ocen.przebieg import OBSERWACJA, BladEtapu, BladUprawnien, Etap, Rola
 from asystent_ocen.wynik import NEGATYWNA, POZYTYWNA
 from asystent_ocen.zgodnosc import bledy_uruchomienia_monitoringu, wczytaj_wymogi
 
-from . import drukowanie, dziennik, formularze, uprawnienia, uslugi
+from . import drukowanie, dziennik, formularze, notatki, uprawnienia, uslugi
 from .czas import dzis
 from .karta import kontekst_karty
 from .kontekst_ezd import ustalenia_rdzenia
@@ -98,9 +98,19 @@ def _potwierdz_kryteria(request, wybrana: Ocena):
 
 def _notatka(request, wybrana: Ocena):
     rodzaj = request.POST.get("rodzaj") or OBSERWACJA
-    uslugi.dodaj_notatke(wybrana, request.user, tresc=formularze.tekst(request.POST, "tresc"), rodzaj=rodzaj)
-    co = "Dodatkowe osiągnięcie zostało zapisane" if rodzaj == OSIAGNIECIE else "Notatka została zapisana"
-    messages.success(request, f"{co}. Widzi je tylko oceniający.")
+    # Notatkę dodaje się też z listy zadań i z przeglądu współpracy - po zapisie przełożony wraca tam, skąd przyszedł.
+    powrot = request.POST.get("powrot", "")
+    try:
+        uslugi.dodaj_notatke(wybrana, request.user, tresc=formularze.tekst(request.POST, "tresc"), rodzaj=rodzaj)
+    except BladWalidacji as wyjatek:
+        formularz = notatki.adres_formularza(powrot, wybrana, rodzaj)
+        if formularz is None:
+            raise
+        _zglos_bledy(request, wyjatek)
+        return redirect(formularz)
+    messages.success(request, notatki.ZAPISANO[rodzaj])
+    cel = notatki.adres_powrotu(powrot, wybrana)
+    return redirect(cel) if cel else None
 
 
 def _egzamin(request, wybrana: Ocena):

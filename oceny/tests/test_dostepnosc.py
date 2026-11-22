@@ -125,6 +125,9 @@ class PrzegladDostepnosciStronTest(TestCase):
                 klient = Client()
                 klient.force_login(konto)
                 yield f"{konto.username}: ocena {ocena.pk} ({ocena.etap})", klient.get(reverse("ocena", args=[ocena.pk]))
+                # Przegląd współpracy i szybką notatkę widzi tylko oceniający - pozostali dostają stronę „nie znaleziono”.
+                yield f"{konto.username}: przegląd {ocena.oceniany_id}", klient.get(reverse("przeglad_wspolpracy", args=[ocena.oceniany_id]))
+                yield f"{konto.username}: notatka {ocena.pk}", klient.get(reverse("nowa_notatka", args=[ocena.pk]), {"powrot": "zadania"})
 
     def test_zadna_strona_nie_narusza_wymagan_widocznych_w_znacznikach(self):
         naruszenia, zbadane = [], 0

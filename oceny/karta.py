@@ -12,7 +12,7 @@ from django.conf import settings
 from asystent_ocen import terminy
 from asystent_ocen.konfiguracja import wczytaj_przepisy
 from asystent_ocen.kryteria import kryteria_dodatkowe_do_wyboru, kryteria_obowiazkowe
-from asystent_ocen.przebieg import EGZAMIN, OBSERWACJA, OSIAGNIECIE, Etap, ProcesOceny, Rola
+from asystent_ocen.przebieg import DOBROSTAN, EGZAMIN, OBSERWACJA, OSIAGNIECIE, Etap, ProcesOceny, Rola
 from asystent_ocen.stopnie import kolejny_stopien_slownie, komunikat_dla_stopnia
 from asystent_ocen.walidacja import Formularz, bledy_przed_zatwierdzeniem, pouczenie_o_sprzeciwie
 from asystent_ocen.wynik import NEGATYWNA, bledy_ocen_czastkowych, formatuj_srednia, oblicz_wynik
@@ -20,6 +20,7 @@ from asystent_ocen.wynik import NEGATYWNA, bledy_ocen_czastkowych, formatuj_sred
 from . import drukowanie
 from .formularze import nazwy_kryteriow
 from .kontekst_ezd import karta_kontekstu
+from .notatki import RODZAJE_NOTATEK
 from .radar import radar_oceny
 from .models import Ocena, WniosekOTermin
 from .uprawnienia import role_uzytkownika
@@ -328,7 +329,7 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
             "dostepny": copilot.redakcja_notatek_dostepna(),
             # funkcja wysokiego ryzyka - widoczna tylko wtedy, gdy włączyła ją decyzja urzędu
             "sugestie_dostepne": copilot.sugestie_ocen_dostepne(),
-            "liczba_notatek": len(proces.notatki),
+            "liczba_notatek": len(proces.notatki_do_oceny()),  # wpisy o dobrostanie nie trafiają do modelu
             "model": settings.ASYSTENT_MODEL,
             # informacja przy treściach wygenerowanych przez model: klasyfikacja funkcji i decyzja urzędu
             "nota_sugestii": copilot.nota_ai(copilot.FUNKCJA_PROPOZYCJI_OCENY),
@@ -348,6 +349,8 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
         notatki = sorted(proces.notatki, key=lambda notatka: notatka.data, reverse=True)
         kontekst["notatki"] = [notatka for notatka in notatki if notatka.rodzaj == OBSERWACJA]
         kontekst["osiagniecia"] = [notatka for notatka in notatki if notatka.rodzaj == OSIAGNIECIE]
+        kontekst["dobrostan"] = [notatka for notatka in notatki if notatka.rodzaj == DOBROSTAN]
+        kontekst["rodzaje_notatek"] = RODZAJE_NOTATEK
         kontekst["egzamin"] = next((notatka for notatka in notatki if notatka.rodzaj == EGZAMIN), None)
         kontekst["mozna_dodac_notatke"] = not zakonczona
         kontekst["mozna_zapisac_egzamin"] = not zakonczona and ocena.pierwsza

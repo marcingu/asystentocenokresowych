@@ -13,6 +13,7 @@ from django.test import TestCase, override_settings
 from oceny import uslugi
 from oceny.models import Zdarzenie
 
+from .dostepnosc_html import bledy_dostepnosci
 from .pomocnicze import Zespol
 from .test_widoki import czynnosc, klient
 
@@ -68,7 +69,7 @@ class OsiagnieciaTest(Podstawa):
         )
 
         self.assertEqual(self.notatki(), [])
-        self.assertContains(odpowiedz, "Notatka może być obserwacją albo dodatkowym osiągnięciem")
+        self.assertContains(odpowiedz, "Notatka może być obserwacją, dodatkowym osiągnięciem pracownika albo wpisem o dobrostanie.")
 
     def test_osiagniec_zapisanych_przez_przelozonego_nie_widzi_oceniany_ani_kadry(self):
         uslugi.dodaj_notatke(
@@ -80,6 +81,70 @@ class OsiagnieciaTest(Podstawa):
                 odpowiedz = klient(osoba).get(self.karta)
                 self.assertNotContains(odpowiedz, OSIAGNIECIE)
                 self.assertNotContains(odpowiedz, "osiągnięci")
+
+
+USTALENIE = "Ustalony urlop 14 dni w lipcu, zastępstwo przejmuje wydział."
+
+
+class DobrostanTest(Podstawa):
+    """Notatka o dobrostanie: trzeci rodzaj wpisu, połączony z kartami dobrostanu w Radarze. Nie jest podstawą
+    oceny - nie trafia do modelu językowego, który pracuje na notatkach."""
+
+    def dodaj(self, tresc=USTALENIE, rodzaj="dobrostan"):
+        uslugi.dodaj_notatke(self.ocena, self.z.szef.uzytkownik, tresc=tresc, rodzaj=rodzaj, data=date(2025, 9, 1))
+
+    def test_oceniajacy_zapisuje_notatke_o_dobrostanie(self):
+        odpowiedz = self.szef.post(czynnosc(self.ocena, "notatka"), {"tresc": USTALENIE, "rodzaj": "dobrostan"}, follow=True)
+
+        self.assertEqual(self.notatki(), [("dobrostan", USTALENIE)])
+        self.assertContains(odpowiedz, "Notatka o dobrostanie została zapisana. Widzi ją tylko oceniający.")
+
+    def test_formularz_ma_rodzaj_dobrostan_i_mowi_czego_nie_zapisywac(self):
+        strona = self.szef.get(self.karta)
+
+        self.assertContains(strona, '<option value="dobrostan">dobrostan i organizacja pracy</option>')
+        self.assertContains(strona, "bez informacji o zdrowiu i sprawach prywatnych")
+
+    def test_karta_pokazuje_dobrostan_osobno_od_obserwacji_i_osiagniec(self):
+        self.dodaj()
+        self.dodaj("Obserwacja z czerwca.", "obserwacja")
+
+        strona = self.szef.get(self.karta).content.decode()
+
+        self.assertIn("Dobrostan (1)", strona)
+        self.assertIn("Obserwacje (1)", strona)
+        self.assertLess(strona.index("Dobrostan (1)"), strona.index(USTALENIE))
+        self.assertLess(strona.index(USTALENIE), strona.index("Obserwacje (1)"))
+        self.assertEqual(bledy_dostepnosci(strona), [])
+
+    def test_notatek_o_dobrostanie_nie_widzi_oceniany_ani_kadry(self):
+        self.dodaj()
+
+        for osoba in (self.z.ola, self.z.kadry):
+            with self.subTest(osoba=osoba.uzytkownik.username):
+                odpowiedz = klient(osoba).get(self.karta)
+                self.assertNotContains(odpowiedz, USTALENIE)
+                self.assertNotContains(odpowiedz, "Dobrostan (")
+
+    def test_notatka_o_dobrostanie_nie_trafia_do_modelu_jezykowego(self):
+        """Dobrostan nie jest kryterium oceny: żadna funkcja AI pracująca na notatkach go nie dostaje."""
+        self.dodaj()
+        self.dodaj("Sprawy zamknięte przed terminem.", "obserwacja")
+        wyslane = []
+
+        def atrapa(klucz):
+            def funkcja(notatki, *reszta):
+                wyslane.append(list(notatki))
+                return {klucz: None}
+            return funkcja
+
+        szef = self.z.szef.uzytkownik
+        uslugi.projekt_uzasadnienia(self.ocena, szef, redaktor=atrapa("projekt"))
+        uslugi.sugestia_ocen(self.ocena, szef, doradca=atrapa("sugestia"))
+        uslugi.przygotowanie_rozmowy(self.ocena, szef, doradca=atrapa("rozmowa"))
+
+        self.assertEqual(wyslane, [["Sprawy zamknięte przed terminem."]] * 3)
+        self.assertEqual(self.szef.get(self.karta).context["copilot"]["liczba_notatek"], 1)
 
 
 class EgzaminTest(Podstawa):

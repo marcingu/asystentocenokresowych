@@ -47,9 +47,12 @@ class BladEtapu(Exception):
 # Rodzaje notatek oceniającego. Żadna nie jest częścią arkusza i żadnej nie widzi oceniany.
 OBSERWACJA = "obserwacja"
 OSIAGNIECIE = "osiagniecie"  # dodatkowe osiągnięcie pracownika - ponad zwykłe obowiązki
+# Ustalenia o organizacji pracy: urlop, obciążenie, godziny nadliczbowe, zastępstwa. Ten sam kod co rodzaj karty
+# obserwacji w Radarze Dobrostanu (`radar.DOBROSTAN`). Nie jest podstawą oceny - patrz `notatki_do_oceny`.
+DOBROSTAN = "dobrostan"
 EGZAMIN = "egzamin"  # wynik egzaminu ze służby przygotowawczej (art. 36 ust. 5 u.s.c.), najwyżej jeden wpis
 # Rodzaje wpisywane jako tekst; wynik egzaminu ma własną czynność z kontrolą punktów.
-RODZAJE_WPISYWANE = (OBSERWACJA, OSIAGNIECIE)
+RODZAJE_WPISYWANE = (OBSERWACJA, OSIAGNIECIE, DOBROSTAN)
 
 _ETAPY_NOTATEK = (Etap.KRYTERIA_DO_WYZNACZENIA, Etap.KRYTERIA_DO_POTWIERDZENIA, Etap.OCENIANIE, Etap.OCENA_DO_ZAPOZNANIA)
 _LICZBA_PUNKTOW = re.compile(r"\d{1,4}(?:[.,]\d{1,2})?")
@@ -248,13 +251,13 @@ class ProcesOceny:
     # --- notatki z obserwacji ---
 
     def dodaj_notatke(self, rola: Rola, tresc: str, data: date, rodzaj: str = OBSERWACJA) -> None:
-        """Robocza notatka oceniającego: obserwacja pracy ocenianego albo jego dodatkowe osiągnięcie
-        (nie jest częścią arkusza)."""
+        """Robocza notatka oceniającego: obserwacja pracy ocenianego, jego dodatkowe osiągnięcie albo wpis
+        o dobrostanie i organizacji pracy (nie jest częścią arkusza)."""
         self._wymagaj_roli(rola, Rola.OCENIAJACY, czynnosc="dodanie notatki z obserwacji")
         self._wymagaj_etapu(*_ETAPY_NOTATEK, czynnosc="dodanie notatki z obserwacji")
         if rodzaj not in RODZAJE_WPISYWANE:
             raise BladWalidacji(
-                [Blad("NIEZNANY_RODZAJ_NOTATKI", "Notatka może być obserwacją albo dodatkowym osiągnięciem pracownika.")]
+                [Blad("NIEZNANY_RODZAJ_NOTATKI", "Notatka może być obserwacją, dodatkowym osiągnięciem pracownika albo wpisem o dobrostanie.")]
             )
         if not str(tresc or "").strip():
             raise BladWalidacji([Blad("PUSTA_NOTATKA", "Notatka nie może być pusta.")])
@@ -311,6 +314,11 @@ class ProcesOceny:
             tresc += " " + str(uwagi).strip()
         self.notatki = [notatka for notatka in self.notatki if notatka.rodzaj != EGZAMIN]
         self.notatki.append(Notatka(data=data, tresc=tresc, rodzaj=EGZAMIN))
+
+    def notatki_do_oceny(self) -> list[Notatka]:
+        """Notatki, na których oceniający opiera ocenę. Wpisy o dobrostanie do nich nie należą: karty Radaru
+        Dobrostanu i notatki do nich nie są kryterium oceny okresowej."""
+        return [notatka for notatka in self.notatki if notatka.rodzaj != DOBROSTAN]
 
     def notatki_z_okresu(self, rola: Rola, od: date, do: date) -> list[Notatka]:
         """Notatki oceniającego z okresu od-do (włącznie), chronologicznie. Oceniany nie ma do nich wglądu

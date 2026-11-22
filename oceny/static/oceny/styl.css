@@ -189,6 +189,17 @@ summary { cursor: pointer; color: var(--granat); font-weight: 600; }
 .wskazana-ocena { color: var(--granat); }
 .notatki h3 { font-size: .95rem; margin: 1rem 0 .2rem; }
 .wpis-osiagniecie { border-left: 4px solid var(--zielony); padding-left: .5rem; }
+.wpis-dobrostan { border-left: 4px solid var(--granat); padding-left: .5rem; }
+
+/* akcje przy ocenie na liście zadań, szybka notatka i przegląd współpracy */
+.akcje-wiersza { display: flex; flex-wrap: wrap; gap: .4rem; margin-left: auto; }
+.ikona { width: 1.15em; height: 1.15em; vertical-align: -.2em; margin-right: .3rem; }
+.karta-waska { max-width: 46rem; }
+.zakresy { list-style: none; display: flex; flex-wrap: wrap; gap: .4rem; padding: 0; margin: 0 0 .8rem; }
+.zakresy a { display: inline-block; padding: .3rem .7rem; border: 1px solid var(--granat); border-radius: 4px; text-decoration: none; font-size: .9rem; }
+.zakresy a[aria-current="true"] { background: var(--granat); color: #fff; font-weight: 700; }
+.formularz-zakres { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem 1rem; align-items: end; max-width: 40rem; }
+.formularz-zakres label { display: block; margin-top: 0; }
 .konfiguracja { background: #10202f; color: #e6edf5; padding: 1rem; border-radius: 4px; overflow: auto; max-height: 34rem; font-size: .85rem; line-height: 1.45; }
 
 /* statystyki */

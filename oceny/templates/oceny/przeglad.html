@@ -1,0 +1,152 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Przegląd współpracy: {{ pracownik.imie_i_nazwisko }}{% endblock %}
+{% block tresc %}
+<p class="okruszki"><a href="{% url 'zadania' %}">Moje zadania</a> / przegląd współpracy</p>
+<header class="naglowek-oceny">
+  <div>
+    <h1>{{ pracownik.imie_i_nazwisko }}</h1>
+    <p>Tę stronę widzisz tylko Ty jako oceniający. Zbiera Twoje notatki, karty Radaru, nieobecności i oceny, które prowadzisz.</p>
+  </div>
+  <dl class="metryczka">
+    <div><dt>Stanowisko</dt><dd>{{ pracownik.stanowisko }}</dd></div>
+    {% if pracownik.komorka %}<div><dt>Komórka organizacyjna</dt><dd>{{ pracownik.komorka }}</dd></div>{% endif %}
+    <div><dt>W urzędzie od</dt><dd>{{ pracownik.data_zatrudnienia|date:"d.m.Y" }}</dd></div>
+    <div><dt>Bieżąca ocena</dt><dd><a href="{% url 'ocena' biezaca.pk %}">{{ biezaca.etap_opis }}</a>{% if biezaca.termin and not biezaca.zakonczona %}, termin {{ biezaca.termin|date:"d.m.Y" }}{% endif %}</dd></div>
+  </dl>
+</header>
+
+<section class="karta" aria-labelledby="n-zakres">
+  <h2 id="n-zakres">Zakres dat</h2>
+  {% if zakres.blad %}<p class="komunikat komunikat-error" role="alert">{{ zakres.blad }}</p>{% endif %}
+  <ul class="zakresy">
+    {% for pozycja in zakresy %}<li><a href="?zakres={{ pozycja.kod }}"{% if pozycja.wybrany %} aria-current="true"{% endif %}>{{ pozycja.nazwa }}</a></li>
+    {% endfor %}
+  </ul>
+  <form method="get" class="formularz formularz-zakres">
+    <div><label for="zakres_od">Od</label>
+      <input type="date" name="od" id="zakres_od" value="{{ zakres.od|date:'Y-m-d' }}" max="{{ dzis_iso }}" required></div>
+    <div><label for="zakres_do">Do</label>
+      <input type="date" name="do" id="zakres_do" value="{{ zakres.do|date:'Y-m-d' }}" max="{{ dzis_iso }}" required></div>
+    <button type="submit" class="przycisk przycisk-drugi">Pokaż zakres</button>
+  </form>
+  <p>Notatki i nieobecności z okresu <strong>{{ zakres.od|date:"d.m.Y" }} - {{ zakres.do|date:"d.m.Y" }}</strong> ({{ zakres.opis }}).
+    Notatki: {{ liczba_notatek }}. Nieobecności: {{ nieobecnosci|length }}.</p>
+  {% if radar.stan == 'GOTOWY' %}
+  <p class="podpowiedz">Karty Radaru pokazują stan na {{ radar.stan_na|date:"d.m.Y" }}, niezależnie od wybranego zakresu: liczą 3 i 12 miesięcy wstecz od tego dnia.</p>
+  {% endif %}
+</section>
+
+<div class="uklad">
+<div class="kolumna-glowna">
+
+<section class="karta" aria-labelledby="n-dobrostan">
+  <h2 id="n-dobrostan">Dobrostan i organizacja pracy</h2>
+  {% if radar.stan == 'GOTOWY' %}
+  {% if radar.dane_przykladowe %}<p class="komunikat komunikat-info">Pokaz: dane przykładowe zamiast połączenia z systemem kadrowym i EZD RP.</p>{% endif %}
+  <h3>Karty Radaru - do omówienia</h3>
+  {% if radar.dobrostan %}
+  <ul class="obserwacje">
+    {% for karta in radar.dobrostan %}
+    <li class="obserwacja">
+      <strong>{{ karta.tytul }}</strong>
+      <span>{{ karta.fakt }}</span>
+      <span>{{ karta.do_rozmowy }}</span>
+      <small>Źródło: {{ karta.zrodlo }}. Podstawa: {{ karta.podstawa }}</small>
+      {% if mozna_dodac_notatke %}<a href="{% url 'nowa_notatka' biezaca.pk %}?karta={{ karta.kod }}&amp;powrot=przeglad" aria-label="Zanotuj ustalenie - {{ karta.tytul }}">Zanotuj ustalenie</a>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="pusto">Żadna liczba nie osiągnęła progu ustalonego przez urząd.</p>
+  {% endif %}
+  {% elif radar %}
+  <p class="podpowiedz">{{ radar.komunikat }}</p>
+  {% endif %}
+  <h3>Moje notatki o dobrostanie ({{ dobrostan|length }})</h3>
+  {% for notatka in dobrostan %}
+  <p class="wpis-maly wpis-dobrostan"><strong>{{ notatka.data|date:"d.m.Y" }}</strong> {{ notatka.tresc }}</p>
+  {% empty %}
+  <p class="pusto">Brak wpisów w tym zakresie. Zapisuj ustalenia o urlopie, obciążeniu i organizacji pracy - bez informacji o zdrowiu i sprawach prywatnych.</p>
+  {% endfor %}
+  <p class="podpowiedz">Karty i notatki o dobrostanie nie są kryterium oceny okresowej i nie trafiają do modelu językowego.</p>
+</section>
+
+<section class="karta" aria-labelledby="n-docenianie">
+  <h2 id="n-docenianie">Docenianie</h2>
+  {% if radar.stan == 'GOTOWY' %}
+  <h3>Karty Radaru - warto zauważyć</h3>
+  {% if radar.docenienie %}
+  <ul class="obserwacje">
+    {% for karta in radar.docenienie %}
+    <li class="obserwacja obserwacja-docenienie">
+      <strong>{{ karta.tytul }}</strong>
+      <span>{{ karta.fakt }}</span>
+      <span>{{ karta.do_rozmowy }}</span>
+      <small>Źródło: {{ karta.zrodlo }}. Podstawa: {{ karta.podstawa }}</small>
+      {% if mozna_dodac_notatke %}<a href="{% url 'nowa_notatka' biezaca.pk %}?karta={{ karta.kod }}&amp;powrot=przeglad" aria-label="Zanotuj osiągnięcie - {{ karta.tytul }}">Zanotuj osiągnięcie</a>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="pusto">Żadna liczba nie osiągnęła progu ustalonego przez urząd.</p>
+  {% endif %}
+  {% endif %}
+  <h3>Dodatkowe osiągnięcia ({{ osiagniecia|length }})</h3>
+  {% for notatka in osiagniecia %}
+  <p class="wpis-maly wpis-osiagniecie"><strong>{{ notatka.data|date:"d.m.Y" }}</strong> {{ notatka.tresc }}</p>
+  {% empty %}
+  <p class="pusto">Brak wpisów w tym zakresie. Zapisuj to, co pracownik zrobił ponad zwykłe obowiązki.</p>
+  {% endfor %}
+</section>
+
+<section class="karta" aria-labelledby="n-obserwacje">
+  <h2 id="n-obserwacje">Obserwacje z pracy</h2>
+  {% for notatka in obserwacje %}
+  <p class="wpis-maly"><strong>{{ notatka.data|date:"d.m.Y" }}</strong> {{ notatka.tresc }}</p>
+  {% empty %}
+  <p class="pusto">Brak notatek w tym zakresie.</p>
+  {% endfor %}
+</section>
+
+</div>
+<aside class="kolumna-boczna">
+
+{% if mozna_dodac_notatke %}
+<section class="karta notatki" aria-labelledby="n-notatka">
+  <h2 id="n-notatka">Nowa notatka</h2>
+  <p class="podpowiedz">Notatki widzisz tylko Ty. Nie są częścią arkusza.</p>
+  {% include "oceny/_formularz_notatki.html" with ocena=biezaca powrot="przeglad" %}
+</section>
+{% endif %}
+
+<section class="karta" aria-labelledby="n-nieobecnosci">
+  <h2 id="n-nieobecnosci">Nieobecności</h2>
+  {% if nieobecnosci %}
+  <ul class="terminy">
+    {% for nieobecnosc in nieobecnosci %}
+    <li class="termin termin-informacja">{{ nieobecnosc.od|date:"d.m.Y" }} - {{ nieobecnosc.do|date:"d.m.Y" }}{% if not nieobecnosc.usprawiedliwiona %} <small>nieusprawiedliwiona</small>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="pusto">Brak nieobecności w tym zakresie.</p>
+  {% endif %}
+  <p class="podpowiedz">Bez przyczyn nieobecności - system ich nie przechowuje.</p>
+</section>
+
+<section class="karta" aria-labelledby="n-oceny">
+  <h2 id="n-oceny">Oceny, które prowadzę</h2>
+  <ul class="lista-ocen">
+    {% for ocena in oceny %}
+    <li>
+      <a href="{% url 'ocena' ocena.pk %}">Okres od {{ ocena.poczatek_cyklu|date:"d.m.Y" }}</a>
+      <span class="etap">{{ ocena.etap_opis }}</span>
+      {% if ocena.wynik %}<span class="wynik wynik-{{ ocena.wynik|lower }}">{{ ocena.wynik|lower }}, {{ ocena.poziom }}</span>
+      {% elif ocena.termin %}<span>termin oceny: {{ ocena.termin|date:"d.m.Y" }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+
+</aside>
+</div>
+{% endblock %}

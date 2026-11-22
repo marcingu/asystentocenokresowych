@@ -139,6 +139,7 @@
       <span>{{ karta.fakt }}</span>
       <span>{{ karta.do_rozmowy }}</span>
       <small>Źródło: {{ karta.zrodlo }}. Podstawa: {{ karta.podstawa }}</small>
+      {% if mozna_dodac_notatke %}<a href="{% url 'nowa_notatka' ocena.pk %}?karta={{ karta.kod }}" aria-label="Zanotuj ustalenie - {{ karta.tytul }}">Zanotuj ustalenie</a>{% endif %}
     </li>
     {% endfor %}
   </ul>
@@ -152,6 +153,7 @@
       <span>{{ karta.fakt }}</span>
       <span>{{ karta.do_rozmowy }}</span>
       <small>Źródło: {{ karta.zrodlo }}. Podstawa: {{ karta.podstawa }}</small>
+      {% if mozna_dodac_notatke %}<a href="{% url 'nowa_notatka' ocena.pk %}?karta={{ karta.kod }}" aria-label="Zanotuj osiągnięcie - {{ karta.tytul }}">Zanotuj osiągnięcie</a>{% endif %}
     </li>
     {% endfor %}
   </ul>
@@ -669,17 +671,7 @@
   <h2 id="n-notatki">Moje notatki z okresu oceny</h2>
   <p class="podpowiedz">Notatki widzisz tylko Ty. Nie są częścią arkusza.</p>
   {% if mozna_dodac_notatke %}
-  <form method="post" action="{% url 'czynnosc' ocena.pk 'notatka' %}" class="formularz">
-    {% csrf_token %}
-    <label for="rodzaj_notatki">Rodzaj wpisu</label>
-    <select name="rodzaj" id="rodzaj_notatki">
-      <option value="obserwacja">obserwacja z pracy</option>
-      <option value="osiagniecie">dodatkowe osiągnięcie pracownika</option>
-    </select>
-    <label for="tresc_notatki">Treść</label>
-    <textarea name="tresc" id="tresc_notatki" rows="3" required></textarea>
-    <button type="submit" class="przycisk przycisk-drugi">Zapisz wpis</button>
-  </form>
+  {% include "oceny/_formularz_notatki.html" %}
   {% endif %}
 
   <h3>Dodatkowe osiągnięcia ({{ osiagniecia|length }})</h3>
@@ -687,6 +679,13 @@
   <p class="wpis-maly wpis-osiagniecie"><strong>{{ notatka.data|date:"d.m.Y" }}</strong> {{ notatka.tresc }}</p>
   {% empty %}
   <p class="pusto">Brak wpisów. Zapisuj tu to, co pracownik zrobił ponad zwykłe obowiązki.</p>
+  {% endfor %}
+
+  <h3>Dobrostan ({{ dobrostan|length }})</h3>
+  {% for notatka in dobrostan %}
+  <p class="wpis-maly wpis-dobrostan"><strong>{{ notatka.data|date:"d.m.Y" }}</strong> {{ notatka.tresc }}</p>
+  {% empty %}
+  <p class="pusto">Brak wpisów. Zapisuj tu ustalenia o urlopie, obciążeniu i organizacji pracy - np. po rozmowie o karcie z Radaru.</p>
   {% endfor %}
 
   <h3>Obserwacje ({{ notatki|length }})</h3>

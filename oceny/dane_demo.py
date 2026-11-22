@@ -131,6 +131,7 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
         (4, "obserwacja", "Przygotowała projekt procedury obiegu korespondencji; wdrożony bez poprawek merytorycznych."),
         (9, "obserwacja", "Sprawy z zakresu skarg i wniosków załatwia przed terminem; w drugim kwartale żadna nie przekroczyła terminu."),
         (15, "osiagniecie", "Przeprowadziła szkolenie dla nowych pracowników wydziału z obsługi EZD RP."),
+        (19, "dobrostan", "Po rozmowie o urlopie zaległym: urlop 14 dni zaplanowany, zastępstwo ustalone w wydziale."),
         (21, "obserwacja", "Dwa projekty pism do ministerstwa wymagały poprawek stylistycznych; merytorycznie bez uwag."),
     ]
     for miesiac, rodzaj, tresc in notatki:

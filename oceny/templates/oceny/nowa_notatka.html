@@ -1,0 +1,22 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Nowa notatka: {{ pracownik.imie_i_nazwisko }}{% endblock %}
+{% block tresc %}
+<p class="okruszki"><a href="{% url 'zadania' %}">Moje zadania</a> / nowa notatka</p>
+<h1>Nowa notatka: {{ pracownik.imie_i_nazwisko }}</h1>
+<section class="karta notatki karta-waska" aria-labelledby="n-notatka">
+  <h2 id="n-notatka">{% if karta %}Notatka do karty Radaru{% else %}Treść notatki{% endif %}</h2>
+  {% if karta %}
+  <ul class="obserwacje">
+    <li class="obserwacja{% if karta.rodzaj == 'docenienie' %} obserwacja-docenienie{% endif %}">
+      <strong>{{ karta.tytul }}</strong>
+      <span>{{ karta.fakt }}</span>
+      <span>{{ karta.do_rozmowy }}</span>
+      <small>Źródło: {{ karta.zrodlo }}. Podstawa: {{ karta.podstawa }}</small>
+    </li>
+  </ul>
+  {% endif %}
+  <p class="podpowiedz">Notatki widzisz tylko Ty. Nie są częścią arkusza.</p>
+  {% include "oceny/_formularz_notatki.html" %}
+  <p><a href="{% url 'przeglad_wspolpracy' pracownik.pk %}">Przegląd współpracy</a> · <a href="{% url 'ocena' ocena.pk %}">Karta oceny</a></p>
+</section>
+{% endblock %}
