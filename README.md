@@ -112,6 +112,7 @@ Skrypt `uruchom-demo.sh` używa serwera deweloperskiego Django i służy do poka
 
 - ustawa z dnia 21 listopada 2008 r. o służbie cywilnej (t.j. Dz. U. z 2026 r. poz. 590),
 - rozporządzenie Prezesa Rady Ministrów z dnia 4 kwietnia 2016 r. w sprawie warunków i sposobu przeprowadzania ocen okresowych urzędników służby cywilnej i pracowników służby cywilnej (Dz. U. poz. 470),
+- [rozporządzenie Prezesa Rady Ministrów z dnia 23 lipca 2015 r. w sprawie szczegółowych warunków i sposobu dokonywania pierwszej oceny w służbie cywilnej](https://eli.gov.pl/eli/DU/2015/1144/ogl) (Dz. U. z 2015 r. poz. 1144) - [wymagania dla odrębnego procesu z art. 37-38 u.s.c., do wdrożenia](dokumentacja/pierwsza-ocena-wymagania.md),
 - Kodeks cywilny, art. 110-116 (terminy),
 - ustawa z dnia 4 kwietnia 2019 r. o dostępności cyfrowej stron internetowych i aplikacji mobilnych podmiotów publicznych (t.j. Dz. U. z 2023 r. poz. 1440) - wymagania WCAG 2.1,
 - ustawa z dnia 5 lipca 2018 r. o krajowym systemie cyberbezpieczeństwa (t.j. Dz. U. z 2026 r. poz. 20, 252, 815, 1003 i 1206), art. 8 i załącznik nr 4 - kontrola dostępu, uwierzytelnianie wieloskładnikowe, zawieszanie uprawnień,
