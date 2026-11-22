@@ -14,6 +14,7 @@ from asystent_ocen.konfiguracja import wczytaj_przepisy
 from asystent_ocen.kryteria import kryteria_dodatkowe_do_wyboru, kryteria_obowiazkowe
 from asystent_ocen.przebieg import DOBROSTAN, EGZAMIN, OBSERWACJA, OSIAGNIECIE, Etap, ProcesOceny, Rola
 from asystent_ocen.stopnie import kolejny_stopien_slownie, komunikat_dla_stopnia
+from asystent_ocen.po_sprzeciwie import PODSTAWA as PODSTAWA_ODWOLANIA
 from asystent_ocen.walidacja import Formularz, bledy_przed_zatwierdzeniem, pouczenie_o_sprzeciwie
 from asystent_ocen.wynik import NEGATYWNA, bledy_ocen_czastkowych, formatuj_srednia, oblicz_wynik
 
@@ -26,6 +27,7 @@ from .radar import radar_oceny
 from .models import Ocena, WniosekOTermin
 from .uprawnienia import role_uzytkownika
 from .uslugi import CZYNNOSC_NOTATKA, CZYNNOSCI_AI, CZYNNOSCI_AI_WYSOKIEGO_RYZYKA
+from .po_sprzeciwie import widok_statusu
 from .zadania import opis_dni_do_terminu, opisy_skutkow, zadania_oceny
 
 
@@ -129,6 +131,18 @@ def wiersze_terminow(ocena: Ocena, proces: ProcesOceny, nieobecnosci: list, dzie
                 "Sprzeciw od oceny - najpóźniej", termin, "art. 83 ust. 1 u.s.c.",
                 "Termin upłynął." if minal else "", "informacja" if minal else stan_terminu(termin, dzien),
             )
+        if sprzeciwy:
+            # Droga odwoławcza po sprzeciwie (art. 83 ust. 5 u.s.c.) - uprawnienie ocenianego, nie zadanie urzędu.
+            ostatni = sprzeciwy[-1]
+            odwolanie = ostatni.status(dzien).termin
+            if ostatni.data_doreczenia:
+                dodaj("Doręczenie rozstrzygnięcia sprzeciwu", ostatni.data_doreczenia, PODSTAWA_ODWOLANIA, stan="wykonane")
+            if odwolanie:
+                minal = odwolanie < dzien
+                dodaj(
+                    "Odwołanie do sądu pracy - najpóźniej", odwolanie, PODSTAWA_ODWOLANIA,
+                    "Termin upłynął." if minal else "", "informacja" if minal else stan_terminu(odwolanie, dzien),
+                )
     return wiersze
 
 
@@ -271,6 +285,8 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
     dyrektor = Rola.DYREKTOR_GENERALNY in role
     etap = proces.etap
     sprzeciwy = list(ocena.sprzeciwy.all())
+    for sprzeciw in sprzeciwy:
+        sprzeciw.widok = widok_statusu(sprzeciw, dzien)
     sprzeciw_w_toku = next((sprzeciw for sprzeciw in sprzeciwy if not sprzeciw.rozpatrzony), None)
     wnioski = list(ocena.wnioski_o_termin.all())
     nastepna = Ocena.objects.filter(poprzednia=ocena).first()
@@ -310,6 +326,7 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
         ],
         "sprzeciwy": sprzeciwy,
         "sprzeciw_w_toku": sprzeciw_w_toku,
+        "po_sprzeciwie": sprzeciwy[-1].widok if sprzeciwy else None,
         "wnioski_o_termin": wnioski,
         "wniosek_oczekuje": any(wniosek.status == WniosekOTermin.OCZEKUJE for wniosek in wnioski),
         "nastepna": nastepna,
@@ -379,6 +396,11 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
                 {"numer": numer, "nazwa": nazwa, "wartosc": proces.oceny.get(nazwa)}
                 for numer, nazwa in enumerate(nazwy_kryteriow(proces))
             ]
+        # Doręczenie rozstrzygnięcia potwierdza oceniany albo wpisuje komórka kadr (art. 83 ust. 5 u.s.c.).
+        if any(sprzeciw.widok["do_doreczenia"] for sprzeciw in sprzeciwy):
+            kontekst["mozna_potwierdzic_doreczenie"] = oceniany
+            kontekst["mozna_wpisac_doreczenie"] = kadry and not oceniany
+            kontekst["dzis_iso"] = dzien.isoformat()
         if kadry or oceniajacy:
             kontekst["skutki"] = opisy_skutkow(ocena)
     # Fakty z EZD RP są jawne dla obu stron oceny; komórka kadr ich nie potrzebuje (minimalizacja danych).

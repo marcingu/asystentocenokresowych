@@ -366,4 +366,8 @@ class AdministratorTest(Podstawa):
             odpowiedz = admin.get(adres)
             self.assertEqual(odpowiedz.status_code, 404, adres)
             self.assertNotContains(odpowiedz, OBSERWACJA, status_code=404)
-        self.assertEqual(admin.post(f"/oceny/{self.ocena.pk}/czynnosc/notatka/", {"tresc": "x", "powrot": "przeglad"}).status_code, 403)
+        # Konto administratora nie widzi oceny wcale, więc zapis kończy się tak jak przy cudzej ocenie.
+        odpowiedz = admin.post(f"/oceny/{self.ocena.pk}/czynnosc/notatka/", {"tresc": "x", "powrot": "przeglad"})
+        self.assertEqual(odpowiedz.status_code, 404)
+        self.ocena.refresh_from_db()
+        self.assertEqual([n.tresc for n in self.ocena.proces().notatki], [OBSERWACJA])

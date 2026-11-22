@@ -70,6 +70,7 @@ def zadania(request):
             ocena for ocena in widoczne
             if ocena.oceniajacy == uprawnienia.pracownik_uzytkownika(request.user) and not ocena.zakonczona
         ],
+        "konto_funkcyjne": uprawnienia.konto_funkcyjne(request.user),
     })
 
 
@@ -255,6 +256,19 @@ def _rozpatrz_sprzeciw(request, wybrana: Ocena):
     messages.success(request, "Rozstrzygnięcie sprzeciwu zostało wprowadzone.")
 
 
+def _doreczenie_rozstrzygniecia(request, wybrana: Ocena):
+    """Oceniany potwierdza odbiór bez podawania daty; formularz komórki kadr przesyła datę doręczenia."""
+    data = None
+    if "data_doreczenia" in request.POST:
+        data = formularze.wymagana_data(request.POST, "data_doreczenia", "doręczenia rozstrzygnięcia")
+    sprzeciw = uslugi.odnotuj_doreczenie_rozstrzygniecia(wybrana, request.user, data=data)
+    messages.success(
+        request,
+        f"Odnotowano doręczenie rozstrzygnięcia z dniem {sprzeciw.data_doreczenia:%d.%m.%Y}. "
+        "Od tego dnia biegnie termin na odwołanie do sądu pracy (art. 83 ust. 5 u.s.c.).",
+    )
+
+
 CZYNNOSCI = {
     "wyznacz-kryteria": _wyznacz_kryteria,
     "potwierdz-kryteria": _potwierdz_kryteria,
@@ -273,6 +287,7 @@ CZYNNOSCI = {
     "fikcja-zapoznania": _fikcja_zapoznania,
     "sprzeciw": _sprzeciw,
     "rozpatrz-sprzeciw": _rozpatrz_sprzeciw,
+    "doreczenie-rozstrzygniecia": _doreczenie_rozstrzygniecia,
 }
 
 

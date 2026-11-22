@@ -6,6 +6,8 @@ Stan procesu oceny przechowuje rdzeń (`ProcesOceny`) zapisany jako JSON w polu 
 
 from __future__ import annotations
 
+from datetime import date
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -236,6 +238,18 @@ class Ocena(models.Model):
         return self.etap == Etap.ZAKONCZONA.name
 
     @property
+    def po_sprzeciwie(self) -> dict | None:
+        """Dzisiejszy status ostatniego sprzeciwu od tej oceny; None, gdy sprzeciwu nie wniesiono.
+
+        To nie jest kolejny etap: ocena pozostaje zakończona, a status opisuje drogę odwoławczą.
+        """
+        from .czas import dzis
+        from .po_sprzeciwie import widok_statusu
+
+        sprzeciwy = list(self.sprzeciwy.all())
+        return widok_statusu(sprzeciwy[-1], dzis()) if sprzeciwy else None
+
+    @property
     def pierwsza(self) -> bool:
         """Czy to pierwsza ocena pracownika prowadzona w systemie (nie ma poprzedniej)."""
         return self.poprzednia_id is None
@@ -346,6 +360,8 @@ class Sprzeciw(models.Model):
     rozstrzygniecie = models.CharField(max_length=30, blank=True)
     data_rozstrzygniecia = models.DateField(null=True, blank=True)
     uzasadnienie = models.TextField("uzasadnienie rozstrzygnięcia", blank=True)
+    # Od doręczenia biegnie termin odwołania do sądu pracy (art. 83 ust. 5 u.s.c.); wpis rozstrzygnięcia to nie doręczenie.
+    data_doreczenia = models.DateField("data doręczenia rozstrzygnięcia", null=True, blank=True)
 
     class Meta:
         ordering = ["pk"]
@@ -355,6 +371,19 @@ class Sprzeciw(models.Model):
     @property
     def rozpatrzony(self) -> bool:
         return bool(self.rozstrzygniecie)
+
+    def status(self, dzien: date):
+        """Status sprawy po sprzeciwie w dniu `dzien` (art. 83 ust. 3-5 u.s.c.) - liczy go rdzeń."""
+        from asystent_ocen import po_sprzeciwie
+
+        rozstrzygniecie = ""
+        if self.rozpatrzony:
+            odmowa = self.rozstrzygniecie == self.NIEUWZGLEDNIONY
+            rozstrzygniecie = po_sprzeciwie.NIE_UWZGLEDNIONO if odmowa else po_sprzeciwie.UWZGLEDNIONO
+        return po_sprzeciwie.status_po_sprzeciwie(
+            data_wniesienia=self.data_wniesienia, dzien=dzien, rozstrzygniecie=rozstrzygniecie,
+            data_rozstrzygniecia=self.data_rozstrzygniecia, data_doreczenia=self.data_doreczenia,
+        )
 
     @property
     def rozstrzygniecie_opis(self) -> str:

@@ -570,3 +570,45 @@ def rozpatrz_sprzeciw(
         sprzeciw.save()
         _zapisz_zdarzenie(biezaca, uzytkownik, "rozpatrzenie sprzeciwu", data, sprzeciw.rozstrzygniecie_opis)
     ocena.refresh_from_db()
+
+
+def odnotuj_doreczenie_rozstrzygniecia(ocena: Ocena, uzytkownik, *, data: date | None = None) -> Sprzeciw:
+    """Doręczenie rozstrzygnięcia o nieuwzględnieniu sprzeciwu. Od tej daty biegnie termin odwołania do sądu pracy
+    (art. 83 ust. 5 u.s.c.). Odbiór potwierdza oceniany - bez podania daty przyjmuje się dzień potwierdzenia -
+    albo datę doręczenia wpisuje komórka kadr."""
+    dzien = dzis()
+    with transaction.atomic():
+        biezaca = Ocena.objects.select_for_update().get(pk=ocena.pk)
+        role = role_uzytkownika(uzytkownik, biezaca)
+        if Rola.OCENIANY in role:
+            data = data or dzien
+            opis = "odbiór potwierdził oceniany"
+        elif Rola.ZARZADZAJACY in role:
+            if data is None:
+                raise BladWalidacji([Blad("BLEDNA_DATA", "Podaj datę: doręczenia rozstrzygnięcia.", "art. 83 ust. 5 u.s.c.")])
+            opis = "datę doręczenia wpisała komórka kadr"
+        else:
+            raise BladUprawnien("Doręczenie rozstrzygnięcia potwierdza oceniany albo odnotowuje komórka kadr")
+        sprzeciw = (
+            biezaca.sprzeciwy.filter(rozstrzygniecie=Sprzeciw.NIEUWZGLEDNIONY, data_doreczenia__isnull=True)
+            .order_by("pk").first()
+        )
+        if sprzeciw is None:
+            raise BladWalidacji([Blad("BRAK_ROZSTRZYGNIECIA", "Nie ma rozstrzygnięcia, którego doręczenie trzeba odnotować.")])
+        if data > dzien:
+            raise BladWalidacji([Blad(
+                "DORECZENIE_W_PRZYSZLOSCI", "Data doręczenia nie może być późniejsza niż dzisiejsza.", "art. 83 ust. 5 u.s.c.",
+            )])
+        if data < sprzeciw.data_rozstrzygniecia:
+            raise BladWalidacji([Blad(
+                "DORECZENIE_PRZED_ROZSTRZYGNIECIEM",
+                f"Data doręczenia nie może być wcześniejsza niż data rozstrzygnięcia ({sprzeciw.data_rozstrzygniecia:%d.%m.%Y}).",
+                "art. 83 ust. 5 u.s.c.",
+            )])
+        sprzeciw.data_doreczenia = data
+        sprzeciw.save()
+        _zapisz_zdarzenie(
+            biezaca, uzytkownik, "doręczenie rozstrzygnięcia sprzeciwu", dzien, f"doręczono {data:%d.%m.%Y} - {opis}"
+        )
+    ocena.refresh_from_db()
+    return sprzeciw

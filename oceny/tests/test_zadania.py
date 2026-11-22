@@ -11,13 +11,21 @@ from django.test import TestCase, override_settings
 from asystent_ocen import terminy
 from asystent_ocen.przebieg import Rola
 from oceny import uslugi
-from oceny.zadania import opisy_skutkow, skutki_oceny_zakonczonej, zadania_uzytkownika
+from oceny.zadania import opis_dni_do_terminu, opisy_skutkow, skutki_oceny_zakonczonej, zadania_uzytkownika
 
 from .pomocnicze import DZIEN_OCENY, POCZATEK, TERMIN, Zespol, dyrektor_generalny, pracownik
 
 
 def kody(zadania) -> list[str]:
     return [zadanie.kod for zadanie in zadania]
+
+
+class OpisDniTest(TestCase):
+    def test_jeden_dzien_ma_poprawna_forme(self):
+        self.assertEqual(
+            [opis_dni_do_terminu(dni) for dni in (-2, -1, 0, 1, 2)],
+            ["2 dni po terminie", "1 dzień po terminie", "termin mija dzisiaj", "został 1 dzień", "zostało 2 dni"],
+        )
 
 
 class ZadaniaTest(TestCase):

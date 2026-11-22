@@ -19,16 +19,17 @@ from asystent_ocen.stopnie import OcenaHistoryczna
 from asystent_ocen.wynik import NEGATYWNA
 
 from .models import Ocena, WniosekOTermin
+from .po_sprzeciwie import widok_statusu
 from .uprawnienia import oceny_widoczne, role_uzytkownika
 
 
 def opis_dni_do_terminu(dni: int) -> str:
     """Odległość od terminu słowami - stan terminu podaje tekst, a kolor tylko go wzmacnia (WCAG 2.1, 1.4.1)."""
     if dni < 0:
-        return f"{-dni} dni po terminie"
+        return "1 dzień po terminie" if dni == -1 else f"{-dni} dni po terminie"
     if dni == 0:
         return "termin mija dzisiaj"
-    return f"zostało {dni} dni"
+    return "został 1 dzień" if dni == 1 else f"zostało {dni} dni"
 
 
 @dataclass(frozen=True)
@@ -116,18 +117,14 @@ def zadania_uzytkownika(uzytkownik, dzien: date) -> list[Zadanie]:
 
 
 def sprzeciwy_uzytkownika(uzytkownik, dzien: date) -> list[dict]:
-    """Sprzeciwy od ocen widocznych dla użytkownika i stan ich rozpatrzenia: w toku - z terminem z art. 83 ust. 3
-    u.s.c. - albo rozstrzygnięty. Najpierw sprzeciwy w toku, od najstarszego."""
+    """Sprzeciwy od ocen widocznych dla użytkownika i status sprawy po sprzeciwie (art. 83 ust. 3-5 u.s.c.):
+    w toku z terminem rozpatrzenia, uwzględniony, czekający na doręczenie albo z terminem odwołania do sądu pracy.
+    Najpierw sprzeciwy w toku, od najstarszego."""
     wiersze = []
     for ocena in oceny_widoczne(uzytkownik).prefetch_related("sprzeciwy"):
         for sprzeciw in ocena.sprzeciwy.all():
-            termin = terminy.termin_rozpatrzenia_sprzeciwu(sprzeciw.data_wniesienia)
-            dni = (termin - dzien).days
-            if sprzeciw.rozpatrzony:
-                stan, opis = "wykonane", sprzeciw.rozstrzygniecie_opis
-            else:
-                stan, opis = ("po_terminie" if dni < 0 else "pilne"), f"w toku - {opis_dni_do_terminu(dni)}"
-            wiersze.append({"ocena": ocena, "sprzeciw": sprzeciw, "termin": termin, "stan": stan, "stan_opis": opis})
+            widok = widok_statusu(sprzeciw, dzien)
+            wiersze.append({**widok, "ocena": ocena, "sprzeciw": sprzeciw, "termin": widok["status"].termin_rozpatrzenia})
     return sorted(wiersze, key=lambda wiersz: (wiersz["sprzeciw"].rozpatrzony, wiersz["sprzeciw"].data_wniesienia, wiersz["sprzeciw"].pk))
 
 

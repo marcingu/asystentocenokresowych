@@ -21,6 +21,10 @@
   <li class="krok krok-{{ krok.stan }}"{% if krok.stan == 'biezacy' %} aria-current="step"{% endif %}>{{ krok.nazwa }}</li>
   {% endfor %}
 </ol>
+{% if po_sprzeciwie %}
+<p class="status-sprawy">Status po sprzeciwie: <span class="stan stan-{{ po_sprzeciwie.stan }}">{{ po_sprzeciwie.stan_opis }}</span>
+  <a href="#n-sprzeciw">Zobacz sprzeciw</a></p>
+{% endif %}
 
 {% if ocena.po_negatywnej %}
 <p class="komunikat komunikat-warning">Ponowna ocena po ocenie negatywnej (art. 81 ust. 9 u.s.c.). Kryteria wyznacza się
@@ -530,12 +534,26 @@
   <article class="wpis">
     <p><strong>Sprzeciw z {{ sprzeciw.data_wniesienia|date:"d.m.Y" }}</strong>
       {% if sprzeciw.po_terminie %}<span class="stan stan-po_terminie">wniesiony po terminie</span>{% endif %}
-      <span class="stan stan-{% if sprzeciw.rozpatrzony %}wykonane{% else %}pilne{% endif %}">{{ sprzeciw.rozstrzygniecie_opis }}</span></p>
+      <span class="stan stan-{{ sprzeciw.widok.stan }}">{{ sprzeciw.widok.stan_opis }}</span></p>
     <p class="tekst">{{ sprzeciw.tresc }}</p>
     {% if sprzeciw.rozpatrzony %}
-    <p>Rozstrzygnięcie z {{ sprzeciw.data_rozstrzygniecia|date:"d.m.Y" }}{% if sprzeciw.uzasadnienie %}: {{ sprzeciw.uzasadnienie }}{% endif %}</p>
-    <p class="podpowiedz">W razie nieuwzględnienia sprzeciwu albo nierozpatrzenia go w terminie można odwołać się do sądu pracy
-      w ciągu 14 dni (art. 83 ust. 5 u.s.c.).</p>
+    <p>Rozstrzygnięcie z {{ sprzeciw.data_rozstrzygniecia|date:"d.m.Y" }} - {{ sprzeciw.rozstrzygniecie_opis }}{% if sprzeciw.uzasadnienie %}: {{ sprzeciw.uzasadnienie }}{% endif %}</p>
+    {% endif %}
+    {% if sprzeciw.widok.wyjasnienie %}<p class="podpowiedz">{{ sprzeciw.widok.wyjasnienie }}</p>{% endif %}
+    {% if sprzeciw.widok.do_doreczenia and mozna_potwierdzic_doreczenie %}
+    <form method="post" action="{% url 'czynnosc' ocena.pk 'doreczenie-rozstrzygniecia' %}" class="formularz">
+      {% csrf_token %}
+      <p>Potwierdź, że rozstrzygnięcie zostało Ci doręczone. Zapisana zostanie dzisiejsza data i od niej system policzy termin na odwołanie do sądu pracy.</p>
+      <button type="submit" class="przycisk" data-potwierdz="Potwierdzić odbiór rozstrzygnięcia z dzisiejszą datą?">Potwierdzam odbiór rozstrzygnięcia</button>
+    </form>
+    {% elif sprzeciw.widok.do_doreczenia and mozna_wpisac_doreczenie %}
+    <form method="post" action="{% url 'czynnosc' ocena.pk 'doreczenie-rozstrzygniecia' %}" class="formularz">
+      {% csrf_token %}
+      <label for="data_doreczenia">Data doręczenia rozstrzygnięcia ocenianemu</label>
+      <p class="podpowiedz" id="data_doreczenia-opis">Dzień, w którym oceniany odebrał rozstrzygnięcie - nie wcześniej niż {{ sprzeciw.data_rozstrzygniecia|date:"d.m.Y" }} i nie później niż dziś.</p>
+      <input type="date" name="data_doreczenia" id="data_doreczenia" value="{{ dzis_iso }}" min="{{ sprzeciw.data_rozstrzygniecia|date:"Y-m-d" }}" max="{{ dzis_iso }}" aria-describedby="data_doreczenia-opis" required>
+      <button type="submit" class="przycisk" data-potwierdz="Zapisać datę doręczenia? Od niej biegnie termin na odwołanie do sądu pracy.">Zapisz datę doręczenia</button>
+    </form>
     {% endif %}
   </article>
   {% endfor %}

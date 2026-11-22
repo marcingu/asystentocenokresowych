@@ -2,7 +2,10 @@
 {% block tytul %}Moje zadania{% endblock %}
 {% block tresc %}
 <h1>Moje zadania</h1>
-{% if zadania %}
+{% if konto_funkcyjne %}
+<p class="pusto">To konto funkcyjne administratora. Służy do obsługi <a href="{% url 'administracja' %}">zaplecza administratora</a>
+  i nie bierze udziału w ocenach, dlatego nie pokazuje ocen, sprzeciwów ani zadań. Swoje sprawy pracownik widzi na koncie osobistym.</p>
+{% elif zadania %}
 <div class="przewijana" role="region" aria-labelledby="t-zadania" tabindex="0">
 <table class="tabela">
   <caption id="t-zadania" class="ukryte">Zadania w ocenach okresowych i w pierwszej ocenie w służbie cywilnej, od najbliższego terminu</caption>
@@ -49,11 +52,11 @@
   <tbody>
     {% for wiersz in sprzeciwy %}
     <tr>
-      <td><span class="stan stan-{{ wiersz.stan }}">{{ wiersz.stan_opis }}</span></td>
+      <td><span class="stan stan-{{ wiersz.stan }}">{{ wiersz.stan_opis }}</span>{% if wiersz.powod %}<small>{{ wiersz.powod }}</small>{% endif %}</td>
       <td><a href="{% url 'ocena' wiersz.ocena.pk %}">{{ wiersz.ocena.oceniany.imie_i_nazwisko }}</a><small>{{ wiersz.ocena.oceniany.stanowisko }}</small></td>
       <td>{{ wiersz.sprzeciw.data_wniesienia|date:"d.m.Y" }}{% if wiersz.sprzeciw.po_terminie %}<small>po terminie</small>{% endif %}</td>
       <td>{{ wiersz.termin|date:"d.m.Y" }}<small>art. 83 ust. 3 u.s.c.</small></td>
-      <td>{% if wiersz.sprzeciw.rozpatrzony %}{{ wiersz.sprzeciw.data_rozstrzygniecia|date:"d.m.Y" }}{% else %}rozpatruje dyrektor generalny{% endif %}</td>
+      <td>{% if wiersz.sprzeciw.rozpatrzony %}{{ wiersz.sprzeciw.data_rozstrzygniecia|date:"d.m.Y" }}<small>{{ wiersz.sprzeciw.rozstrzygniecie_opis }}{% if wiersz.sprzeciw.data_doreczenia %}, doręczono {{ wiersz.sprzeciw.data_doreczenia|date:"d.m.Y" }}{% endif %}</small>{% else %}rozpatruje dyrektor generalny{% endif %}</td>
     </tr>
     {% endfor %}
   </tbody>
@@ -69,6 +72,7 @@
     <a href="{% url 'ocena' ocena.pk %}">Okres od {{ ocena.poczatek_cyklu|date:"d.m.Y" }}</a>
     <span class="etap">{{ ocena.etap_opis }}</span>
     {% if ocena.wynik %}<span class="wynik wynik-{{ ocena.wynik|lower }}">{{ ocena.wynik|lower }}, {{ ocena.poziom }}</span>{% endif %}
+    {% with po=ocena.po_sprzeciwie %}{% if po %}<span>po sprzeciwie: <span class="stan stan-{{ po.stan }}">{{ po.stan_opis }}</span></span>{% endif %}{% endwith %}
   </li>
   {% endfor %}
 </ul>

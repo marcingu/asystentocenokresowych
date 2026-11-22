@@ -33,6 +33,11 @@ def czy_administrator(uzytkownik) -> bool:
     return bool(uzytkownik is not None and uzytkownik.is_authenticated and uzytkownik.is_superuser)
 
 
+def konto_funkcyjne(uzytkownik) -> bool:
+    """Konto administratora bez karty pracownika - służy wyłącznie do obsługi zaplecza."""
+    return czy_administrator(uzytkownik) and pracownik_uzytkownika(uzytkownik) is None
+
+
 def czy_dyrektor(uzytkownik) -> bool:
     """Dyrektor generalny urzędu (w urzędzie bez dyrektora generalnego - kierownik urzędu)."""
     pracownik = pracownik_uzytkownika(uzytkownik)
@@ -68,9 +73,13 @@ def widzi_notatki(uzytkownik, ocena: Ocena) -> bool:
 
 
 def oceny_widoczne(uzytkownik) -> QuerySet[Ocena]:
-    """Oceny, w których użytkownik ma jakąkolwiek rolę."""
+    """Oceny, w których użytkownik ma rolę wynikającą z procesu oceny.
+
+    Uprawnienia administratora nie dają wglądu w oceny: konto administratora jest kontem funkcyjnym zaplecza,
+    a pracownik z takimi uprawnieniami widzi tylko to, co wynika z jego własnej roli w ocenie.
+    """
     wszystkie = Ocena.objects.select_related("oceniany", "oceniajacy", "poprzednia")
-    if czy_administrator(uzytkownik) or czy_kadry(uzytkownik):
+    if czy_kadry(uzytkownik):
         return wszystkie
     pracownik = pracownik_uzytkownika(uzytkownik)
     if pracownik is None:

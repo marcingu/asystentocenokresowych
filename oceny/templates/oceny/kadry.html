@@ -58,6 +58,7 @@
         {% elif wiersz.ocena %}
         <a href="{% url 'ocena' wiersz.ocena.pk %}">{{ wiersz.ocena.etap_opis }}</a>
         {% if wiersz.ocena.wynik %}<small>{{ wiersz.ocena.wynik|lower }}, {{ wiersz.ocena.poziom }}</small>{% endif %}
+        {% with po=wiersz.ocena.po_sprzeciwie %}{% if po %}<small>po sprzeciwie: <span class="stan stan-{{ po.stan }}">{{ po.stan_opis }}</span></small>{% endif %}{% endwith %}
         {% if wiersz.ocena.termin and not wiersz.ocena.zakonczona %}<small>termin: {{ wiersz.ocena.termin|date:"d.m.Y" }}{% if wiersz.po_terminie %} <span class="stan stan-po_terminie">po terminie</span>{% endif %}</small>{% endif %}
         {% else %}
         <small>Cykl rozpocznie się automatycznie po uzupełnieniu przełożonego i opisu stanowiska.</small>
