@@ -1,4 +1,5 @@
 """Pierwsza ocena i dostęp po umowie - przypadki z perspektywy użytkowników."""
+import re
 from datetime import date
 
 from django.test import override_settings
@@ -6,8 +7,8 @@ from django.urls import reverse
 
 from oceny.models import Pracownik
 from .test_kadry_pracownik import NOWY, LISTA, Podstawa, dane
+from .dostepnosc_html import bledy_dostepnosci, tytul_strony
 from .test_widoki import klient
-from .dostepnosc_html import bledy_dostepnosci
 
 
 @override_settings(ASYSTENT_DZIS="2026-01-01")
@@ -89,7 +90,10 @@ class PierwszaTest(Podstawa):
             self.assertEqual(klient(osoba).post(adres, raport).status_code, 302)
         with self.settings(ASYSTENT_DZIS="2026-09-21"):
             self.assertEqual(szef.post(adres, self.ocena_dane()).status_code, 302)
-            self.assertContains(klient(osoba).get(adres), "Pozytywna")
+            strona = klient(osoba).get(adres)
+            for fragment in ('<div class="podglad wynik-pozytywna"><strong>Ocena POZYTYWNA</strong> - ocena łączna 5,0</div>',
+                             "<strong>5</strong> - na poziomie oczekiwań", "Rozmowa oceniająca: 21.09.2026. Ocena dokonana: 21.09.2026."):
+                self.assertContains(strona, fragment)
             self.assertEqual(szef.post(adres, {"akcja": "wniosek", "wybor": "stala"}).status_code, 302)
             dyrektor = klient(dyrektor_generalny())
             self.assertContains(dyrektor.get("/"), f'href="{adres}"')
@@ -102,7 +106,7 @@ class PierwszaTest(Podstawa):
         with self.settings(ASYSTENT_DZIS="2026-09-21"):
             self.assertContains(szef.post(adres, self.ocena_dane()), "Uzasadnij")
             self.assertEqual(szef.post(adres, self.ocena_dane(uzasadnienie="Nie złożono sprawozdania.")).status_code, 302)
-            self.assertContains(klient(osoba).get(adres), "Negatywna")
+            self.assertContains(klient(osoba).get(adres), '<div class="podglad wynik-negatywna"><strong>Ocena NEGATYWNA</strong>')
             self.assertEqual(szef.post(adres, {"akcja": "wniosek", "wybor": "rozwiazanie"}).status_code, 302)
             self.assertTrue(osoba.uzytkownik.is_active)
 
@@ -301,7 +305,7 @@ class PierwszaTest(Podstawa):
         self.assertContains(szef.post(adres, egzamin), "faktyczną datę")
         with self.settings(ASYSTENT_DZIS="2026-03-10"):
             self.assertEqual(szef.post(adres, egzamin).status_code, 302)
-            self.assertContains(pracownik.get(adres), "Egzamin: zaliczony")
+            self.assertContains(pracownik.get(adres), "Egzamin ze służby przygotowawczej: zaliczony")
             self.assertNotContains(pracownik.get(adres), 'value="obserwacja"')
             osoba.umowa.pierwsza.refresh_from_db()
             self.assertNotIn("ocena", osoba.umowa.pierwsza.dane)
@@ -309,7 +313,7 @@ class PierwszaTest(Podstawa):
     def test_rozpiska_wskazuje_osobe_i_nie_miesza_cykli(self):
         osoba = self.dodaj()
         strona = klient(osoba).get(f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/")
-        for tekst in ("Przebieg pierwszej oceny", "Służba przygotowawcza", "Rozmowa wstępna", "Wniosek do dyrektora"):
+        for tekst in ('aria-label="Przebieg pierwszej oceny"', "Służba przygotowawcza", "Rozmowa wstępna", "wniosek do dyrektora generalnego"):
             self.assertContains(strona, tekst)
         self.assertEqual(bledy_dostepnosci(strona.content.decode()), [])
         self.assertNotContains(strona, 'name="kryterium_1"')
@@ -322,3 +326,135 @@ class PierwszaTest(Podstawa):
             self.assertNotContains(pracownik.get(adres), 'value="raport"')
             self.assertEqual(pracownik.post(adres, {"akcja": "raport"}).status_code, 403)
             self.assertNotContains(szef.get(adres), 'value="ocena"')
+
+    # --- karta w układzie karty oceny okresowej ---
+
+    WSTEPNA = {"akcja": "wstepna", "od": "2026-09-03", "do": "2026-09-20", "rozmowa": "2026-01-01"}
+
+    def test_karta_ma_uklad_karty_oceny_okresowej(self):
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        for sesja, rola, notatki in ((klient(self.z.szef), "bezpośredni przełożony, kierujący komórką", True), (klient(osoba), "oceniany", False)):
+            html = sesja.get(adres).content.decode()
+            for fragment in ('<p class="okruszki">', '<header class="naglowek-oceny">', "<h1>Jan Nowicki</h1>", '<dl class="metryczka">',
+                             '<ol class="os-etapow" aria-label="Przebieg pierwszej oceny">', '<div class="uklad">', '<div class="kolumna-glowna">',
+                             '<aside class="kolumna-boczna">', 'id="n-wstepna"', 'id="n-sprawozdanie"', 'id="n-terminy"', 'id="n-dokumenty"',
+                             'id="n-dziennik"', f"<dd>{rola}</dd>"):
+                self.assertIn(fragment, html)
+            self.assertEqual('id="n-notatki"' in html, notatki)
+            self.assertEqual(html.count('aria-current="step"'), 1)
+            self.assertIn("Jan Nowicki", tytul_strony(html))
+            self.assertEqual(bledy_dostepnosci(html), [])
+
+    def test_pola_formularzy_maja_etykiety_nad_polem_jak_na_karcie_okresowej(self):
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        szef = klient(self.z.szef).get(adres).content.decode()
+        self.assertIn('<label for="id_wstepna_rozmowa">Data rozmowy wstępnej</label>', szef)
+        pracownik = klient(osoba).get(adres).content.decode()
+        self.assertIn('<label for="id_raport_zadania">Wykonane zadania</label>', pracownik)
+        self.assertIn('class="przycisk przycisk-drugi" formnovalidate>Zapisz szkic</button>', pracownik)
+        for html in (szef, pracownik):
+            self.assertNotIn(":</label>", html)
+
+    def test_os_etapow_pokazuje_biezacy_krok_na_kazdym_etapie(self):
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        szef = klient(self.z.szef)
+
+        def biezacy():
+            kroki = re.findall(r'aria-current="step">([^<]+)</li>', szef.get(adres).content.decode())
+            return kroki[0] if kroki else None
+
+        self.assertEqual(biezacy(), "rozmowa wstępna")
+        self.assertEqual(szef.post(adres, self.WSTEPNA).status_code, 302)
+        self.assertEqual(biezacy(), "sprawozdanie ocenianego")
+        with self.settings(ASYSTENT_DZIS="2026-09-21"):
+            self.assertEqual(biezacy(), "rozmowa oceniająca i pierwsza ocena")
+            self.assertEqual(szef.post(adres, self.ocena_dane(uzasadnienie="Nie złożono sprawozdania.")).status_code, 302)
+            self.assertEqual(biezacy(), "wniosek do dyrektora generalnego")
+            self.assertEqual(szef.post(adres, {"akcja": "wniosek", "wybor": "rozwiazanie"}).status_code, 302)
+            self.assertIsNone(biezacy())
+            self.assertEqual(szef.get(adres).content.decode().count('<li class="krok krok-zrobiony">'), 4)
+
+    def test_do_zrobienia_widzi_tylko_osoba_ktora_ma_czynnosc(self):
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        szef, pracownik = klient(self.z.szef), klient(osoba)
+        self.assertContains(szef.get(adres), "<strong>Przeprowadź rozmowę wstępną i wyznacz termin sprawozdania</strong> - do 22.01.2026")
+        self.assertNotContains(pracownik.get(adres), 'id="n-zadania"')
+        self.assertEqual(szef.post(adres, self.WSTEPNA).status_code, 302)
+        self.assertNotContains(szef.get(adres), 'id="n-zadania"')
+        self.assertContains(pracownik.get(adres), "<strong>Złóż sprawozdanie</strong> - do 20.09.2026")
+        with self.settings(ASYSTENT_DZIS="2026-12-01"):  # okres oceny minął: zadania, którego nie da się wykonać, nie ma
+            self.assertNotContains(pracownik.get(adres), 'id="n-zadania"')
+            self.assertContains(szef.get(adres), "Okres dokonania pierwszej oceny upłynął 30.11.2026")
+        with self.settings(ASYSTENT_DZIS="2026-09-21"):
+            self.assertContains(pracownik.get(adres), "<strong>Złóż sprawozdanie</strong> - do 20.09.2026")  # po terminie, ale jeszcze można
+            self.assertContains(szef.get(adres), "<strong>Przeprowadź rozmowę oceniającą i dokonaj pierwszej oceny</strong> - do 30.11.2026")
+            self.assertEqual(szef.post(adres, self.ocena_dane(uzasadnienie="Nie złożono sprawozdania.")).status_code, 302)
+            self.assertContains(szef.get(adres), "<strong>Złóż wniosek do dyrektora generalnego</strong>")
+            self.assertNotContains(pracownik.get(adres), 'id="n-zadania"')
+
+    def test_oceny_czastkowe_wybiera_sie_w_tabeli_jak_na_karcie_okresowej(self):
+        from oceny.pierwsza import ELEMENTY
+        osoba, adres, szef = self.przygotuj_arkusz()
+        with self.settings(ASYSTENT_DZIS="2026-09-21"):
+            self.assertEqual(szef.post(adres, {"akcja": "egzamin", "dzien_egzaminu": "2026-06-10", "wynik": "tak"}).status_code, 302)
+            html = szef.get(adres).content.decode()
+            self.assertIn("Zapisany wynik egzaminu: zaliczony (10.06.2026). Wybór musi mu odpowiadać", html)
+            self.assertIn('<option value="tak" selected>Zaliczony</option>', html)
+            self.assertIn('<table class="tabela tabela-ocen">', html)
+            self.assertEqual(html.count('type="radio"'), 15)
+            self.assertIn('<input type="radio" name="pkt0" value="3" aria-label="Rzetelność: 3 - poniżej oczekiwań"', html)
+            self.assertNotIn('<select name="pkt0"', html)
+            self.assertEqual(bledy_dostepnosci(html), [])
+            odrzucona = szef.post(adres, self.ocena_dane())
+            self.assertContains(odrzucona, "Uzasadnij")
+            self.assertContains(odrzucona, "Nie zapisano. Popraw błędy wskazane w formularzu.")
+            self.assertContains(odrzucona, '<li id="id_ocena_uzasadnienie_error">Uzasadnienie przyznanej oceny: Uzasadnij ocenę negatywną.</li>')
+            for numer, nazwa in enumerate(ELEMENTY):
+                self.assertContains(odrzucona, f'name="pkt{numer}" value="5" aria-label="{nazwa}: 5 - na poziomie oczekiwań" checked')
+            self.assertEqual(bledy_dostepnosci(odrzucona.content.decode()), [])
+
+    def test_terminy_i_historia_sa_w_kolumnie_bocznej_bez_prywatnych_wpisow(self):
+        osoba, adres, szef = self.przygotuj_arkusz()
+        self.assertEqual(szef.post(adres, {"akcja": "obserwacja", "element": "Komunikacja", "opis": "Fakt do rozmowy"}).status_code, 302)
+        for sesja in (szef, klient(osoba)):
+            html = sesja.get(adres).content.decode()
+            self.assertIn('<aside class="kolumna-boczna">', html)
+            boczna = html[html.index('<aside class="kolumna-boczna">'):]
+            boczna = boczna[:boczna.index("</aside>")]
+            for fragment in ('<li class="termin termin-wykonane">', '<span class="termin-data">01.01.2026</span>', "Sprawozdanie - najpóźniej",
+                             '<span class="termin-data">20.09.2026</span>', "Pierwsza ocena - najpóźniej", '<span class="termin-data">30.11.2026</span>'):
+                self.assertIn(fragment, boczna)
+            daty = [date(int(rok), int(miesiac), int(dzien)) for dzien, miesiac, rok in
+                    re.findall(r'<span class="termin-data">(\d\d)\.(\d\d)\.(\d{4})</span>\s*<span class="termin-nazwa">', boczna)]
+            self.assertGreaterEqual(len(daty), 5)
+            self.assertEqual(daty, sorted(daty))  # terminy w kolejności kalendarzowej
+            for nazwa in ("Arkusz pierwszej oceny - PDF do podpisu", "Arkusz pierwszej oceny - DOCX", "Sprawozdanie ocenianego - PDF do podpisu", "Sprawozdanie ocenianego - DOCX"):
+                self.assertIn(f'aria-label="{nazwa}"', boczna)
+            dziennik = boczna[boczna.index('id="n-dziennik"'):]
+            self.assertIn("zapisanie rozmowy wstępnej", dziennik)
+            self.assertNotIn("obserwac", dziennik.lower())
+            self.assertEqual(bledy_dostepnosci(html), [])
+        pracownik = klient(osoba).get(adres)
+        self.assertNotContains(pracownik, "Fakt do rozmowy")
+        self.assertNotContains(pracownik, "2026-09-")  # daty w treści karty mają postać dd.mm.rrrr
+
+    def test_dyrektor_po_wniosku_widzi_zamknieta_karte_bez_notatek_i_formularzy(self):
+        from .pomocnicze import dyrektor_generalny
+        osoba, adres, szef = self.przygotuj_arkusz()
+        self.assertEqual(szef.post(adres, {"akcja": "obserwacja", "element": "Komunikacja", "opis": "Fakt do rozmowy"}).status_code, 302)
+        with self.settings(ASYSTENT_DZIS="2026-09-21"):
+            self.assertEqual(klient(dyrektor_generalny()).get(adres).status_code, 403)  # przed wnioskiem sprawa nie jest u dyrektora
+            self.assertEqual(szef.post(adres, self.ocena_dane(uzasadnienie="Nie złożono sprawozdania.")).status_code, 302)
+            self.assertEqual(szef.post(adres, {"akcja": "wniosek", "wybor": "brak"}).status_code, 302)
+            html = klient(dyrektor_generalny()).get(adres).content.decode()
+        for fragment in ("<dd>dyrektor generalny</dd>", '<div class="podglad wynik-negatywna"><strong>Ocena NEGATYWNA</strong>',
+                         "Niezawieranie umowy na czas nieokreślony", "<h3>Uzasadnienie</h3>", "Sprawozdania nie złożono przed dokonaniem oceny."):
+            self.assertIn(fragment, html)
+        for brak in ('id="n-notatki"', "Fakt do rozmowy", 'name="akcja"', 'aria-current="step"', 'id="n-zadania"'):
+            self.assertNotIn(brak, html)
+        self.assertEqual(html.count('<li class="krok krok-zrobiony">'), 4)
+        self.assertEqual(bledy_dostepnosci(html), [])

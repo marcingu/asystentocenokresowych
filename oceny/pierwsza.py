@@ -17,6 +17,18 @@ from .umowy import DZIEN, data_formularza, koniec_okresu
 
 ELEMENTY = ("Rzetelność", "Wykorzystywanie wiedzy i doskonalenie zawodowe", "Organizacja pracy i orientacja na osiąganie celów", "Komunikacja", "Współpraca")
 WNIOSKI = {"stala": "Zawarcie umowy na czas nieokreślony", "brak": "Niezawieranie umowy na czas nieokreślony", "rozwiazanie": "Rozwiązanie umowy na czas określony"}
+SKALA = ((3, "poniżej oczekiwań"), (5, "na poziomie oczekiwań"), (7, "powyżej oczekiwań"))  # § 9 ust. 1 rozp.
+# Wynik egzaminu słowami: w tym brzmieniu trafia do listy wyboru, terminów i wyniku oceny (§ 10 ust. 1 pkt 1 i ust. 3 rozp.).
+OPISY_EGZAMINU = {
+    "tak": "zaliczony", "nie": "niezaliczony", "ksap": "nie dotyczy - absolwent KSAP bez wniosku o mianowanie",
+    "wyzsze": "nie dotyczy - wyższe stanowisko", "zastepstwo": "nie dotyczy - zastępstwo",
+}
+# Etykiety potwierdzeń nie kończą się kropką: trafiają też do listy błędów w postaci „etykieta: błąd”.
+BRAK_POTWIERDZENIA = {"required": "Zaznacz potwierdzenie."}
+
+
+def _wybor_egzaminu(*kody):
+    return [(kod, OPISY_EGZAMINU[kod][0].upper() + OPISY_EGZAMINU[kod][1:]) for kod in kody]
 
 
 def widoczne(user):
@@ -44,13 +56,13 @@ class Obserwacja(forms.Form):
 
 class Egzamin(forms.Form):
     dzien_egzaminu = data_formularza("Data egzaminu według dokumentacji")
-    wynik = forms.ChoiceField(label="Udokumentowany wynik", choices=(("", "- wybierz -"), ("tak", "Zaliczony"), ("nie", "Niezaliczony")))
+    wynik = forms.ChoiceField(label="Udokumentowany wynik", choices=[("", "- wybierz -"), *_wybor_egzaminu("tak", "nie")])
 
 
 class NowyTermin(forms.Form):
     od = data_formularza("Nowy początek terminu sprawozdania")
     do = data_formularza("Nowy koniec terminu sprawozdania")
-    pismo = forms.BooleanField(label="Potwierdzam podstawę z § 5 rozporządzenia oraz pisemne zawiadomienie pracownika. Kopię należy dołączyć do arkusza.")
+    pismo = forms.BooleanField(label="Potwierdzam podstawę z § 5 rozporządzenia oraz pisemne zawiadomienie ocenianego", error_messages=BRAK_POTWIERDZENIA)
 
 
 def wynik_pozytywny(punkty, egzamin, na_czas):
@@ -72,28 +84,29 @@ class Raport(forms.Form):
             self.fields[kod] = forms.CharField(label=nazwa, required=skladanie, max_length=5000,
                 widget=forms.Textarea(attrs={"rows": 3}))
         if mozna_zlozyc:
-            self.fields["okres"] = forms.BooleanField(required=skladanie,
-                label="Potwierdzam, że sprawozdanie obejmuje co najmniej 7 przepracowanych miesięcy (przy składaniu).")
+            self.fields["okres"] = forms.BooleanField(required=skladanie, error_messages=BRAK_POTWIERDZENIA,
+                label="Potwierdzam, że sprawozdanie obejmuje co najmniej 7 przepracowanych miesięcy (§ 6 ust. 1 rozp.)")
 
 
 class Ocena(forms.Form):
     rozmowa = data_formularza("Data rozmowy oceniającej")
-    egzamin = forms.ChoiceField(label="Wynik egzaminu", choices=(("", "- wybierz -"), ("tak", "Zaliczony"), ("nie", "Niezaliczony"), ("ksap", "Nie dotyczy - absolwent KSAP bez wniosku o mianowanie"), ("wyzsze", "Nie dotyczy - wyższe stanowisko")))
-    porozumienie = forms.BooleanField(label="Potwierdzam dokonanie oceny w porozumieniu z kierującym komórką.")
-    uzasadnienie = forms.CharField(label="Uzasadnienie (obowiązkowe przy ocenie negatywnej)", widget=forms.Textarea, max_length=8000, required=False)
-    rozwoj = forms.CharField(label="Wnioski rozwojowe (tylko przy ocenie pozytywnej, nieobowiązkowe)", widget=forms.Textarea, max_length=4000, required=False)
+    egzamin = forms.ChoiceField(label="Egzamin ze służby przygotowawczej", choices=[("", "- wybierz -"), *_wybor_egzaminu("tak", "nie", "ksap", "wyzsze")])
+    porozumienie = forms.BooleanField(error_messages=BRAK_POTWIERDZENIA,
+        label="Potwierdzam dokonanie oceny w porozumieniu z kierującym komórką organizacyjną (art. 38 ust. 2 u.s.c.)")
+    uzasadnienie = forms.CharField(label="Uzasadnienie przyznanej oceny", widget=forms.Textarea(attrs={"rows": 5}), max_length=8000, required=False)
+    rozwoj = forms.CharField(label="Wnioski dotyczące rozwoju zawodowego ocenianego", widget=forms.Textarea(attrs={"rows": 4}), max_length=4000, required=False)
 
     def __init__(self, *args, zastepstwo=False, **kwargs):
         super().__init__(*args, **kwargs)
         if zastepstwo:
-            self.fields["egzamin"].choices = [("zastepstwo", "Nie dotyczy - zastępstwo")]
+            self.fields["egzamin"].choices = _wybor_egzaminu("zastepstwo")
         for i, nazwa in enumerate(ELEMENTY):
-            self.fields[f"pkt{i}"] = forms.TypedChoiceField(label=nazwa, coerce=int, choices=[("", "- wybierz -"), (3, "3 - poniżej oczekiwań"), (5, "5 - na poziomie oczekiwań"), (7, "7 - powyżej oczekiwań")])
+            self.fields[f"pkt{i}"] = forms.TypedChoiceField(label=nazwa, coerce=int, choices=[(punkty, f"{punkty} - {poziom}") for punkty, poziom in SKALA])
         self.order_fields(["rozmowa", *(f"pkt{i}" for i in range(5)), "egzamin", "uzasadnienie", "rozwoj", "porozumienie"])
 
 
 class Wniosek(forms.Form):
-    wybor = forms.ChoiceField(label="Wniosek do dyrektora generalnego")
+    wybor = forms.ChoiceField(label="Treść wniosku")
 
     def __init__(self, *args, pozytywna, **kwargs):
         super().__init__(*args, **kwargs)
@@ -168,7 +181,7 @@ def karta(request, pk):
     formularze = {}
 
     def dodaj(kod, klasa, **opcje):
-        formularze[kod] = klasa(request.POST if akcja == kod else None, auto_id=f"id_{kod}_%s", **opcje)
+        formularze[kod] = klasa(request.POST if akcja == kod else None, auto_id=f"id_{kod}_%s", label_suffix="", **opcje)
 
     edytuje_raport = osoba == umowa.osoba and "raport" not in dane and "ocena" not in dane
     ustalony = dane.get("wstepna", {})
@@ -176,7 +189,7 @@ def karta(request, pk):
     edytor = None
     if edytuje_raport:
         edytor = Raport(request.POST if akcja in ("szkic", "raport") else None, initial=dane.get("szkic", {}),
-            auto_id="id_raport_%s", skladanie=akcja == "raport", mozna_zlozyc=mozna_zlozyc)
+            auto_id="id_raport_%s", label_suffix="", skladanie=akcja == "raport", mozna_zlozyc=mozna_zlozyc)
     jest_szefem = osoba == ocena.szef and osoba != umowa.osoba
     termin_wstepnej = koniec_terminu_dni(date.fromisoformat(dane.get("ustalenie", umowa.poczatek.isoformat())), 21)
     if "wstepna" not in dane:
@@ -206,16 +219,16 @@ def karta(request, pk):
             messages.success(request, {"szkic": "Zapisano prywatny szkic. Sprawozdanie nie zostało złożone.",
                 "raport": "Sprawozdanie zostało złożone."}.get(akcja, "Zapisano czynność w arkuszu."))
             return redirect("pierwsza_ocena", pk=pk)
+        # Formularz bywa nisko na stronie - o niezapisaniu mówi też komunikat u góry, jak na karcie oceny okresowej.
+        messages.error(request, "Nie zapisano. Popraw błędy wskazane w formularzu.")
     else:
         dziennik.zapisz(dziennik.ODCZYT_OCENY, request=request, dotyczy=f"pierwsza ocena {pk}")
-    return render(request, "oceny/pierwsza.html", {"ocena": ocena, "dane": dane, "od": od, "do": do, "formularze": formularze,
-        "edytor": edytor, "mozna_zlozyc": mozna_zlozyc, "po_terminie_raportu": bool(ustalony and dzien.isoformat() > ustalony["do"]),
-        "punkty": [(n, dane.get("ocena", {}).get(f"pkt{i}")) for i,n in enumerate(ELEMENTY)],
-        "wniosek": WNIOSKI.get(dane.get("wniosek", {}).get("wybor")),
-        "termin_wstepnej": termin_wstepnej, "spozniona_wstepna": not dane.get("wstepna") and dzien > termin_wstepnej,
-        "obserwacje": dane.get("obserwacje", []) if jest_szefem else [],
-        "koniec_sluzby": koniec_okresu(umowa.poczatek, 8),
-        "wynik_egzaminu": {"tak": "zaliczony", "nie": "niezaliczony"}.get(dane.get("egzamin", {}).get("wynik"))})
+    from .karta_pierwszej import kontekst_karty  # import przy użyciu: moduł karty korzysta ze stałych tego modułu
+
+    return render(request, "oceny/pierwsza.html", kontekst_karty(
+        ocena, osoba, dzien, od=od, do=do, termin_wstepnej=termin_wstepnej, formularze=formularze, edytor=edytor,
+        mozna_zlozyc=mozna_zlozyc, jest_szefem=jest_szefem,
+    ))
 
 
 @require_http_methods(["GET"])

@@ -27,14 +27,14 @@ from .uslugi import CZYNNOSC_NOTATKA, CZYNNOSCI_AI, CZYNNOSCI_AI_WYSOKIEGO_RYZYK
 from .zadania import opis_dni_do_terminu, opisy_skutkow, zadania_oceny
 
 
-def _stan_terminu(termin: date, dzien: date) -> str:
+def stan_terminu(termin: date, dzien: date) -> str:
     dni = (termin - dzien).days
     if dni < 0:
         return "po_terminie"
     return "pilne" if dni <= settings.ASYSTENT_DNI_PILNE else "w_terminie"
 
 
-def _opis_stanu_terminu(stan: str, termin: date | None, dzien: date) -> str:
+def opis_stanu_terminu(stan: str, termin: date | None, dzien: date) -> str:
     """Stan terminu słowami. Wiersz terminu ma kolorowe obramowanie, a kolor nie może być jedynym nośnikiem
     informacji (WCAG 2.1, kryterium 1.4.1). Termin czysto informacyjny nie ma stanu."""
     if stan == "wykonane":
@@ -85,7 +85,7 @@ def wiersze_terminow(ocena: Ocena, proces: ProcesOceny, nieobecnosci: list, dzie
     def dodaj(nazwa: str, data: date | None, podstawa: str = "", uwaga: str = "", stan: str = "informacja") -> None:
         wiersze.append({
             "nazwa": nazwa, "data": data, "podstawa": podstawa, "uwaga": uwaga, "stan": stan,
-            "stan_opis": _opis_stanu_terminu(stan, data, dzien),
+            "stan_opis": opis_stanu_terminu(stan, data, dzien),
         })
 
     po_negatywnej = ocena.po_negatywnej
@@ -95,7 +95,7 @@ def wiersze_terminow(ocena: Ocena, proces: ProcesOceny, nieobecnosci: list, dzie
         termin = terminy.termin_wyznaczenia_kryteriow(proces.poczatek_cyklu, po_negatywnej)
         dodaj(
             "Rozmowa i zapoznanie z kryteriami - najpóźniej", termin, f"§ 7 pkt {2 if po_negatywnej else 1} rozp.",
-            stan=_stan_terminu(termin, dzien),
+            stan=stan_terminu(termin, dzien),
         )
     if proces.data_sporzadzenia:
         dodaj("Sporządzenie oceny", proces.data_sporzadzenia, "§ 11 rozp.", stan="wykonane")
@@ -107,7 +107,7 @@ def wiersze_terminow(ocena: Ocena, proces: ProcesOceny, nieobecnosci: list, dzie
                 uwaga = "Termin ustawowy jest późniejszy - oceniający może zmienić termin (art. 81 ust. 8 u.s.c.)."
             dodaj(
                 "Sporządzenie oceny - termin z części I arkusza", proces.termin, "§ 5 ust. 3 rozp.", uwaga,
-                _stan_terminu(proces.termin, dzien),
+                stan_terminu(proces.termin, dzien),
             )
         wiersze.append(ustawowy)
     if proces.data_zapoznania_z_ocena:
@@ -119,13 +119,13 @@ def wiersze_terminow(ocena: Ocena, proces: ProcesOceny, nieobecnosci: list, dzie
         w_toku = [sprzeciw for sprzeciw in sprzeciwy if not sprzeciw.rozpatrzony]
         if w_toku:
             termin = terminy.termin_rozpatrzenia_sprzeciwu(w_toku[0].data_wniesienia)
-            dodaj("Rozpatrzenie sprzeciwu - najpóźniej", termin, "art. 83 ust. 3 u.s.c.", stan=_stan_terminu(termin, dzien))
+            dodaj("Rozpatrzenie sprzeciwu - najpóźniej", termin, "art. 83 ust. 3 u.s.c.", stan=stan_terminu(termin, dzien))
         elif not sprzeciwy:
             termin = terminy.termin_sprzeciwu(proces.data_zapoznania_z_ocena)
             minal = termin < dzien
             dodaj(
                 "Sprzeciw od oceny - najpóźniej", termin, "art. 83 ust. 1 u.s.c.",
-                "Termin upłynął." if minal else "", "informacja" if minal else _stan_terminu(termin, dzien),
+                "Termin upłynął." if minal else "", "informacja" if minal else stan_terminu(termin, dzien),
             )
     return wiersze
 

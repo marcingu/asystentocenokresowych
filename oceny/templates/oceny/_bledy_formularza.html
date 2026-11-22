@@ -1,0 +1,10 @@
+{% if formularz.errors %}
+<div class="braki" role="alert">
+  <strong>Popraw formularz:</strong>
+  <ul>
+    {% for blad in formularz.non_field_errors %}<li>{{ blad }}</li>{% endfor %}
+    {% comment %}Jeden wpis na pole, z identyfikatorem, do którego Django kieruje aria-describedby błędnego pola.{% endcomment %}
+    {% for pole in formularz %}{% if pole.errors %}<li id="{{ pole.id_for_label }}_error">{{ pole.label }}: {{ pole.errors|join:" " }}</li>{% endif %}{% endfor %}
+  </ul>
+</div>
+{% endif %}
