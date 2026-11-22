@@ -23,7 +23,7 @@ from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from . import bezpieczenstwo, dziennik, totp
+from . import bezpieczenstwo, dziennik, przypomnienia, totp
 from .kontekst import konta_demo
 from .models import OznaczenieUrzedu, UrzadzenieTotp, ZdarzenieBezpieczenstwa
 
@@ -145,6 +145,7 @@ def konto(request):
         "logowania": logowania,
         "ma_haslo": request.user.has_usable_password(),
         "termin_zawieszenia": bezpieczenstwo.termin_zawieszenia(request.user),
+        **przypomnienia.kontekst_konta(request),
     })
 
 

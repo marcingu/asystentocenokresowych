@@ -501,3 +501,50 @@ class PierwszaOcena(models.Model):
     szef = models.ForeignKey(Pracownik, null=True, related_name="pierwsze_jako_szef", on_delete=models.PROTECT)
     kierujacy = models.ForeignKey(Pracownik, null=True, related_name="pierwsze_jako_kierujacy", on_delete=models.PROTECT)
     dane = models.JSONField(default=dict)
+
+
+class SkrzynkaNadawcza(models.Model):
+    """Skrzynka SMTP, z której system wysyła przypomnienia o terminach; jeden rekord instancji.
+
+    Hasło leży w bazie tak jak klucze weryfikacji dwuetapowej: nie pokazuje go żadna strona ani dziennik, ale
+    chronią je tylko uprawnienia do bazy. We wdrożeniu hasło podaje się zmienną środowiskową
+    ASYSTENT_EMAIL_PASSWORD - ma ona pierwszeństwo przed zapisem w bazie."""
+    STARTTLS, SSL, BRAK = "starttls", "ssl", "brak"
+    ZABEZPIECZENIA = (
+        (STARTTLS, "STARTTLS - zwykle port 587"),
+        (SSL, "SSL/TLS od początku połączenia - zwykle port 465"),
+        (BRAK, "bez szyfrowania - tylko serwer pośredniczący w tej samej sieci"),
+    )
+    wlaczona = models.BooleanField(default=True)  # czy wychodzą przypomnienia planowe
+    host = models.CharField(max_length=255, blank=True)
+    port = models.PositiveIntegerField(default=587)
+    zabezpieczenie = models.CharField(max_length=10, choices=ZABEZPIECZENIA, default=STARTTLS)
+    uzytkownik = models.CharField(max_length=255, blank=True)
+    haslo = models.CharField(max_length=255, blank=True)
+    nadawca = models.EmailField(blank=True)
+    nazwa_nadawcy = models.CharField(max_length=120, blank=True)
+    adres_systemu = models.URLField(blank=True)  # początek odnośników w wiadomościach
+    nazwiska = models.BooleanField(default=False)  # czy wiadomość i kalendarz podają nazwisko ocenianego
+
+    @classmethod
+    def aktualna(cls):
+        return cls.objects.filter(pk=1).first() or cls(pk=1)
+
+
+class WyslanePrzypomnienie(models.Model):
+    """Ślad wysyłki: jedna wiadomość na osobę dziennie. Bez treści - tylko komu, kiedy i ile terminów."""
+    uzytkownik = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="przypomnienia", on_delete=models.CASCADE)
+    dzien = models.DateField()
+    wyslano = models.DateTimeField(auto_now=True)
+    liczba = models.PositiveIntegerField()
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["uzytkownik", "dzien"], name="jedno_przypomnienie_dziennie")]
+
+
+class KalendarzOsobisty(models.Model):
+    """Adres kalendarza z terminami jednej osoby. Program kalendarza pobiera go bez logowania, więc losowy klucz
+    w adresie działa jak hasło: nowy adres unieważnia poprzedni."""
+    uzytkownik = models.OneToOneField(settings.AUTH_USER_MODEL, related_name="kalendarz_osobisty", on_delete=models.CASCADE)
+    token = models.CharField(max_length=64, unique=True)
+    utworzono = models.DateTimeField(auto_now_add=True)

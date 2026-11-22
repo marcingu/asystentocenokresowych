@@ -1,0 +1,17 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Podgląd przypomnienia{% endblock %}
+{% block tresc %}
+<nav class="okruszki" aria-label="Ścieżka"><a href="{% url 'konto' %}">Moje konto</a> / podgląd przypomnienia</nav>
+<h1>Podgląd przypomnienia</h1>
+{% if tekst %}
+<p>Taką wiadomość system wysłałby dziś{% if adres %} na adres {{ adres }}{% else %} - ale Twoje konto nie ma adresu e-mail{% endif %}.
+  W załączniku są te same terminy w pliku kalendarza.</p>
+<section class="karta" aria-labelledby="n-wiadomosc">
+  <h2 id="n-wiadomosc">{{ temat }}</h2>
+  <div class="tekst">{{ tekst }}</div>
+</section>
+{% else %}
+<p class="pusto">Nie masz dziś zadań z terminem, więc system nie wysłałby wiadomości.</p>
+{% endif %}
+<p><a href="{% url 'konto' %}" class="przycisk przycisk-drugi">Wróć do konta</a></p>
+{% endblock %}

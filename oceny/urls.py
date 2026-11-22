@@ -4,7 +4,8 @@ from django.contrib.auth.decorators import login_not_required
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import pierwsza, przeglad, umowy, panel_przepisow, urzad, views, widoki_administracji, widoki_kadr, widoki_kont, wydzialy
+from . import (pierwsza, poczta, przeglad, przypomnienia, umowy, panel_przepisow, urzad, views, widoki_administracji, widoki_kadr,
+               widoki_kont, wydzialy)
 
 urlpatterns = [
     path("pierwsza-ocena/<int:pk>/", pierwsza.karta, name="pierwsza_ocena"),
@@ -14,6 +15,11 @@ urlpatterns = [
     path("kadry/umowa/<int:pk>/", umowy.karta_umowy, name="karta_umowy"),
     path("administracja/wydzialy/", wydzialy.struktura, name="wydzialy"),
     path("administracja/urzad/", urzad.ustawienia, name="administracja_urzad"),
+    path("administracja/poczta/", poczta.ustawienia, name="administracja_poczta"),
+    path("konto/przypomnienie/", przypomnienia.podglad, name="konto_przypomnienie"),
+    path("konto/kalendarz/", przypomnienia.kalendarz_konta, name="konto_kalendarz"),
+    # Program kalendarza nie loguje się do systemu: dostęp daje losowy klucz w adresie (widok sam zdejmuje wymóg logowania).
+    path("kalendarz/<str:token>/terminy.ics", przypomnienia.kalendarz_osobisty, name="kalendarz_osobisty"),
     path("logowanie/", login_not_required(widoki_kont.Logowanie.as_view()), name="logowanie"),
     path("logowanie/kod/", widoki_kont.logowanie_kod, name="logowanie_kod"),
     path("wylogowanie/", LogoutView.as_view(), name="wylogowanie"),

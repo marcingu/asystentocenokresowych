@@ -1,0 +1,89 @@
+{% extends "oceny/baza.html" %}
+{% block tytul %}Poczta i przypomnienia{% endblock %}
+{% block tresc %}
+<h1>Poczta i przypomnienia</h1>
+{% include "oceny/_administracja_menu.html" with zakladka="poczta" %}
+<p>System wysyła na adresy e-mail z kont użytkowników przypomnienia o terminach z listy „Moje zadania”. Wiadomość zawiera terminy,
+  podstawę prawną i załącznik do kalendarza. Nie zawiera ocen ani treści arkuszy.</p>
+
+<section class="karta" aria-labelledby="n-skrzynka">
+  <h2 id="n-skrzynka">Skrzynka nadawcza SMTP</h2>
+  {% if gotowa %}
+  <p><span class="stan stan-w_terminie">ustawiona</span>
+    {% if skrzynka.host %}Wiadomości wychodzą przez serwer {{ skrzynka.host }}:{{ skrzynka.port }}.{% else %}Wiadomości wychodzą przez serwer podany w konfiguracji serwera (zmienne ASYSTENT_EMAIL_*).{% endif %}
+    {% if skrzynka.host and not skrzynka.wlaczona %}Przypomnienia planowe są wyłączone.{% endif %}</p>
+  {% else %}
+  <p><span class="stan stan-pilne">nieustawiona</span> Wiadomości nie wychodzą. Podaj dane serwera pocztowego urzędu.</p>
+  {% endif %}
+  <form method="post" class="formularz" novalidate>{% csrf_token %}
+    {% if formularz.errors %}<p role="alert" class="komunikat komunikat-error">Nie zapisano ustawień. Popraw wskazane pola.</p>{% endif %}
+    {% for pole in formularz %}
+    {% if pole.name == "haslo" %}
+      {% if haslo_ze_srodowiska %}
+      <p class="podpowiedz">Hasło podano zmienną środowiskową ASYSTENT_EMAIL_PASSWORD - ma pierwszeństwo, więc pola hasła tutaj nie ma.</p>
+      {% else %}
+      <label for="{{ pole.id_for_label }}">{{ pole.label }}</label>
+      {{ pole }}
+      <p class="podpowiedz" id="haslo-opis">{% if skrzynka.haslo %}Hasło jest zapisane. Zostaw pole puste, żeby go nie zmieniać.{% else %}Hasło nie jest zapisane.{% endif %}
+        System nie pokazuje zapisanego hasła i nie wpisuje go do dziennika. Hasło leży w bazie systemu; we wdrożeniu produkcyjnym
+        podaj je zmienną środowiskową ASYSTENT_EMAIL_PASSWORD.</p>
+      {% endif %}
+    {% elif pole.name == "usun_haslo" %}
+      {% if skrzynka.haslo and not haslo_ze_srodowiska %}<div class="pole-wyboru">{{ pole }} <label for="{{ pole.id_for_label }}">{{ pole.label }}</label></div>{% endif %}
+    {% elif pole.name == "wlaczona" or pole.name == "nazwiska" %}
+      <div class="pole-wyboru">{{ pole }} <label for="{{ pole.id_for_label }}">{{ pole.label }}</label></div>
+      {% if pole.name == "nazwiska" %}<p class="podpowiedz">Domyślnie wyłączone: poczta wychodzi poza system, więc wiadomość podaje samo zadanie i termin, a osobę widać po zalogowaniu.</p>{% endif %}
+    {% else %}
+      <label for="{{ pole.id_for_label }}">{{ pole.label }}{% if pole.field.required %} <span class="wymagane">wymagane</span>{% endif %}</label>
+      {{ pole }}
+      {% if pole.name == "adres_systemu" %}<p class="podpowiedz">Początek odnośników w wiadomościach, np. https://oceny.urzad.gov.pl. Bez niego wiadomość planowa nie ma odnośników.</p>{% endif %}
+    {% endif %}
+    {% for blad in pole.errors %}<p class="blad-pola" id="{{ pole.id_for_label }}_error">{{ pole.label }}: {{ blad }}</p>{% endfor %}
+    {% endfor %}
+    <div class="przyciski">
+      <button type="submit" name="akcja" value="zapisz" class="przycisk">Zapisz ustawienia skrzynki</button>
+    </div>
+  </form>
+</section>
+
+<section class="karta" aria-labelledby="n-probna">
+  <h2 id="n-probna">Sprawdzenie skrzynki</h2>
+  <p>Wiadomość próbna idzie na adres Twojego konta{% if user.email %} ({{ user.email }}){% endif %}. Sprawdza zapisane ustawienia, nie wpisane właśnie w formularzu.</p>
+  <form method="post">{% csrf_token %}
+    <button type="submit" name="akcja" value="probna" class="przycisk przycisk-drugi">Wyślij wiadomość próbną</button>
+  </form>
+</section>
+
+<section class="karta" aria-labelledby="n-wysylka">
+  <h2 id="n-wysylka">Przypomnienia o terminach</h2>
+  <p>Wysyłka planowa: polecenie <code>manage.py wyslij_przypomnienia</code> uruchamiane raz dziennie przez harmonogram serwera.
+    Osoba dostaje wiadomość w dniach przypomnienia ustawionych w „Konfiguracji procesu”, w dniu terminu i co 7 dni po terminie -
+    najwyżej raz dziennie.</p>
+  {% if adresaci %}
+  <div class="przewijana" role="region" aria-labelledby="t-adresaci" tabindex="0">
+  <table class="tabela">
+    <caption id="t-adresaci">Osoby, które mają dziś zadania z terminem</caption>
+    <thead><tr><th scope="col">Konto</th><th scope="col">Adres e-mail</th><th scope="col">Terminy</th><th scope="col">W tym po terminie</th></tr></thead>
+    <tbody>
+      {% for adresat in adresaci %}
+      <tr><td>{{ adresat.login }}</td><td>{% if adresat.email %}{{ adresat.email }}{% else %}<span class="stan stan-pilne">brak adresu</span>{% endif %}</td><td>{{ adresat.liczba }}</td><td>{{ adresat.po_terminie }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="podpowiedz">Zestawienie pokazuje liczby, bez spraw i nazwisk ocenianych. Adres e-mail konta zmienisz w „Konta użytkowników”.</p>
+  <form method="post">{% csrf_token %}
+    <button type="submit" name="akcja" value="przypomnienia" class="przycisk przycisk-drugi" data-potwierdz="Wysłać teraz przypomnienia do wszystkich osób z listy, które mają adres e-mail?">Wyślij przypomnienia teraz</button>
+  </form>
+  {% else %}
+  <p class="pusto">Dziś nikt nie ma zadań z terminem.</p>
+  {% endif %}
+  {% if ostatnie %}
+  <h3>Ostatnie wysyłki</h3>
+  <ul>
+    {% for wpis in ostatnie %}<li>{{ wpis.wyslano|date:"d.m.Y H:i" }} - {{ wpis.uzytkownik.get_username }}, terminy: {{ wpis.liczba }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endblock %}

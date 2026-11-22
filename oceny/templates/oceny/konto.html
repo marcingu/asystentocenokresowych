@@ -26,6 +26,35 @@
   <p><a href="{% url 'konto_dwuetapowe' %}" class="przycisk przycisk-drugi">{% if aplikacja %}Ustawienia weryfikacji dwuetapowej{% else %}Włącz weryfikację dwuetapową{% endif %}</a></p>
 </section>
 
+<section class="karta" aria-labelledby="n-przypomnienia">
+  <h2 id="n-przypomnienia">Przypomnienia i kalendarz</h2>
+  <p>Przypomnienia o terminach z listy „Moje zadania” przychodzą na adres e-mail konta:
+    <strong>{{ user.email|default:"brak adresu - zgłoś go administratorowi" }}</strong>.
+    Wiadomość dostajesz {% for dni in progi %}{{ dni }}{% if not forloop.last %}, {% endif %}{% endfor %} dni przed terminem, w dniu terminu i co 7 dni po terminie.
+    {% if not poczta_gotowa %}Urząd nie włączył jeszcze wysyłki przypomnień.{% endif %}</p>
+  <p><a href="{% url 'konto_przypomnienie' %}" class="przycisk przycisk-drugi">Zobacz dzisiejsze przypomnienie</a></p>
+
+  <h3>Kalendarz osobisty</h3>
+  {% if kalendarz %}
+  <p><span class="stan stan-w_terminie">włączony</span> od {{ kalendarz.utworzono|date:"d.m.Y" }}. Dodaj ten adres w swoim programie kalendarza
+    jako kalendarz subskrybowany (z internetu) - terminy będą się odświeżać same:</p>
+  <label for="adres-kalendarza">Adres kalendarza</label>
+  <input type="text" id="adres-kalendarza" value="{{ adres_kalendarza }}" readonly aria-describedby="adres-kalendarza-opis">
+  <p class="podpowiedz" id="adres-kalendarza-opis">Adres działa jak hasło: kto go zna, zobaczy Twoje terminy. Kalendarz zawiera zadania, terminy i podstawę prawną -
+    bez ocen i treści arkuszy. Jeżeli adres trafił w niepowołane ręce, wygeneruj nowy.</p>
+  <form method="post" action="{% url 'konto_kalendarz' %}" class="przyciski">{% csrf_token %}
+    <button type="submit" name="akcja" value="nowy" class="przycisk przycisk-drugi" data-potwierdz="Wygenerować nowy adres? Dotychczasowy przestanie działać.">Wygeneruj nowy adres</button>
+    <button type="submit" name="akcja" value="wylacz" class="przycisk przycisk-drugi" data-potwierdz="Wyłączyć kalendarz osobisty? Adres przestanie działać.">Wyłącz kalendarz</button>
+  </form>
+  {% else %}
+  <p><span class="stan stan-pilne">wyłączony</span> Po włączeniu dostaniesz adres, który dodasz w swoim programie kalendarza (Outlook, Kalendarz Apple,
+    Thunderbird). Terminy Twoich zadań będą się w nim odświeżać same.</p>
+  <form method="post" action="{% url 'konto_kalendarz' %}">{% csrf_token %}
+    <button type="submit" name="akcja" value="wlacz" class="przycisk przycisk-drugi">Włącz kalendarz osobisty</button>
+  </form>
+  {% endif %}
+</section>
+
 {% if ma_haslo %}
 <section class="karta" aria-labelledby="n-haslo">
   <h2 id="n-haslo">Hasło</h2>

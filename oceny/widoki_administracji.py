@@ -202,7 +202,10 @@ def konto(request, pk: int):
     wybrane = get_object_or_404(get_user_model(), pk=pk)
     pracownik = _pracownik(wybrane)
     poczatkowe = {
-        "first_name": wybrane.first_name, "last_name": wybrane.last_name, "email": wybrane.email,
+        # Konto założone z ewidencji nie ma własnego imienia i nazwiska - podpowiadamy je z karty pracownika,
+        # żeby dopisanie adresu e-mail nie wymagało przepisywania danych.
+        "first_name": wybrane.first_name or (pracownik.imie if pracownik else ""),
+        "last_name": wybrane.last_name or (pracownik.nazwisko if pracownik else ""), "email": wybrane.email,
         "pracownik": pracownik, "administrator": wybrane.is_superuser,
     }
     formularz = FormularzKonta(request.POST or None, initial=poczatkowe, konto=wybrane)
