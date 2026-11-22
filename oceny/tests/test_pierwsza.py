@@ -458,3 +458,117 @@ class PierwszaTest(Podstawa):
             self.assertNotIn(brak, html)
         self.assertEqual(html.count('<li class="krok krok-zrobiony">'), 4)
         self.assertEqual(bledy_dostepnosci(html), [])
+
+    # --- błąd formularza nie może kończyć się awarią (zgłoszenie: data rozmowy wstępnej późniejsza niż dziś) ---
+
+    def test_przyszla_data_rozmowy_wstepnej_to_blad_formularza_a_nie_awaria(self):
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        szef = klient(self.z.szef)
+        szef.raise_request_exception = False  # jak w przeglądarce: wyjątek w widoku to odpowiedź 500
+        odpowiedz = szef.post(adres, {**self.WSTEPNA, "rozmowa": "2026-01-02"})  # dzień po „dziś” z ustawień testu
+        self.assertEqual(odpowiedz.status_code, 200)
+        self.assertContains(odpowiedz, '<li id="id_wstepna_rozmowa_error">Data rozmowy wstępnej:')
+        self.assertContains(odpowiedz, 'name="rozmowa" value="2026-01-02"')  # wpisana wartość zostaje do poprawienia
+        osoba.umowa.pierwsza.refresh_from_db()
+        self.assertNotIn("wstepna", osoba.umowa.pierwsza.dane)
+
+    def test_wynik_egzaminu_niezgodny_z_zapisem_to_blad_formularza_a_nie_awaria(self):
+        osoba, adres, szef = self.przygotuj_arkusz()
+        szef.raise_request_exception = False
+        with self.settings(ASYSTENT_DZIS="2026-09-21"):
+            self.assertEqual(szef.post(adres, {"akcja": "egzamin", "dzien_egzaminu": "2026-06-10", "wynik": "tak"}).status_code, 302)
+            odpowiedz = szef.post(adres, {**self.ocena_dane(uzasadnienie="Egzamin niezaliczony."), "egzamin": "nie"})
+            self.assertEqual(odpowiedz.status_code, 200)
+            self.assertContains(odpowiedz, '<li id="id_ocena_egzamin_error">Egzamin ze służby przygotowawczej: Wynik musi odpowiadać zapisowi egzaminu.')
+        osoba.umowa.pierwsza.refresh_from_db()
+        self.assertNotIn("ocena", osoba.umowa.pierwsza.dane)
+
+    def test_zadna_kombinacja_dat_i_wyborow_nie_konczy_sie_awaria(self):
+        from itertools import product
+
+        from django.db import transaction
+
+        osoba, adres, szef = self.przygotuj_arkusz()  # rozmowa wstępna zapisana, termin 03.09-20.09.2026
+        nowa = self.dodaj(imie="Ewa", nazwisko="Testowa")  # sprawa przed rozmową wstępną
+        adres_nowej = f"/pierwsza-ocena/{nowa.umowa.pierwsza.pk}/"
+        szef.raise_request_exception = False
+        daty = ("2025-12-31", "2026-01-01", "2026-01-02", "2026-08-31", "2026-09-01", "2026-09-20", "2026-09-21", "2026-09-22",
+                "2026-11-30", "2026-12-01", "2026-12-31", "2027-01-01")
+        proby = [(adres_nowej, "2026-01-01", {"akcja": "wstepna", "rozmowa": rozmowa, "od": od, "do": do})
+                 for rozmowa, od, do in product(daty, ("2026-08-31", "2026-09-01", "2026-09-20", "2026-12-01"), ("2026-09-01", "2026-11-30", "2026-12-01"))]
+        proby += [(adres, "2026-09-10", {"akcja": "termin", "od": od, "do": do, "pismo": "on"}) for od, do in product(daty, daty[3:])]
+        proby += [(adres, "2026-09-10", {"akcja": "egzamin", "dzien_egzaminu": data, "wynik": "tak"}) for data in daty]
+        for zapisany_egzamin in (None, "tak", "nie"):
+            for rozmowa, egzamin, punkty, uzasadnienie, rozwoj in product(daty[5:9], ("tak", "nie", "ksap", "wyzsze"), ((5,) * 5, (3, 3, 5, 5, 7)), ("", "Opis"), ("", "Kurs")):
+                pola = {"akcja": "ocena", "rozmowa": rozmowa, "egzamin": egzamin, "porozumienie": "on", "uzasadnienie": uzasadnienie, "rozwoj": rozwoj}
+                pola.update({f"pkt{numer}": wartosc for numer, wartosc in enumerate(punkty)})
+                proby.append((adres, "2026-09-21", pola, zapisany_egzamin))
+        self.assertGreater(len(proby), 600)
+        for adres_proby, dzien, pola, *egzamin in proby:
+            punkt = transaction.savepoint()  # każda próba na tym samym stanie sprawy
+            with self.settings(ASYSTENT_DZIS=dzien):
+                if egzamin and egzamin[0]:
+                    self.assertEqual(szef.post(adres_proby, {"akcja": "egzamin", "dzien_egzaminu": "2026-06-10", "wynik": egzamin[0]}).status_code, 302)
+                kod = szef.post(adres_proby, pola).status_code
+            transaction.savepoint_rollback(punkt)
+            if kod not in (200, 302):
+                self.fail(f"odpowiedź {kod} dla {pola} w dniu {dzien} (zapisany egzamin: {egzamin})")
+
+    def test_bledy_rozmowy_wstepnej_mowia_co_poprawic(self):
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        szef = klient(self.z.szef)
+        with self.settings(ASYSTENT_DZIS="2026-01-10"):
+            jutro = szef.post(adres, {**self.WSTEPNA, "rozmowa": "2026-01-11"})
+            self.assertContains(jutro, "Data rozmowy wstępnej: Podaj dzień, w którym rozmowa się odbyła: od 01.01.2026 do 10.01.2026. "
+                                       "Rozmowy nie zapisuje się z wyprzedzeniem.")
+            # błędna data rozmowy nie dokłada wtórnego błędu terminu sprawozdania
+            self.assertNotContains(jutro, "id_wstepna_od_error")
+            self.assertNotContains(jutro, "id_wstepna_do_error")
+            self.assertEqual(bledy_dostepnosci(jutro.content.decode()), [])
+        with self.settings(ASYSTENT_DZIS="2026-09-10"):
+            przed_rozmowa = szef.post(adres, {"akcja": "wstepna", "rozmowa": "2026-09-10", "od": "2026-09-03", "do": "2026-09-20"})
+            self.assertContains(przed_rozmowa, '<li id="id_wstepna_od_error">Termin złożenia sprawozdania - od: '
+                                               "Termin sprawozdania nie może zaczynać się przed rozmową wstępną (10.09.2026).</li>")
+            self.assertNotContains(przed_rozmowa, "id_wstepna_do_error")
+            poza_okresem = szef.post(adres, {"akcja": "wstepna", "rozmowa": "2026-01-05", "od": "2026-09-03", "do": "2026-12-01"})
+            self.assertContains(poza_okresem, '<li id="id_wstepna_do_error">Termin złożenia sprawozdania - do: '
+                                              "Termin sprawozdania musi mieścić się w okresie dokonania pierwszej oceny: 01.09.2026 - 30.11.2026.</li>")
+            odwrocony = szef.post(adres, {"akcja": "wstepna", "rozmowa": "2026-01-05", "od": "2026-09-20", "do": "2026-09-03"})
+            self.assertContains(odwrocony, "Termin złożenia sprawozdania - do: Koniec terminu nie może być wcześniejszy niż jego początek.")
+        with self.settings(ASYSTENT_DZIS="2025-12-20"):  # przed dniem zatrudnienia nie ma jeszcze rozmowy do zapisania
+            przed_zatrudnieniem = szef.post(adres, {**self.WSTEPNA, "rozmowa": "2025-12-20"})
+            self.assertContains(przed_zatrudnieniem, "Data rozmowy wstępnej: Rozmowę wstępną można zapisać najwcześniej 01.01.2026.")
+            self.assertNotContains(przed_zatrudnieniem, 'max="2025-12-20"')  # odwróconego zakresu przeglądarka nie dostaje
+        osoba.umowa.pierwsza.refresh_from_db()
+        self.assertNotIn("wstepna", osoba.umowa.pierwsza.dane)
+
+    def test_pola_dat_podpowiadaja_dozwolony_zakres_a_spozniona_rozmowa_zapisuje_sie_z_domyslnym_terminem(self):
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        szef = klient(self.z.szef)
+
+        def pole(html, identyfikator):
+            """Wartości (min, max, value) pola daty; None, gdy atrybutu nie ma."""
+            znacznik = re.search(rf'<input [^>]*id="{identyfikator}"[^>]*>', html).group(0)
+            atrybuty = dict(re.findall(r'(\w+)="([^"]*)"', znacznik))
+            return atrybuty.get("min"), atrybuty.get("max"), atrybuty.get("value")
+
+        with self.settings(ASYSTENT_DZIS="2026-09-10"):  # rozmowa wstępna spóźniona, trwa już okres oceny
+            html = szef.get(adres).content.decode()
+            # rozmowa: nie wcześniej niż zatrudnienie i nie później niż dziś; bez podpowiedzianej daty
+            self.assertEqual(pole(html, "id_wstepna_rozmowa"), ("2026-01-01", "2026-09-10", None))
+            # termin sprawozdania: w okresie oceny, a podpowiedź nie zaczyna się w przeszłości
+            self.assertEqual(pole(html, "id_wstepna_od"), ("2026-09-01", "2026-11-30", "2026-09-10"))
+            self.assertEqual(pole(html, "id_wstepna_do"), ("2026-09-01", "2026-11-30", "2026-11-30"))
+            self.assertEqual(pole(html, "id_egzamin_dzien_egzaminu"), ("2026-01-01", "2026-09-10", None))
+            self.assertEqual(bledy_dostepnosci(html), [])
+            # przełożony wpisuje dzisiejszą rozmowę i zostawia podpowiedziany termin - zapis przechodzi
+            zapis = {"akcja": "wstepna", "rozmowa": "2026-09-10", "od": "2026-09-10", "do": "2026-11-30"}
+            self.assertEqual(szef.post(adres, zapis).status_code, 302)
+            self.assertEqual(pole(szef.get(adres).content.decode(), "id_termin_od")[:2], ("2026-09-01", "2026-11-30"))
+            raport = {"akcja": "raport", "zadania": "Zadania", "problemy": "Brak", "wiedza": "Narzędzia", "wnioski": "Instrukcja", "okres": "on"}
+            self.assertEqual(klient(osoba).post(adres, raport).status_code, 302)
+        with self.settings(ASYSTENT_DZIS="2026-09-15"):  # rozmowa oceniająca: w okresie oceny i nie później niż dziś
+            self.assertEqual(pole(szef.get(adres).content.decode(), "id_ocena_rozmowa"), ("2026-09-01", "2026-09-15", "2026-09-15"))

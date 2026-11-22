@@ -113,15 +113,31 @@ class Wniosek(forms.Form):
         self.fields["wybor"].choices = [(k, v) for k, v in WNIOSKI.items() if (k == "stala") == pozytywna]
 
 
+def poczatek_biegu(ocena):
+    """Dzień, od którego biegnie termin rozmowy wstępnej: nawiązanie stosunku pracy, a przy zastępstwie -
+    ustalenie przez strony, że oceniany podlega pierwszej ocenie (§ 3 rozp.)."""
+    return date.fromisoformat(ocena.dane.get("ustalenie", ocena.umowa.poczatek.isoformat()))
+
+
 def zapisz_etap(akcja, formularz, ocena, dzien, od, do):
-    dane, pola = ocena.dane, formularz.cleaned_data
+    # Kopia wartości: add_error() usuwa błędne pole z cleaned_data, a kolejne reguły nadal je porównują.
+    dane, pola = ocena.dane, dict(formularz.cleaned_data)
     zapis = {k: v.isoformat() if isinstance(v, date) else v for k, v in pola.items()}
     zapis["data"] = dzien.isoformat()
     if akcja == "wstepna":
-        if not date.fromisoformat(dane.get("ustalenie", ocena.umowa.poczatek.isoformat())) <= pola["rozmowa"] <= min(dzien, ocena.umowa.koniec):
-            formularz.add_error("rozmowa", "Podaj faktyczną datę rozmowy w okresie zatrudnienia.")
-        if not od <= pola["od"] <= pola["do"] <= do or pola["rozmowa"] > pola["od"]:
-            formularz.add_error("do", "Termin sprawozdania musi mieścić się w okresie pierwszej oceny i nie poprzedzać rozmowy.")
+        poczatek, ostatni = poczatek_biegu(ocena), min(dzien, ocena.umowa.koniec)
+        rozmowa_w_zakresie = poczatek <= pola["rozmowa"] <= ostatni
+        if ostatni < poczatek:
+            formularz.add_error("rozmowa", f"Rozmowę wstępną można zapisać najwcześniej {poczatek:%d.%m.%Y}.")
+        elif not rozmowa_w_zakresie:
+            formularz.add_error("rozmowa", f"Podaj dzień, w którym rozmowa się odbyła: od {poczatek:%d.%m.%Y} do {ostatni:%d.%m.%Y}. "
+                                           "Rozmowy nie zapisuje się z wyprzedzeniem.")
+        if pola["od"] > pola["do"]:
+            formularz.add_error("do", "Koniec terminu nie może być wcześniejszy niż jego początek.")
+        elif not od <= pola["od"] <= pola["do"] <= do:
+            formularz.add_error("do", f"Termin sprawozdania musi mieścić się w okresie dokonania pierwszej oceny: {od:%d.%m.%Y} - {do:%d.%m.%Y}.")
+        elif rozmowa_w_zakresie and pola["rozmowa"] > pola["od"]:  # przy błędnej dacie rozmowy nie dokładamy błędu wtórnego
+            formularz.add_error("od", f"Termin sprawozdania nie może zaczynać się przed rozmową wstępną ({pola['rozmowa']:%d.%m.%Y}).")
     elif akcja == "termin":
         if not od <= pola["od"] <= pola["do"] <= do or pola["do"].isoformat() <= dane["wstepna"]["do"] or pola["do"] < dzien:
             formularz.add_error("do", "Wskaż późniejszy termin w okresie oceny.")
@@ -191,10 +207,11 @@ def karta(request, pk):
         edytor = Raport(request.POST if akcja in ("szkic", "raport") else None, initial=dane.get("szkic", {}),
             auto_id="id_raport_%s", label_suffix="", skladanie=akcja == "raport", mozna_zlozyc=mozna_zlozyc)
     jest_szefem = osoba == ocena.szef and osoba != umowa.osoba
-    termin_wstepnej = koniec_terminu_dni(date.fromisoformat(dane.get("ustalenie", umowa.poczatek.isoformat())), 21)
+    termin_wstepnej = koniec_terminu_dni(poczatek_biegu(ocena), 21)
     if "wstepna" not in dane:
         if jest_szefem:
-            dodaj("wstepna", Wstepna, initial={"rozmowa": dzien if dzien <= termin_wstepnej else None, "od": od, "do": do})
+            # Podpowiedziany termin sprawozdania nie zaczyna się w przeszłości: przy spóźnionej rozmowie byłby wcześniejszy niż ona.
+            dodaj("wstepna", Wstepna, initial={"rozmowa": dzien if dzien <= termin_wstepnej else None, "od": min(max(od, dzien), do), "do": do})
     elif "ocena" not in dane:
         if jest_szefem and "raport" not in dane:
             dodaj("termin", NowyTermin)
@@ -207,6 +224,19 @@ def karta(request, pk):
         dodaj("obserwacja", Obserwacja)
         if umowa.kwalifikacja != "zastepstwo_ocena":
             dodaj("egzamin", Egzamin, initial=dane.get("egzamin", {}))
+
+    def zakres(kod, pola, najwczesniej, najpozniej):
+        """Przeglądarka podpowiada dozwolone daty (min i max), jak na karcie oceny okresowej; rozstrzyga i tak zapisz_etap."""
+        if kod in formularze and najwczesniej <= najpozniej:
+            for pole in pola:
+                formularze[kod].fields[pole].widget.attrs.update(min=najwczesniej.isoformat(), max=najpozniej.isoformat())
+
+    ostatni = min(dzien, umowa.koniec)  # czynności, które już się odbyły, nie mają daty późniejszej niż dziś
+    zakres("wstepna", ["rozmowa"], poczatek_biegu(ocena), ostatni)
+    zakres("wstepna", ["od", "do"], od, do)
+    zakres("termin", ["od", "do"], od, do)
+    zakres("egzamin", ["dzien_egzaminu"], umowa.poczatek, ostatni)
+    zakres("ocena", ["rozmowa"], od, min(dzien, do))
     if request.method == "POST":
         if (akcja == "szkic" and edytuje_raport) or (akcja == "raport" and mozna_zlozyc):
             formularz = edytor
