@@ -6,12 +6,14 @@ albo komunikat rdzenia razem z podstawą prawną.
 
 from __future__ import annotations
 
+from datetime import date
 
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from asystent_ocen.bledy import Blad, BladWalidacji
@@ -47,14 +49,21 @@ def _ocena_uzytkownika(request, pk: int) -> Ocena:
 
 @require_GET
 def zadania(request):
-    from .pierwsza import widoczne as pierwsze_widoczne
+    from . import karta_pierwszej
     from .zadania import sprzeciwy_uzytkownika  # import przy użyciu - nazwa modułu pokrywa się z nazwą tego widoku
 
     dzien = dzis()
     widoczne = uprawnienia.oceny_widoczne(request.user)
+    # Jedna lista zadań z obu procesów, od najbliższego terminu; zadania bez terminu dziennego na końcu.
+    wiersze = [
+        {"stan": zadanie.stan, "stan_opis": zadanie.stan_opis, "tytul": zadanie.tytul, "adres": reverse("ocena", args=[zadanie.ocena.pk]),
+         "rola": f"w roli: {zadanie.rola.value}", "oceniany": zadanie.ocena.oceniany, "termin": zadanie.termin,
+         "bez_terminu": "niezwłocznie", "podstawa": zadanie.podstawa}
+        for zadanie in zadania_uzytkownika(request.user, dzien)
+    ] + karta_pierwszej.zadania_uzytkownika(request.user, dzien)
     return render(request, "oceny/zadania.html", {
-        "zadania": zadania_uzytkownika(request.user, dzien),
-        "pierwsze": pierwsze_widoczne(request.user),
+        "zadania": sorted(wiersze, key=lambda wiersz: (wiersz["termin"] is None, wiersz["termin"] or date.max)),
+        "pierwsze": karta_pierwszej.sprawy_uzytkownika(request.user, dzien),
         "sprzeciwy": sprzeciwy_uzytkownika(request.user, dzien),
         "moje_oceny": [ocena for ocena in widoczne if ocena.oceniany == uprawnienia.pracownik_uzytkownika(request.user)],
         "oceny_podwladnych": [

@@ -2,12 +2,10 @@
 {% block tytul %}Moje zadania{% endblock %}
 {% block tresc %}
 <h1>Moje zadania</h1>
-{% if pierwsze %}<h2>Pierwsza ocena w służbie cywilnej</h2>
-<ul>{% for pierwsza in pierwsze %}<li><a href="{% url 'pierwsza_ocena' pierwsza.pk %}">{{ pierwsza.umowa.osoba }} - arkusz pierwszej oceny</a></li>{% endfor %}</ul>{% endif %}
 {% if zadania %}
 <div class="przewijana" role="region" aria-labelledby="t-zadania" tabindex="0">
 <table class="tabela">
-  <caption id="t-zadania" class="ukryte">Zadania w procesie ocen okresowych, od najbliższego terminu</caption>
+  <caption id="t-zadania" class="ukryte">Zadania w ocenach okresowych i w pierwszej ocenie w służbie cywilnej, od najbliższego terminu</caption>
   <thead>
     <tr><th scope="col">Stan</th><th scope="col">Zadanie</th><th scope="col">Oceniany</th><th scope="col">Termin</th><th scope="col">Podstawa prawna</th></tr>
   </thead>
@@ -15,9 +13,9 @@
     {% for zadanie in zadania %}
     <tr>
       <td><span class="stan stan-{{ zadanie.stan }}">{{ zadanie.stan_opis }}</span></td>
-      <td><a href="{% url 'ocena' zadanie.ocena.pk %}">{{ zadanie.tytul }}</a><small>w roli: {{ zadanie.rola.value }}</small></td>
-      <td>{{ zadanie.ocena.oceniany.imie_i_nazwisko }}<small>{{ zadanie.ocena.oceniany.stanowisko }}</small></td>
-      <td>{% if zadanie.termin %}{{ zadanie.termin|date:"d.m.Y" }}{% else %}niezwłocznie{% endif %}</td>
+      <td><a href="{{ zadanie.adres }}">{{ zadanie.tytul }}</a><small>{{ zadanie.rola }}</small></td>
+      <td>{{ zadanie.oceniany.imie_i_nazwisko }}<small>{{ zadanie.oceniany.stanowisko }}</small></td>
+      <td>{% if zadanie.termin %}{{ zadanie.termin|date:"d.m.Y" }}{% else %}{{ zadanie.bez_terminu }}{% endif %}</td>
       <td>{{ zadanie.podstawa }}</td>
     </tr>
     {% endfor %}
@@ -25,7 +23,19 @@
 </table>
 </div>
 {% else %}
-<p class="pusto">Nie masz teraz żadnych zadań w procesie ocen okresowych.</p>
+<p class="pusto">Nie masz teraz żadnych zadań.</p>
+{% endif %}
+
+{% if pierwsze %}
+<h2>Pierwsza ocena w służbie cywilnej</h2>
+<ul class="lista-ocen">
+  {% for sprawa in pierwsze %}
+  <li><a href="{% url 'pierwsza_ocena' sprawa.ocena.pk %}">{{ sprawa.osoba }} - arkusz pierwszej oceny</a>
+    <span class="etap">{{ sprawa.etap }}</span>
+    {% if sprawa.termin %}<span>termin: {{ sprawa.termin.data|date:"d.m.Y" }}</span>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
 {% endif %}
 
 {% if sprzeciwy %}

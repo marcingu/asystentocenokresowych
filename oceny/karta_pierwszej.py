@@ -104,22 +104,126 @@ def zadania_karty(dane: dict, etap: int, dzien: date, do: date, termin_wstepnej:
     """Co zalogowana osoba ma teraz do zrobienia w tej sprawie - z terminem i podstawą, jak na karcie okresowej."""
     zadania: list[dict] = []
 
-    def dodaj(tytul: str, termin: date | None, podstawa: str, bez_terminu: str = "") -> None:
+    def dodaj(rola: str, tytul: str, termin: date | None, podstawa: str, bez_terminu: str = "") -> None:
         zadania.append({
-            "tytul": tytul, "termin": termin, "podstawa": podstawa,
+            "rola": rola, "tytul": tytul, "termin": termin, "podstawa": podstawa, "bez_terminu": bez_terminu,
             "stan": stan_terminu(termin, dzien) if termin else "bez_terminu",
             "stan_opis": opis_dni_do_terminu((termin - dzien).days) if termin else bez_terminu,
         })
 
     if szef and etap == 0:
-        dodaj("Przeprowadź rozmowę wstępną i wyznacz termin sprawozdania", termin_wstepnej, "§ 3 i § 4 rozp.")
+        dodaj("bezpośredni przełożony", "Przeprowadź rozmowę wstępną i wyznacz termin sprawozdania", termin_wstepnej, "§ 3 i § 4 rozp.")
     if oceniany and etap in (1, 2) and "raport" not in dane and dzien <= do:  # po okresie oceny sprawozdania już się nie składa
-        dodaj("Złóż sprawozdanie", _dzien(dane["wstepna"]["do"]), "§ 4 ust. 1 i § 6 rozp.")
+        dodaj("oceniany", "Złóż sprawozdanie", _dzien(dane["wstepna"]["do"]), "§ 4 ust. 1 i § 6 rozp.")
     if szef and etap == 2:
-        dodaj("Przeprowadź rozmowę oceniającą i dokonaj pierwszej oceny", do, "art. 38 ust. 1 i 2 u.s.c.; § 8 ust. 1 rozp.")
+        dodaj("bezpośredni przełożony", "Przeprowadź rozmowę oceniającą i dokonaj pierwszej oceny", do, "art. 38 ust. 1 i 2 u.s.c.; § 8 ust. 1 rozp.")
     if kierujacy and etap == 3:
-        dodaj("Złóż wniosek do dyrektora generalnego", None, "art. 38 ust. 3 u.s.c.", "po dokonaniu oceny")
+        dodaj("kierujący komórką", "Złóż wniosek do dyrektora generalnego", None, "art. 38 ust. 3 u.s.c.", "po dokonaniu oceny")
     return zadania
+
+
+def biegnace_terminy(ocena, dzien: date) -> list[dict]:
+    """Terminy dzienne, które biegną na obecnym etapie sprawy; pierwszy dotyczy bieżącego kroku. Po dokonaniu
+    oceny nie biegnie już żaden (wniosek składa się „po dokonaniu oceny”, art. 38 ust. 3 u.s.c.)."""
+    from .pierwsza import terminy_sprawy
+
+    dane, etap = ocena.dane, numer_etapu(ocena.dane, dzien)
+    od, do, termin_wstepnej = terminy_sprawy(ocena)
+    terminy: list[dict] = []
+    if etap == 0:
+        terminy.append({"kod": "rozmowa-wstepna", "nazwa": "rozmowa wstępna", "data": termin_wstepnej})
+    if etap == 1:
+        terminy.append({"kod": "sprawozdanie", "nazwa": "sprawozdanie", "data": _dzien(dane["wstepna"]["do"])})
+    if etap <= 2:
+        terminy.append({"kod": "pierwsza-ocena", "nazwa": "pierwsza ocena", "data": do, "od": od})
+    return terminy
+
+
+_ROZPORZADZENIE = "rozporządzenia Prezesa Rady Ministrów z dnia 23 lipca 2015 r. (Dz. U. poz. 1144)"
+_USTAWA = "ustawy z dnia 21 listopada 2008 r. o służbie cywilnej"
+
+
+def wydarzenia_kalendarza(ocena, osoba, dzien: date) -> list:
+    """Terminy biegnące w sprawie jako wydarzenia kalendarza (iCalendar) - te same zasady co przy ocenie okresowej:
+    tylko terminy, z podstawą prawną, bez ocen i treści sprawy; oceniany dostaje wydarzenia bez swojego nazwiska."""
+    from asystent_ocen.ics import DOMENA_UID, Wydarzenie
+
+    from .pierwsza import poczatek_biegu
+
+    dane, umowa = ocena.dane, ocena.umowa
+    kto = "" if osoba is not None and osoba == umowa.osoba else str(umowa.osoba)
+    opisy = {
+        "rozmowa-wstepna": lambda termin: (
+            "Rozmowa wstępna przed pierwszą oceną",
+            "Ostatni dzień na rozmowę wstępną z ocenianym i wyznaczenie terminu na złożenie sprawozdania "
+            f"(21 dni od {poczatek_biegu(ocena):%d.%m.%Y}).",
+            f"§ 3 {_ROZPORZADZENIE}; termin liczony według art. 111 i 115 Kodeksu cywilnego",
+        ),
+        "sprawozdanie": lambda termin: (
+            "Koniec terminu na sprawozdanie do pierwszej oceny",
+            f"Ostatni dzień terminu wyznaczonego na złożenie sprawozdania przez ocenianego ({_dzien(dane['wstepna']['od']):%d.%m.%Y} - "
+            f"{termin['data']:%d.%m.%Y}). Po złożeniu sprawozdania albo po upływie tego terminu bezpośredni przełożony "
+            "przeprowadza rozmowę oceniającą.",
+            f"§ 4 ust. 1, § 6 i § 8 ust. 1 {_ROZPORZADZENIE}",
+        ),
+        "pierwsza-ocena": lambda termin: (
+            "Koniec okresu dokonania pierwszej oceny w służbie cywilnej",
+            f"Ostatni dzień na dokonanie pierwszej oceny: miesiąc przed upływem okresu, na który zawarto umowę o pracę "
+            f"({umowa.koniec:%d.%m.%Y}). Pierwszej oceny można dokonać od {termin['od']:%d.%m.%Y}.",
+            f"art. 38 ust. 1 {_USTAWA}",
+        ),
+    }
+    wydarzenia = []
+    for termin in biegnace_terminy(ocena, dzien):
+        tytul, opis, podstawa = opisy[termin["kod"]](termin)
+        wydarzenia.append(Wydarzenie(
+            uid=f"pierwsza-ocena-{ocena.pk}-{termin['kod']}@{DOMENA_UID}", data=termin["data"],
+            tytul=f"{tytul} - {kto}" if kto else tytul, opis=f"{opis}\nPodstawa prawna: {podstawa}.",
+        ))
+    return wydarzenia
+
+
+def _strony(ocena, osoba) -> dict:
+    """Role osoby w sprawie - te same rozstrzygnięcia co na karcie: nikt nie jest przełożonym we własnej sprawie."""
+    oceniany = osoba is not None and osoba == ocena.umowa.osoba
+    return {"oceniany": oceniany, "szef": osoba is not None and osoba == ocena.szef and not oceniany,
+            "kierujacy": osoba is not None and osoba == ocena.kierujacy}
+
+
+def zadania_uzytkownika(uzytkownik, dzien: date) -> list[dict]:
+    """Zadania zalogowanej osoby we wszystkich jej sprawach pierwszej oceny - wiersze wspólnej listy „Moje zadania”."""
+    from django.urls import reverse
+
+    from . import uprawnienia
+    from .pierwsza import terminy_sprawy, widoczne
+
+    osoba = uprawnienia.pracownik_uzytkownika(uzytkownik)
+    wiersze: list[dict] = []
+    for ocena in widoczne(uzytkownik):
+        _, do, termin_wstepnej = terminy_sprawy(ocena)
+        for zadanie in zadania_karty(ocena.dane, numer_etapu(ocena.dane, dzien), dzien, do, termin_wstepnej, **_strony(ocena, osoba)):
+            wiersze.append({
+                **zadanie, "adres": reverse("pierwsza_ocena", args=[ocena.pk]), "oceniany": ocena.umowa.osoba,
+                "rola": f"pierwsza ocena, w roli: {zadanie['rola']}",
+                # Na wspólnej liście „rozp.” oznaczałoby dwa różne rozporządzenia - o ocenach okresowych i o pierwszej ocenie.
+                "podstawa": zadanie["podstawa"].replace("rozp.", "rozp. o pierwszej ocenie"),
+            })
+    return wiersze
+
+
+def sprawy_uzytkownika(uzytkownik, dzien: date) -> list[dict]:
+    """Sprawy pierwszej oceny widoczne dla zalogowanej osoby: stałe wejście do karty, etap i termin bieżącego kroku."""
+    from .pierwsza import widoczne
+
+    sprawy = []
+    for ocena in widoczne(uzytkownik):
+        etap = numer_etapu(ocena.dane, dzien)
+        sprawy.append({
+            "ocena": ocena, "osoba": ocena.umowa.osoba,
+            "etap": ETAPY[etap] if etap < len(ETAPY) else "wniosek złożony",
+            "termin": next(iter(biegnace_terminy(ocena, dzien)), None),
+        })
+    return sprawy
 
 
 def historia(ocena) -> list[dict]:
@@ -185,6 +289,7 @@ def kontekst_karty(ocena, osoba, dzien: date, *, od: date, do: date, termin_wste
         "zadania": zadania_karty(dane, etap, dzien, do, termin_wstepnej, oceniany=jest_ocenianym, szef=jest_szefem,
                                  kierujacy=jest_kierujacym),
         "terminy": wiersze_terminow(ocena, dzien, od, do, termin_wstepnej),
+        "sa_terminy_do_kalendarza": bool(biegnace_terminy(ocena, dzien)),
         "zdarzenia": historia(ocena),
         "wynik": wynik_do_pokazania(dane),
         "skala": SKALA,

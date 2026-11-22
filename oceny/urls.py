@@ -8,6 +8,8 @@ from . import pierwsza, umowy, panel_przepisow, urzad, views, widoki_administrac
 
 urlpatterns = [
     path("pierwsza-ocena/<int:pk>/", pierwsza.karta, name="pierwsza_ocena"),
+    # Przed wzorcem wydruków: „terminy.ics” pasuje także do niego.
+    path("pierwsza-ocena/<int:pk>/terminy.ics", pierwsza.kalendarz, name="pierwsza_kalendarz"),
     path("pierwsza-ocena/<int:pk>/<slug:rodzaj>.<slug:format>", pierwsza.wydruk, name="pierwsza_wydruk"),
     path("kadry/umowa/<int:pk>/", umowy.karta_umowy, name="karta_umowy"),
     path("administracja/wydzialy/", wydzialy.struktura, name="wydzialy"),

@@ -257,6 +257,7 @@
     </li>
     {% endfor %}
   </ul>
+  {% if sa_terminy_do_kalendarza %}<p><a href="{% url 'pierwsza_kalendarz' ocena.pk %}" class="przycisk przycisk-drugi">Dodaj terminy do kalendarza (.ics)</a></p>{% endif %}
   {% if formularze.termin %}
   {% with f=formularze.termin %}
   <details{% if f.errors %} open{% endif %}>

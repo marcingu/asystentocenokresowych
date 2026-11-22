@@ -572,3 +572,158 @@ class PierwszaTest(Podstawa):
             self.assertEqual(klient(osoba).post(adres, raport).status_code, 302)
         with self.settings(ASYSTENT_DZIS="2026-09-15"):  # rozmowa oceniająca: w okresie oceny i nie później niż dziś
             self.assertEqual(pole(szef.get(adres).content.decode(), "id_ocena_rozmowa"), ("2026-09-01", "2026-09-15", "2026-09-15"))
+
+    # --- pierwsza ocena na liście „Moje zadania”: z terminem, stanem i podstawą, jak zadania ocen okresowych ---
+
+    @staticmethod
+    def wiersz_zadania(html, adres):
+        """Wiersz tabeli zadań z odnośnikiem do podanej karty; pusty tekst, gdy takiego zadania nie ma."""
+        tabela = html[html.index('<table class="tabela">'):html.index("</table>")] if '<table class="tabela">' in html else ""
+        return next((wiersz for wiersz in tabela.split("<tr>") if f'<a href="{adres}">' in wiersz), "")
+
+    def test_zadania_pierwszej_oceny_sa_na_liscie_zadan_z_terminem_stanem_i_podstawa(self):
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        szef, pracownik = klient(self.z.szef), klient(osoba)
+
+        html = szef.get("/").content.decode()
+        wiersz = self.wiersz_zadania(html, adres)
+        for fragment in ('<span class="stan stan-w_terminie">zostało 21 dni</span>',
+                         f'<a href="{adres}">Przeprowadź rozmowę wstępną i wyznacz termin sprawozdania</a>',
+                         "<small>pierwsza ocena, w roli: bezpośredni przełożony</small>", "Jan Nowicki",
+                         "<td>22.01.2026</td>", "<td>§ 3 i § 4 rozp. o pierwszej ocenie</td>"):
+            self.assertIn(fragment, wiersz)
+        self.assertEqual(bledy_dostepnosci(html), [])
+        self.assertEqual(self.wiersz_zadania(pracownik.get("/").content.decode(), adres), "")  # czynność ma przełożony
+
+        self.assertEqual(szef.post(adres, self.WSTEPNA).status_code, 302)
+        self.assertEqual(self.wiersz_zadania(szef.get("/").content.decode(), adres), "")
+        wiersz = self.wiersz_zadania(pracownik.get("/").content.decode(), adres)
+        dni = (date(2026, 9, 20) - date(2026, 1, 1)).days
+        for fragment in (f'<span class="stan stan-w_terminie">zostało {dni} dni</span>', f'<a href="{adres}">Złóż sprawozdanie</a>',
+                         "<small>pierwsza ocena, w roli: oceniany</small>", "<td>20.09.2026</td>",
+                         "<td>§ 4 ust. 1 i § 6 rozp. o pierwszej ocenie</td>"):
+            self.assertIn(fragment, wiersz)
+
+        with self.settings(ASYSTENT_DZIS="2026-09-21"):
+            wiersz = self.wiersz_zadania(szef.get("/").content.decode(), adres)
+            for fragment in (f'<a href="{adres}">Przeprowadź rozmowę oceniającą i dokonaj pierwszej oceny</a>', "<td>30.11.2026</td>",
+                             "<td>art. 38 ust. 1 i 2 u.s.c.; § 8 ust. 1 rozp. o pierwszej ocenie</td>"):
+                self.assertIn(fragment, wiersz)
+            self.assertEqual(szef.post(adres, self.ocena_dane(uzasadnienie="Nie złożono sprawozdania.")).status_code, 302)
+            wiersz = self.wiersz_zadania(szef.get("/").content.decode(), adres)
+            for fragment in ('<span class="stan stan-bez_terminu">po dokonaniu oceny</span>', f'<a href="{adres}">Złóż wniosek do dyrektora generalnego</a>',
+                             "<small>pierwsza ocena, w roli: kierujący komórką</small>", "<td>po dokonaniu oceny</td>", "<td>art. 38 ust. 3 u.s.c.</td>"):
+                self.assertIn(fragment, wiersz)
+            self.assertEqual(self.wiersz_zadania(pracownik.get("/").content.decode(), adres), "")
+            self.assertEqual(szef.post(adres, {"akcja": "wniosek", "wybor": "brak"}).status_code, 302)
+            html = szef.get("/").content.decode()
+            self.assertEqual(self.wiersz_zadania(html, adres), "")
+            self.assertEqual(bledy_dostepnosci(html), [])
+
+    def test_zadania_obu_procesow_sa_w_jednej_kolejnosci_terminow(self):
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        okresowa = self.z.ocena_z_kryteriami()  # zadanie przełożonego z terminem 20.11.2026
+        html = klient(self.z.szef).get("/").content.decode()
+        zadanie_pierwszej, zadanie_okresowej = f'<a href="{adres}">Przeprowadź rozmowę wstępną', f'<a href="/oceny/{okresowa.pk}/">Przeprowadź rozmowę oceniającą'
+        self.assertIn(zadanie_pierwszej, html)
+        self.assertIn(zadanie_okresowej, html)
+        self.assertLess(html.index(zadanie_pierwszej), html.index(zadanie_okresowej))  # 22.01.2026 przed 20.11.2026
+        with self.settings(ASYSTENT_DZIS="2026-09-21"):  # rozmowa wstępna nadal niezapisana, a jej termin jest najstarszy
+            html = klient(self.z.szef).get("/").content.decode()
+            self.assertIn('<span class="stan stan-po_terminie">242 dni po terminie</span>', self.wiersz_zadania(html, adres))
+            self.assertLess(html.index(zadanie_pierwszej), html.index(zadanie_okresowej))
+        self.assertIn("<small>w roli: oceniający</small>", html)  # zadania ocen okresowych wyglądają jak dotąd
+        self.assertEqual(bledy_dostepnosci(html), [])
+
+    def test_lista_spraw_pierwszej_oceny_pokazuje_etap_i_najblizszy_termin(self):
+        from .pomocnicze import dyrektor_generalny
+        osoba = self.dodaj()
+        adres = f"/pierwsza-ocena/{osoba.umowa.pierwsza.pk}/"
+        szef, pracownik = klient(self.z.szef), klient(osoba)
+
+        def pozycja(html):
+            lista = html[html.index('<h2>Pierwsza ocena w służbie cywilnej</h2>'):]
+            lista = lista[:lista.index("</ul>")]
+            return next(wpis for wpis in lista.split("<li>") if f'href="{adres}"' in wpis)
+
+        for sesja in (szef, pracownik):  # każdy uczestnik ma stałe wejście do karty, także bez własnego zadania
+            wpis = pozycja(sesja.get("/").content.decode())
+            for fragment in (f'<a href="{adres}">Jan Nowicki - arkusz pierwszej oceny</a>', '<span class="etap">rozmowa wstępna</span>',
+                             "<span>termin: 22.01.2026</span>"):
+                self.assertIn(fragment, wpis)
+        self.assertContains(pracownik.get("/"), "Nie masz teraz żadnych zadań.")
+        self.assertEqual(szef.post(adres, self.WSTEPNA).status_code, 302)
+        wpis = pozycja(szef.get("/").content.decode())
+        self.assertIn('<span class="etap">sprawozdanie ocenianego</span>', wpis)
+        self.assertIn("<span>termin: 20.09.2026</span>", wpis)
+        with self.settings(ASYSTENT_DZIS="2026-09-21"):
+            self.assertIn("<span>termin: 30.11.2026</span>", pozycja(szef.get("/").content.decode()))
+            self.assertEqual(szef.post(adres, self.ocena_dane(uzasadnienie="Nie złożono sprawozdania.")).status_code, 302)
+            wpis = pozycja(pracownik.get("/").content.decode())
+            self.assertIn('<span class="etap">wniosek do dyrektora generalnego</span>', wpis)
+            self.assertNotIn("termin:", wpis)  # po ocenie nie biegnie już termin dzienny
+            self.assertEqual(szef.post(adres, {"akcja": "wniosek", "wybor": "brak"}).status_code, 302)
+            html = klient(dyrektor_generalny()).get("/").content.decode()
+            self.assertIn('<span class="etap">wniosek złożony</span>', pozycja(html))
+            self.assertEqual(bledy_dostepnosci(html), [])
+
+    # --- terminy pierwszej oceny w kalendarzu (.ics), jak przy ocenie okresowej ---
+
+    def test_kalendarz_pierwszej_oceny_zawiera_terminy_ktore_biegna(self):
+        osoba = self.dodaj()
+        pk = osoba.umowa.pierwsza.pk
+        adres, kalendarz = f"/pierwsza-ocena/{pk}/", f"/pierwsza-ocena/{pk}/terminy.ics"
+        szef, pracownik = klient(self.z.szef), klient(osoba)
+        przycisk = f'<a href="{kalendarz}" class="przycisk przycisk-drugi">Dodaj terminy do kalendarza (.ics)</a>'
+        for sesja in (szef, pracownik):
+            self.assertContains(sesja.get(adres), przycisk)
+
+        odpowiedz = szef.get(kalendarz)
+        self.assertEqual(odpowiedz.status_code, 200)
+        self.assertTrue(odpowiedz["Content-Type"].startswith("text/calendar"))
+        self.assertIn(f"terminy-pierwszej-oceny-{pk}.ics", odpowiedz["Content-Disposition"])
+        ics = odpowiedz.content.decode().replace("\r\n ", "")  # cofnięcie łamania wierszy z RFC 5545
+        self.assertIn("BEGIN:VCALENDAR", ics)
+        self.assertEqual(ics.count("BEGIN:VEVENT"), 2)
+        for fragment in ("DTSTART;VALUE=DATE:20260122",  # rozmowa wstępna: 21 dni od 01.01.2026 (§ 3 rozp.)
+                         "DTSTART;VALUE=DATE:20261130",  # ostatni dzień okresu pierwszej oceny (art. 38 ust. 1 u.s.c.)
+                         "SUMMARY:Rozmowa wstępna przed pierwszą oceną - Jan Nowicki",
+                         "SUMMARY:Koniec okresu dokonania pierwszej oceny w służbie cywilnej - Jan Nowicki",
+                         f"UID:pierwsza-ocena-{pk}-rozmowa-wstepna@asystent-ocen", f"UID:pierwsza-ocena-{pk}-pierwsza-ocena@asystent-ocen",
+                         "Dz. U. poz. 1144", "art. 38 ust. 1 ustawy z dnia 21 listopada 2008 r. o służbie cywilnej"):
+            self.assertIn(fragment, ics)
+
+        wlasny = pracownik.get(kalendarz).content.decode()  # oceniany dostaje te same terminy bez swojego nazwiska
+        self.assertEqual(wlasny.count("BEGIN:VEVENT"), 2)
+        self.assertIn("DTSTART;VALUE=DATE:20260122", wlasny)
+        self.assertNotIn("Nowicki", wlasny)
+
+        self.assertEqual(szef.post(adres, self.WSTEPNA).status_code, 302)  # po rozmowie biegnie termin sprawozdania
+        ics = szef.get(kalendarz).content.decode().replace("\r\n ", "")
+        self.assertEqual(ics.count("BEGIN:VEVENT"), 2)
+        self.assertIn("DTSTART;VALUE=DATE:20260920", ics)
+        self.assertIn("SUMMARY:Koniec terminu na sprawozdanie do pierwszej oceny - Jan Nowicki", ics)
+        self.assertIn("DTSTART;VALUE=DATE:20261130", ics)
+        self.assertNotIn("DTSTART;VALUE=DATE:20260122", ics)
+        with self.settings(ASYSTENT_DZIS="2026-09-21"):  # termin sprawozdania upłynął - został termin oceny
+            ics = szef.get(kalendarz).content.decode()
+            self.assertEqual(ics.count("BEGIN:VEVENT"), 1)
+            self.assertIn("DTSTART;VALUE=DATE:20261130", ics)
+
+    def test_kalendarz_pierwszej_oceny_jest_dla_stron_sprawy_i_tylko_gdy_biegnie_termin(self):
+        osoba, adres, szef = self.przygotuj_arkusz()
+        kalendarz = adres + "terminy.ics"
+        self.assertEqual(klient(self.z.obcy).get(kalendarz).status_code, 404)
+        bez_logowania = self.client.get(kalendarz)
+        self.assertEqual(bez_logowania.status_code, 302)
+        self.assertIn("/logowanie/", bez_logowania["Location"])
+        self.assertEqual(szef.post(kalendarz).status_code, 405)
+        with self.settings(ASYSTENT_DZIS="2026-09-21"):
+            self.assertEqual(szef.post(adres, self.ocena_dane(uzasadnienie="Nie złożono sprawozdania.")).status_code, 302)
+            for sesja in (szef, klient(osoba)):
+                self.assertNotContains(sesja.get(adres), "terminy.ics")  # po ocenie nie biegnie termin dzienny
+            odpowiedz = szef.get(kalendarz, follow=True)
+            self.assertRedirects(odpowiedz, adres)
+            self.assertContains(odpowiedz, "nie biegnie żaden termin")

@@ -119,6 +119,13 @@ def poczatek_biegu(ocena):
     return date.fromisoformat(ocena.dane.get("ustalenie", ocena.umowa.poczatek.isoformat()))
 
 
+def terminy_sprawy(ocena):
+    """Okres dokonania pierwszej oceny (pierwszy i ostatni dzień, art. 38 ust. 1 u.s.c.) oraz ostatni dzień
+    na rozmowę wstępną (21 dni, § 3 rozp.; liczone według art. 111 i 115 Kodeksu cywilnego)."""
+    umowa = ocena.umowa
+    return koniec_okresu(umowa.poczatek, 8) + DZIEN, dodaj_miesiace(umowa.koniec, -1), koniec_terminu_dni(poczatek_biegu(ocena), 21)
+
+
 def zapisz_etap(akcja, formularz, ocena, dzien, od, do):
     # Kopia wartości: add_error() usuwa błędne pole z cleaned_data, a kolejne reguły nadal je porównują.
     dane, pola = ocena.dane, dict(formularz.cleaned_data)
@@ -192,7 +199,7 @@ def karta(request, pk):
         raise PermissionDenied
     osoba = uprawnienia.pracownik_uzytkownika(request.user)
     dane, umowa, dzien = ocena.dane, ocena.umowa, dzis()
-    od, do = koniec_okresu(umowa.poczatek, 8) + DZIEN, dodaj_miesiace(umowa.koniec, -1)
+    od, do, termin_wstepnej = terminy_sprawy(ocena)
     akcja = request.POST.get("akcja") if request.method == "POST" else None
     formularze = {}
 
@@ -207,7 +214,6 @@ def karta(request, pk):
         edytor = Raport(request.POST if akcja in ("szkic", "raport") else None, initial=dane.get("szkic", {}),
             auto_id="id_raport_%s", label_suffix="", skladanie=akcja == "raport", mozna_zlozyc=mozna_zlozyc)
     jest_szefem = osoba == ocena.szef and osoba != umowa.osoba
-    termin_wstepnej = koniec_terminu_dni(poczatek_biegu(ocena), 21)
     if "wstepna" not in dane:
         if jest_szefem:
             # Podpowiedziany termin sprawozdania nie zaczyna się w przeszłości: przy spóźnionej rozmowie byłby wcześniejszy niż ona.
@@ -259,6 +265,24 @@ def karta(request, pk):
         ocena, osoba, dzien, od=od, do=do, termin_wstepnej=termin_wstepnej, formularze=formularze, edytor=edytor,
         mozna_zlozyc=mozna_zlozyc, jest_szefem=jest_szefem,
     ))
+
+
+@require_http_methods(["GET"])
+def kalendarz(request, pk):
+    """Plik iCalendar z terminami, które biegną w sprawie - tak jak przy ocenie okresowej."""
+    from django.utils import timezone
+
+    from asystent_ocen.ics import kalendarz_ics
+
+    from .karta_pierwszej import wydarzenia_kalendarza
+    from .views import _plik
+
+    ocena = get_object_or_404(widoczne(request.user), pk=pk)
+    wydarzenia = wydarzenia_kalendarza(ocena, uprawnienia.pracownik_uzytkownika(request.user), dzis())
+    if not wydarzenia:
+        messages.info(request, "Na tym etapie pierwszej oceny nie biegnie żaden termin, który można dodać do kalendarza.")
+        return redirect("pierwsza_ocena", pk=pk)
+    return _plik(kalendarz_ics(wydarzenia, wytworzono=timezone.now()), "text/calendar; charset=utf-8", f"terminy-pierwszej-oceny-{pk}.ics")
 
 
 @require_http_methods(["GET"])
