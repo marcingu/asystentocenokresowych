@@ -1,8 +1,5 @@
-{% extends "oceny/baza.html" %}
-{% block tytul %}Oznaczenie urzędu{% endblock %}
-{% block tresc %}
-<h1>Oznaczenie urzędu</h1>
-{% include "oceny/_administracja_menu.html" with zakladka="urzad" %}
+{% extends "oceny/administracja_baza.html" %}
+{% block zaplecze %}
 <p>Nazwa pojawia się w nagłówku i na arkuszu oceny. Logo jest wyświetlane obok nazwy w nagłówku.</p>
 <form method="post" enctype="multipart/form-data" class="formularz karta">{% csrf_token %}
   {% if formularz.errors %}<p role="alert">Popraw wskazane pola.</p>{% endif %}

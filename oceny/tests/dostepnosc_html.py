@@ -203,4 +203,36 @@ def bledy_dostepnosci(html: str) -> list[str]:
             bledy.append(f'4.1.3 komunikat o stanie ma być widocznym od początku elementem role="status": {element}')
         elif element.tekst() or not element.atrybuty.get("data-komunikat", "").strip():
             bledy.append(f"4.1.3 komunikat o stanie ma być pusty i mieć treść w atrybucie data-komunikat: {element}")
+    # Każdy test, który sprawdza stronę tym kontrolerem, sprawdza przy okazji, czy nie zostały na niej ślady warsztatu.
+    bledy += [f"pozostałość - {uwaga}" for uwaga in pozostalosci(html)]
     return bledy
+
+
+_BEZ_KONTROLI_TEKSTU = {"script", "style", "textarea", "pre", "code", "title"}
+_WZORCE_POZOSTALOSCI = (
+    ("komentarz szablonu", r"\{#|#\}"),
+    ("znacznik szablonu", r"\{%|%\}|\{\{|\}\}"),
+    ("znacznik HTML pokazany jako tekst", r"</?[a-zA-Z][a-zA-Z0-9]*(\s[^<>]*)?/?>"),
+    ("podwójnie zakodowany znak", r"&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]{2,8});"),
+)
+
+
+def pozostalosci(html: str) -> list[str]:
+    """Ślady warsztatu w tekście widocznym na stronie: komentarze i znaczniki szablonu, znaczniki HTML pokazane
+    jako tekst oraz podwójnie zakodowane znaki. Treści pól do edycji i kodu się nie sprawdza."""
+    import re
+
+    drzewo = _Drzewo()
+    drzewo.feed(html)
+    uwagi = []
+    for element in [drzewo.korzen, *drzewo.korzen.potomkowie()]:
+        if element.znacznik in _BEZ_KONTROLI_TEKSTU or any(p.znacznik in _BEZ_KONTROLI_TEKSTU for p in element.przodkowie()):
+            continue
+        for tekst in (dziecko for dziecko in element.dzieci if isinstance(dziecko, str)):
+            for nazwa, wzor in _WZORCE_POZOSTALOSCI:
+                trafienie = re.search(wzor, tekst)
+                if trafienie:
+                    poczatek = max(0, trafienie.start() - 30)
+                    uwagi.append(f"{nazwa}: „{' '.join(tekst[poczatek:trafienie.end() + 30].split())}” w {element}")
+                    break
+    return uwagi

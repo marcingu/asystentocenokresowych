@@ -294,12 +294,50 @@ def _tresc_odmowy(wymogi: Wymogi | None) -> str:
 
 # --- wywołanie modelu i kontrola odpowiedzi ---
 
+_LAMANIE_WIERSZA = re.compile(r"<\s*/?\s*br\s*/?\s*>|</\s*(?:p|div|li|h[1-6]|tr)\s*>", re.IGNORECASE)
+_ZNACZNIK_HTML = re.compile(
+    r"</?\s*(?:p|div|span|b|i|u|em|strong|ul|ol|li|h[1-6]|table|thead|tbody|tr|td|th|code|pre|blockquote)\b[^<>]*>",
+    re.IGNORECASE,
+)
+_POGRUBIENIE = re.compile(r"\*\*(?=\S)(.+?)(?<=\S)\*\*")
+_NAGLOWEK_MARKDOWN = re.compile(r"^[ \t]{0,3}#{1,6}[ \t]+", re.MULTILINE)
+
+
+def oczysc_tekst_modelu(tekst: str, lamanie: str = "\n") -> str:
+    """Usuwa z odpowiedzi modelu znaczniki HTML i markdownu. Strona pokazuje odpowiedź jako zwykły tekst,
+    więc „<br>” albo „**” byłyby widoczne dosłownie. Znaki „<” i „>” użyte zwyczajnie zostają."""
+    tekst = _LAMANIE_WIERSZA.sub(lamanie, tekst)
+    tekst = _ZNACZNIK_HTML.sub("", tekst)
+    tekst = _POGRUBIENIE.sub(r"\1", tekst)
+    tekst = _NAGLOWEK_MARKDOWN.sub("", tekst)
+    tekst = re.sub(r"[ \t]+\n", "\n", tekst)
+    tekst = re.sub(r"\n{3,}", "\n\n", tekst)
+    return re.sub(r"[ \t]{2,}", " ", tekst).strip()
+
+
+def _oczysc_strukture(dane):
+    if isinstance(dane, str):
+        return oczysc_tekst_modelu(dane, lamanie=" ")
+    if isinstance(dane, list):
+        return [_oczysc_strukture(element) for element in dane]
+    if isinstance(dane, dict):
+        return {klucz: _oczysc_strukture(wartosc) for klucz, wartosc in dane.items()}
+    return dane
+
+
 def _zapytaj(model: Model, wiadomosci: list[dict], schemat: dict | None = None) -> str:
-    """Odpowiedź modelu. `schemat` (JSON Schema) wymusza postać odpowiedzi - przekazywany tylko, gdy jest potrzebny."""
+    """Odpowiedź modelu bez znaczników HTML i markdownu. `schemat` (JSON Schema) wymusza postać odpowiedzi -
+    przekazywany tylko, gdy jest potrzebny; wtedy czyszczone są teksty wewnątrz struktury. Odpowiedź, która nie
+    jest poprawnym JSON, wraca bez zmian - błąd zgłasza wywołujący."""
     odpowiedz = model(wiadomosci) if schemat is None else model(wiadomosci, schemat=schemat)
     if not isinstance(odpowiedz, str) or not odpowiedz.strip():
         raise BladModelu("Model językowy zwrócił pustą odpowiedź.")
-    return odpowiedz.strip()
+    if schemat is None:
+        return oczysc_tekst_modelu(odpowiedz) or odpowiedz.strip()
+    try:
+        return json.dumps(_oczysc_strukture(json.loads(odpowiedz)), ensure_ascii=False)
+    except ValueError:
+        return odpowiedz.strip()
 
 
 _POWOLANIE = re.compile(r"(art\.|§)\s*(\d+)", re.IGNORECASE)

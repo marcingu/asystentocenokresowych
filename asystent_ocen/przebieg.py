@@ -15,7 +15,8 @@ from fractions import Fraction
 from .bledy import Blad, BladWalidacji
 from .konfiguracja import Przepisy, _ustal_przepisy
 from .kryteria import _klucz, bledy_kryteriow_dodatkowych
-from .terminy import czy_dopuszczalna_zmiana_terminu
+from .kalendarz import koniec_terminu_dni
+from .terminy import SkutekZmianyStanowiska, czy_dopuszczalna_zmiana_terminu, skutek_zmiany_stanowiska
 from .walidacja import NIE, Formularz, bledy_przed_zatwierdzeniem, domyslna_odpowiedz_o_wniosek
 from .wynik import WynikOceny, bledy_ocen_czastkowych, oblicz_wynik
 
@@ -53,6 +54,33 @@ DOBROSTAN = "dobrostan"
 EGZAMIN = "egzamin"  # wynik egzaminu ze służby przygotowawczej (art. 36 ust. 5 u.s.c.), najwyżej jeden wpis
 # Rodzaje wpisywane jako tekst; wynik egzaminu ma własną czynność z kontrolą punktów.
 RODZAJE_WPISYWANE = (OBSERWACJA, OSIAGNIECIE, DOBROSTAN)
+
+@dataclass(frozen=True)
+class PrzypadekZmianyTerminu:
+    podstawa: str
+    opis: str
+
+
+# Art. 81 ust. 8 u.s.c. - zamknięta lista przypadków, w których oceniający może zmienić termin oceny.
+PRZYPADKI_ZMIANY_TERMINU = {
+    "ZMIANA_OCENIAJACEGO": PrzypadekZmianyTerminu(
+        "art. 81 ust. 8 pkt 1 u.s.c.",
+        "zmiana na stanowisku oceniającego w trakcie okresu, w którym oceniany podlega ocenie",
+    ),
+    "NIEOBECNOSC_OCENIANEGO": PrzypadekZmianyTerminu(
+        "art. 81 ust. 8 pkt 2 u.s.c.",
+        "przewidywana, dłuższa, usprawiedliwiona nieobecność w pracy ocenianego, która może uniemożliwić przeprowadzenie oceny",
+    ),
+    "NIEOBECNOSC_OCENIAJACEGO": PrzypadekZmianyTerminu(
+        "art. 81 ust. 8 pkt 3 u.s.c.",
+        "przewidywana, dłuższa, usprawiedliwiona nieobecność w pracy oceniającego, która może utrudnić przeprowadzenie oceny",
+    ),
+    "WNIOSEK_OCENIANEGO": PrzypadekZmianyTerminu(
+        "art. 81 ust. 8 pkt 4 u.s.c.", "wniosek ocenianego o zmianę terminu przeprowadzenia oceny",
+    ),
+}
+ZAWIADOMIENIE_O_TERMINIE = "zawiadomienie o nowym terminie oceny"
+WNIOSEK_O_TERMIN = "wniosek o zmianę terminu oceny"
 
 _ETAPY_NOTATEK = (Etap.KRYTERIA_DO_WYZNACZENIA, Etap.KRYTERIA_DO_POTWIERDZENIA, Etap.OCENIANIE, Etap.OCENA_DO_ZAPOZNANIA)
 _LICZBA_PUNKTOW = re.compile(r"\d{1,4}(?:[.,]\d{1,2})?")
@@ -108,6 +136,11 @@ class ProcesOceny:
     data_sporzadzenia: date | None = None  # dzień sporządzenia oceny na piśmie (§ 11 rozp.)
     daty_zmiany_oceniajacego: list[date] = field(default_factory=list)  # art. 81 ust. 8 pkt 1 u.s.c.
     formularz: Formularz | None = None  # zatwierdzona treść części II i III arkusza
+    # Zmiana stanowiska wiążąca się z istotną zmianą zakresu obowiązków (art. 81 ust. 6 u.s.c., § 9 ust. 1-2 rozp.):
+    zmiana_stanowiska: date | None = None  # dzień zmiany
+    ocena_najwczesniej: date | None = None  # § 9 ust. 2: ocena nie wcześniej niż 7 dni przed zmianą (najpóźniej = termin)
+    ponowne_kryteria_do: date | None = None  # § 9 ust. 1: ponowna rozmowa i kryteria w 30 dni od zmiany
+    stanowisko_przed_zmiana: str = ""  # stanowisko, którego dotyczy ocena sporządzana w związku ze zmianą
     przepisy: Przepisy | None = field(default=None, repr=False, compare=False)  # None = przepisy domyślne
 
     def __post_init__(self) -> None:
@@ -142,6 +175,13 @@ class ProcesOceny:
     def _sprawdz_dopuszczalnosc_zmiany_terminu(self, dzien: date, data_ostatniej_oceny: date | None) -> list[Blad]:
         """Art. 81 ust. 8 in fine u.s.c. - warunek wspólny dla wszystkich przypadków zmiany terminu."""
         przepisy = _ustal_przepisy(self.przepisy)
+        if self.ocena_najwczesniej is not None:
+            # Ust. 8 dotyczy terminu z ust. 4 (24 miesiące), a nie oceny sporządzanej w związku ze zmianą stanowiska.
+            return [Blad(
+                "TERMIN_OCENY_PO_ZMIANIE_STANOWISKA",
+                "Termin oceny sporządzanej w związku ze zmianą stanowiska wynika z przepisów i nie podlega zmianie.",
+                "art. 81 ust. 6 i 8 u.s.c.; § 9 ust. 2 rozp.",
+            )]
         dopuszczalna = czy_dopuszczalna_zmiana_terminu(
             dzien,
             data_ostatniej_oceny=data_ostatniej_oceny,
@@ -200,26 +240,69 @@ class ProcesOceny:
     # --- sytuacje kadrowe w trakcie okresu oceny ---
 
     def zmien_termin(
-        self, rola: Rola, nowy_termin: date, data: date, przyczyna: str, data_ostatniej_oceny: date | None = None
+        self, rola: Rola, nowy_termin: date, data: date, przyczyna: str, data_ostatniej_oceny: date | None = None,
+        *, opis: str = "",
     ) -> None:
         """Art. 81 ust. 8 u.s.c. i § 8 rozp.: oceniający zmienia termin oceny i pisemnie zawiadamia ocenianego
-        (dokument „zawiadomienie o nowym terminie oceny”). Warunek upływu ponad 6 miesięcy sprawdza się jak
-        w `zloz_wniosek_o_zmiane_terminu`."""
+        (dokument „zawiadomienie o nowym terminie oceny”). `przyczyna` to kod jednego z czterech przypadków
+        z ustawy (`PRZYPADKI_ZMIANY_TERMINU`), `opis` - uwagi oceniającego do zawiadomienia. Warunek upływu
+        ponad 6 miesięcy sprawdza się jak w `zloz_wniosek_o_zmiane_terminu`."""
         self._wymagaj_roli(rola, Rola.OCENIAJACY, czynnosc="zmiana terminu oceny")
         self._wymagaj_etapu(Etap.OCENIANIE, czynnosc="zmiana terminu oceny")
         bledy = self._sprawdz_dopuszczalnosc_zmiany_terminu(data, data_ostatniej_oceny)
-        if not str(przyczyna or "").strip():
+        przypadek = PRZYPADKI_ZMIANY_TERMINU.get(str(przyczyna or "").strip())
+        if przypadek is None:
             bledy.append(Blad(
-                "BRAK_PRZYCZYNY_ZMIANY_TERMINU",
-                "Podaj przyczynę zmiany terminu oceny - ustawa dopuszcza zmianę tylko w wymienionych przypadkach.",
+                "NIEZNANY_PRZYPADEK_ZMIANY_TERMINU",
+                "Wybierz przypadek z ustawy - termin oceny można zmienić tylko w czterech wymienionych w niej przypadkach.",
                 "art. 81 ust. 8 u.s.c.",
             ))
+        elif przyczyna == "ZMIANA_OCENIAJACEGO" and not self.daty_zmiany_oceniajacego:
+            bledy.append(Blad(
+                "BRAK_ZMIANY_OCENIAJACEGO",
+                "W tym okresie oceny nie odnotowano zmiany na stanowisku oceniającego.", przypadek.podstawa,
+            ))
+        elif przyczyna == "WNIOSEK_OCENIANEGO" and not any(dok.rodzaj == WNIOSEK_O_TERMIN for dok in self.dokumenty):
+            bledy.append(Blad(
+                "BRAK_WNIOSKU_OCENIANEGO", "Oceniany nie złożył wniosku o zmianę terminu oceny.", przypadek.podstawa,
+            ))
+        if nowy_termin < data:
+            bledy.append(Blad("NOWY_TERMIN_W_PRZESZLOSCI", "Nowy termin oceny nie może być wcześniejszy niż dzień zmiany."))
+        elif nowy_termin == self.termin:
+            bledy.append(Blad("TERMIN_BEZ_ZMIANY", "Nowy termin jest taki sam jak dotychczasowy."))
         if bledy:
             raise BladWalidacji(bledy)
         self.termin = nowy_termin
-        self.dokumenty.append(
-            Dokument("zawiadomienie o nowym terminie oceny", data, Rola.OCENIANY, opis=str(przyczyna).strip())
+        uwagi = str(opis or "").strip()
+        tresc = f"{przypadek.opis} ({przypadek.podstawa})" + (f". {uwagi}" if uwagi else "")
+        self.dokumenty.append(Dokument(ZAWIADOMIENIE_O_TERMINIE, data, Rola.OCENIANY, opis=tresc))
+
+    def przedluz_termin_o_nieobecnosc(self, rola: Rola, nowy_termin: date, data: date) -> None:
+        """Art. 81 ust. 7 u.s.c.: usprawiedliwiona nieobecność ocenianego dłuższa niż miesiąc przedłuża termin
+        oceny o czas tej nieobecności - z mocy ustawy, bez decyzji oceniającego. Nowy termin wylicza
+        `terminy.termin_oceny`; tu zostaje tylko zapisany. To nie jest zmiana terminu z ust. 8."""
+        self._wymagaj_roli(rola, Rola.ZARZADZAJACY, czynnosc="przedłużenie terminu oceny o nieobecność")
+        self._wymagaj_etapu(
+            Etap.KRYTERIA_DO_POTWIERDZENIA, Etap.OCENIANIE, czynnosc="przedłużenie terminu oceny o nieobecność"
         )
+        if self.ocena_najwczesniej is not None:
+            raise BladWalidacji([Blad(
+                "TERMIN_OCENY_PO_ZMIANIE_STANOWISKA",
+                "Przedłużenie o nieobecność dotyczy terminu z art. 81 ust. 4 u.s.c., a nie oceny sporządzanej w związku "
+                "ze zmianą stanowiska.",
+                "art. 81 ust. 6 i 7 u.s.c.",
+            )])
+        if self.termin is None or nowy_termin <= self.termin:
+            raise BladWalidacji([Blad(
+                "TERMIN_NIE_JEST_PRZEDLUZENIEM", "Przedłużony termin musi być późniejszy niż dotychczasowy.",
+                "art. 81 ust. 7 u.s.c.",
+            )])
+        self.termin = nowy_termin
+
+    @property
+    def termin_zmieniony_przez_oceniajacego(self) -> bool:
+        """Czy termin z części I arkusza został zmieniony na podstawie art. 81 ust. 8 u.s.c."""
+        return any(dok.rodzaj == ZAWIADOMIENIE_O_TERMINIE for dok in self.dokumenty)
 
     def zloz_wniosek_o_zmiane_terminu(
         self, rola: Rola, data: date, data_ostatniej_oceny: date | None = None
@@ -233,7 +316,62 @@ class ProcesOceny:
         bledy = self._sprawdz_dopuszczalnosc_zmiany_terminu(data, data_ostatniej_oceny)
         if bledy:
             raise BladWalidacji(bledy)
-        self.dokumenty.append(Dokument("wniosek o zmianę terminu oceny", data, Rola.OCENIAJACY))
+        self.dokumenty.append(Dokument(WNIOSEK_O_TERMIN, data, Rola.OCENIAJACY))
+
+    def zmien_stanowisko(
+        self, rola: Rola, *, data_zmiany: date, data: date, stanowisko: str = "", data_ostatniej_oceny: date | None = None,
+    ) -> SkutekZmianyStanowiska:
+        """Zmiana stanowiska pracy wiążąca się z istotną zmianą zakresu obowiązków.
+
+        Art. 81 ust. 6 u.s.c. i § 9 ust. 2 rozp.: gdy od ostatniej oceny upłynęło więcej niż 6 miesięcy (przy
+        pierwszej ocenie - jak w `skutek_zmiany_stanowiska`), ocenę na dotychczasowym stanowisku sporządza się
+        nie wcześniej niż 7 dni przed zmianą i nie później niż 30 dni po niej. § 9 ust. 1 rozp.: w pozostałych
+        przypadkach w 30 dni ponownie przeprowadza się rozmowę i zapoznaje z kryteriami, a termin oceny zostaje.
+        Bez potwierdzonych kryteriów nie ma okresu podlegającego ocenie - wtedy też potrzebne są tylko kryteria.
+        `stanowisko` to nazwa dotychczasowego stanowiska - arkusz oceny sporządzanej w związku ze zmianą dotyczy jego."""
+        self._wymagaj_roli(rola, Rola.ZARZADZAJACY, czynnosc="zmiana stanowiska pracy ocenianego")
+        self._wymagaj_etapu(
+            Etap.KRYTERIA_DO_WYZNACZENIA, Etap.KRYTERIA_DO_POTWIERDZENIA, Etap.OCENIANIE,
+            czynnosc="zmiana stanowiska pracy ocenianego",
+        )
+        przepisy = _ustal_przepisy(self.przepisy)
+        try:
+            skutek = skutek_zmiany_stanowiska(
+                data_zmiany, istotna_zmiana_zakresu=True, data_ostatniej_oceny=data_ostatniej_oceny,
+                data_nawiazania_stosunku_pracy=self.poczatek_cyklu,
+                data_zapoznania_z_kryteriami=self.data_zapoznania_z_kryteriami, przepisy=przepisy,
+            )
+        except ValueError:  # 6 miesięcy liczone od zapoznania z kryteriami, a kryteriów jeszcze nie potwierdzono
+            skutek = None
+        self.zmiana_stanowiska = data_zmiany
+        if skutek is not None and skutek.wymagana_ocena and self.etap == Etap.OCENIANIE:
+            self.ocena_najwczesniej = skutek.ocena_najwczesniej
+            self.termin = skutek.ocena_najpozniej
+            self.ponowne_kryteria_do = None
+            self.stanowisko_przed_zmiana = str(stanowisko or "").strip()
+            for adresat in (Rola.OCENIAJACY, Rola.OCENIANY):
+                self.dokumenty.append(Dokument(
+                    "informacja o ocenie w związku ze zmianą stanowiska", data, adresat,
+                    opis=f"zmiana stanowiska {data_zmiany:%d.%m.%Y}; ocena od {skutek.ocena_najwczesniej:%d.%m.%Y} "
+                         f"do {skutek.ocena_najpozniej:%d.%m.%Y} (art. 81 ust. 6 u.s.c., § 9 ust. 2 rozp.)",
+                ))
+            return skutek
+        ponownie_do = koniec_terminu_dni(data_zmiany, przepisy.zmiana_stanowiska_najpozniej_dni_po, przepisy)
+        self.ocena_najwczesniej = None
+        self.stanowisko_przed_zmiana = ""
+        self.ponowne_kryteria_do = ponownie_do
+        self.kryteria_dodatkowe = []
+        self.data_wyznaczenia_kryteriow = None
+        self.data_zapoznania_z_kryteriami = None
+        self.etap = Etap.KRYTERIA_DO_WYZNACZENIA
+        self.dokumenty.append(Dokument(
+            "informacja o ponownym ustaleniu kryteriów po zmianie stanowiska", data, Rola.OCENIAJACY,
+            opis=f"zmiana stanowiska {data_zmiany:%d.%m.%Y}; rozmowa i kryteria do {ponownie_do:%d.%m.%Y} (§ 9 ust. 1 rozp.)",
+        ))
+        return SkutekZmianyStanowiska(
+            wymagana_ocena=False, ocena_najwczesniej=None, ocena_najpozniej=None, ponowne_kryteria_do=ponownie_do,
+            termin_oceny_bez_zmian=True,
+        )
 
     def zmien_oceniajacego(self, rola: Rola, data: date) -> None:
         """Zmiana na stanowisku oceniającego w trakcie okresu oceny: kryteria i termin pozostają bez zmian
@@ -358,6 +496,14 @@ class ProcesOceny:
             posiadany_stopien=posiadany_stopien,
         )
         bledy = bledy_przed_zatwierdzeniem(formularz, przepisy)
+        if self.ocena_najwczesniej is not None and data < self.ocena_najwczesniej:
+            bledy.append(Blad(
+                "OCENA_PRZED_ZMIANA_STANOWISKA_ZA_WCZESNIE",
+                "Ocenę w związku ze zmianą stanowiska sporządza się nie wcześniej niż "
+                f"{przepisy.zmiana_stanowiska_najwczesniej_dni_przed} dni przed zmianą, czyli od "
+                f"{self.ocena_najwczesniej:%d.%m.%Y}.",
+                "§ 9 ust. 2 rozp.",
+            ))
         if data_rozmowy > data:
             bledy.append(Blad(
                 "ROZMOWA_PO_SPORZADZENIU_OCENY",

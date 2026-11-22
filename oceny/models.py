@@ -237,6 +237,20 @@ class Ocena(models.Model):
     def zakonczona(self) -> bool:
         return self.etap == Etap.ZAKONCZONA.name
 
+    def _data_ze_stanu(self, pole: str) -> date | None:
+        napis = (self.stan or {}).get(pole)
+        return date.fromisoformat(napis) if napis else None
+
+    @property
+    def ponowne_kryteria_do(self) -> date | None:
+        """§ 9 ust. 1 rozp.: termin ponownej rozmowy i zapoznania z kryteriami po zmianie stanowiska."""
+        return self._data_ze_stanu("ponowne_kryteria_do")
+
+    @property
+    def ocena_najwczesniej(self) -> date | None:
+        """§ 9 ust. 2 rozp.: najwcześniejszy dzień oceny sporządzanej w związku ze zmianą stanowiska."""
+        return self._data_ze_stanu("ocena_najwczesniej")
+
     @property
     def po_sprzeciwie(self) -> dict | None:
         """Dzisiejszy status ostatniego sprzeciwu od tej oceny; None, gdy sprzeciwu nie wniesiono.

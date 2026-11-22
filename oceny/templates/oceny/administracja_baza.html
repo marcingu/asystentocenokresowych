@@ -1,0 +1,16 @@
+{% extends "oceny/baza.html" %}
+{% comment %}
+Wspólny układ zaplecza administratora: menu z boku, obok okruszki, nagłówek i treść strony.
+Nagłówek i pozycję menu ustala kontekst (oceny/kontekst.py); strona podrzędna nadpisuje bloki nazwa, okruszki i naglowek.
+{% endcomment %}
+{% block tytul %}Administracja - {% block nazwa %}{{ naglowek_zaplecza|lower }}{% endblock %}{% endblock %}
+{% block tresc %}
+<div class="zaplecze">
+  {% include "oceny/_administracja_menu.html" %}
+  <div class="zaplecze-tresc">
+    <p class="okruszki"><a href="{% url 'administracja' %}">Administracja</a> / {% block okruszki %}{{ naglowek_zaplecza|lower }}{% endblock %}</p>
+    <h1>{% block naglowek %}{{ naglowek_zaplecza }}{% endblock %}</h1>
+    {% block zaplecze %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

@@ -11,7 +11,6 @@ from datetime import date, timedelta
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
-from asystent_ocen import terminy
 from asystent_ocen.kalendarz import czy_dzien_ustawowo_wolny, dodaj_miesiace
 from asystent_ocen.kryteria import kryteria_obowiazkowe
 
@@ -58,13 +57,11 @@ def _oceny(arkusz: str, dodatkowe: list[str], punkty: int | dict[str, int], domy
     return {nazwa: punkty.get(nazwa, domyslnie) for nazwa in nazwy}
 
 
-def _do_oceniania(osoba, kadry, oceniajacy, *, poczatek: date, dodatkowe: list[str], termin: date | None = None):
+def _do_oceniania(osoba, kadry, oceniajacy, *, poczatek: date, dodatkowe: list[str]):
     """Cykl z potwierdzonymi kryteriami - etap rozmowy oceniającej i dokonania oceny."""
     ocena = uslugi.rozpocznij_cykl(osoba, kadry.uzytkownik, poczatek_cyklu=poczatek, data=poczatek)
-    uslugi.wyznacz_kryteria(
-        ocena, oceniajacy.uzytkownik, kryteria_dodatkowe=dodatkowe,
-        termin=termin or terminy.termin_oceny(poczatek), data=_dni(poczatek, 9),
-    )
+    # Termin sporządzenia oceny wylicza system (art. 81 ust. 4 u.s.c.) - dane pokazu go nie narzucają.
+    uslugi.wyznacz_kryteria(ocena, oceniajacy.uzytkownik, kryteria_dodatkowe=dodatkowe, data=_dni(poczatek, 9))
     uslugi.potwierdz_kryteria(ocena, osoba.uzytkownik, data=_dni(poczatek, 10))
     return ocena
 
@@ -114,7 +111,6 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
     dodatkowe_anny = ["Orientacja na klienta/interesanta", "Myślenie analityczne"]
     poprzednia = _do_oceniania(
         anna, kadry, naczelnik, poczatek=poczatek_poprzedniej, dodatkowe=dodatkowe_anny,
-        termin=sporzadzenie_poprzedniej,
     )
     uslugi.sporzadz_ocene(
         poprzednia, naczelnik.uzytkownik, data_rozmowy=_dni(sporzadzenie_poprzedniej, -2),
@@ -126,8 +122,7 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
     uslugi.potwierdz_zapoznanie(poprzednia, anna.uzytkownik, data=sporzadzenie_poprzedniej)
     biezaca = uslugi.rozpocznij_kolejny_cykl(poprzednia, kadry.uzytkownik, data=sporzadzenie_poprzedniej)
     uslugi.wyznacz_kryteria(
-        biezaca, naczelnik.uzytkownik, kryteria_dodatkowe=dodatkowe_anny,
-        termin=terminy.termin_oceny(sporzadzenie_poprzedniej), data=_dni(sporzadzenie_poprzedniej, 8),
+        biezaca, naczelnik.uzytkownik, kryteria_dodatkowe=dodatkowe_anny, data=_dni(sporzadzenie_poprzedniej, 8),
     )
     uslugi.potwierdz_kryteria(biezaca, anna.uzytkownik, data=_dni(sporzadzenie_poprzedniej, 9))
     notatki = [
@@ -172,7 +167,7 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
     )
     uslugi.wyznacz_kryteria(
         ocena_katarzyny, naczelnik.uzytkownik, kryteria_dodatkowe=["Orientacja na klienta/interesanta", "Kreatywność"],
-        termin=terminy.termin_oceny(zatrudnienie_katarzyny), data=_dni(dzien, -1),
+        data=_dni(dzien, -1),
     )
 
     # --- Marek: ocena negatywna sporządzona, do zapoznania (potem można wnieść sprzeciw) ---
@@ -201,8 +196,9 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
         data=_dni(dzien, -2),
     )
 
-    # --- Ewa: termin z arkusza minął, ale długa nieobecność przedłużyła termin ustawowy (art. 81 ust. 7) ---
-    poczatek_ewy = _roboczy(dwa_lata_temu - timedelta(days=8))
+    # --- Ewa: długa nieobecność przedłużyła termin z mocy ustawy (art. 81 ust. 7), a przedłużony termin
+    #     minął kilka dni temu - zadanie przełożonego jest po terminie ---
+    poczatek_ewy = _roboczy(dwa_lata_temu - timedelta(days=100))
     ewa = podwladny(
         "ewa", "Ewa", "Szymańska", "główny specjalista",
         "Koordynacja kontroli zarządczej i sprawozdawczości wydziału.",
@@ -223,7 +219,7 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
     )
     dodatkowe_roberta = ["Orientacja na klienta/interesanta"]
     ocena_roberta = _do_oceniania(
-        robert, kadry, naczelnik, poczatek=poczatek_roberta, dodatkowe=dodatkowe_roberta, termin=_dni(dzien, -12)
+        robert, kadry, naczelnik, poczatek=poczatek_roberta, dodatkowe=dodatkowe_roberta
     )
     uslugi.sporzadz_ocene(
         ocena_roberta, naczelnik.uzytkownik, data_rozmowy=_dni(dzien, -13),
@@ -268,7 +264,6 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
     sporzadzenie_kadr = _roboczy(dodaj_miesiace(dzien, -12))
     ocena_kadr = _do_oceniania(
         kadry, kadry, dyrektor, poczatek=_roboczy(dodaj_miesiace(dzien, -36)), dodatkowe=["Myślenie analityczne"],
-        termin=sporzadzenie_kadr,
     )
     uslugi.sporzadz_ocene(
         ocena_kadr, dyrektor.uzytkownik, data_rozmowy=_dni(sporzadzenie_kadr, -1),
@@ -278,8 +273,7 @@ def zaladuj(dzien: date) -> dict[str, Pracownik]:
     uslugi.potwierdz_zapoznanie(ocena_kadr, kadry.uzytkownik, data=sporzadzenie_kadr)
     kolejna_kadr = uslugi.rozpocznij_kolejny_cykl(ocena_kadr, kadry.uzytkownik, data=sporzadzenie_kadr)
     uslugi.wyznacz_kryteria(
-        kolejna_kadr, dyrektor.uzytkownik, kryteria_dodatkowe=["Myślenie analityczne"],
-        termin=terminy.termin_oceny(sporzadzenie_kadr), data=_dni(sporzadzenie_kadr, 12),
+        kolejna_kadr, dyrektor.uzytkownik, kryteria_dodatkowe=["Myślenie analityczne"], data=_dni(sporzadzenie_kadr, 12),
     )
     uslugi.potwierdz_kryteria(kolejna_kadr, kadry.uzytkownik, data=_dni(sporzadzenie_kadr, 13))
 

@@ -184,7 +184,7 @@ class TerminTest(TestCase):
         """Art. 81 ust. 8 u.s.c., § 8 rozp."""
         uslugi.zmien_termin(
             self.ocena, self.z.szef.uzytkownik, nowy_termin=date(2026, 11, 27),
-            przyczyna="Przewidywana nieobecność oceniającego.", data=date(2025, 6, 11),
+            przyczyna="NIEOBECNOSC_OCENIAJACEGO", data=date(2025, 6, 11),
         )
 
         z_bazy = Ocena.objects.get(pk=self.ocena.pk)

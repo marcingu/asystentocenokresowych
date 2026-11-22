@@ -20,7 +20,7 @@ from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
 from oceny.models import Ocena
-from oceny.tests.dostepnosc_html import bledy_dostepnosci, tytul_strony
+from oceny.tests.dostepnosc_html import bledy_dostepnosci, pozostalosci, tytul_strony
 from oceny.tests.test_demo import zaladuj
 
 STYL = Path(__file__).resolve().parents[1] / "static" / "oceny" / "styl.css"
@@ -99,6 +99,49 @@ class KontrolerHtmlTest(SimpleTestCase):
             self.assertEqual(bledy_dostepnosci(strona), [], pole)
 
 
+POZOSTALOSCI = (
+    "{# uwaga dla programisty #}", "{% if radar %}", "{{ ocena.pk }}", "&lt;br&gt;", "Pierwszy wiersz&lt;/br&gt;drugi",
+    "&lt;p&gt;akapit&lt;/p&gt;", "&lt;strong&gt;ważne&lt;/strong&gt;", "Jan&amp;nbsp;Kowalski", "cena&amp;#160;netto",
+)
+
+
+class PozostalosciTest(SimpleTestCase):
+    """Na stronie nie może zostać nic z warsztatu: komentarz ani znacznik szablonu, znacznik HTML pokazany jako
+    tekst (np. „<br>” z odpowiedzi modelu) ani podwójnie zakodowany znak."""
+
+    def test_strona_wzorcowa_jest_czysta(self):
+        self.assertEqual(pozostalosci(POPRAWNA), [])
+
+    def test_kazda_pozostalosc_jest_wykrywana(self):
+        for wstawka in POZOSTALOSCI:
+            with self.subTest(wstawka=wstawka):
+                strona = POPRAWNA.replace("</h1>", f"</h1><p>{wstawka}</p>", 1)
+                self.assertNotEqual(strona, POPRAWNA)
+                self.assertEqual(len(pozostalosci(strona)), 1, pozostalosci(strona))
+
+    def test_tresc_pola_do_edycji_i_zwykle_znaki_nie_sa_pozostaloscia(self):
+        czyste = (
+            "<textarea name='toml' aria-label='Przepisy'># komentarz {{ a }} &lt;br&gt;</textarea>",
+            "<p>Średnia &lt; 4 i wynik &gt; 2 - poziom „poniżej oczekiwań”; AT&amp;T; a &lt;= b.</p>",
+            "<p>Wiersz pierwszy<br>wiersz drugi</p>",
+        )
+        for wstawka in czyste:
+            with self.subTest(wstawka=wstawka):
+                self.assertEqual(pozostalosci(POPRAWNA.replace("</h1>", f"</h1>{wstawka}", 1)), [])
+
+
+class SzablonyTest(SimpleTestCase):
+    def test_komentarz_szablonu_miesci_sie_w_jednym_wierszu(self):
+        """Django rozpoznaje „{# ... #}” tylko w jednym wierszu - dłuższy wypisuje na stronie jako tekst.
+        Dłuższe uwagi zapisuje się w {% comment %}."""
+        zle = []
+        for plik in sorted((Path(__file__).resolve().parents[1] / "templates").rglob("*.html")):
+            for numer, wiersz in enumerate(plik.read_text(encoding="utf-8").splitlines(), 1):
+                if wiersz.count("{#") != wiersz.count("#}"):
+                    zle.append(f"{plik.name}:{numer}")
+        self.assertEqual(zle, [])
+
+
 @override_settings(ASYSTENT_DZIS="2026-11-21")
 class PrzegladDostepnosciStronTest(TestCase):
     """Każda strona pokazu, dla każdego konta i na każdym etapie oceny, przechodzi kontrolę znaczników."""
@@ -119,6 +162,11 @@ class PrzegladDostepnosciStronTest(TestCase):
             for nazwa in self.STRONY:
                 yield f"{konto.username}: {nazwa}", klient.get(reverse(nazwa))
             yield f"{konto.username}: brak strony", klient.get("/nie-ma-takiej-strony/")
+            if konto.is_superuser:
+                for nazwa in ("administracja", "administracja_dziennik", "administracja_urzad", "administracja_poczta", "wydzialy", "administracja_nowe_konto"):
+                    yield f"{konto.username}: {nazwa}", klient.get(reverse(nazwa))
+                yield f"{konto.username}: czynności procesu", klient.get(reverse("administracja_dziennik"), {"dziennik": "proces"})
+                yield f"{konto.username}: konto", klient.get(reverse("administracja_konto", args=[konto.pk]))
         kadry = get_user_model().objects.get(username="kadry")
         for ocena in Ocena.objects.select_related("oceniany__uzytkownik", "oceniajacy__uzytkownik"):
             for konto in (ocena.oceniany.uzytkownik, ocena.oceniajacy.uzytkownik, kadry):
@@ -139,6 +187,16 @@ class PrzegladDostepnosciStronTest(TestCase):
             naruszenia += [f"{opis}: {blad}" for blad in bledy_dostepnosci(odpowiedz.content.decode())]
         self.assertGreater(zbadane, 60, "przegląd ma obejmować wszystkie konta i wszystkie oceny pokazu")
         self.assertEqual(naruszenia, [])
+
+    def test_zadna_strona_nie_pokazuje_pozostalosci_szablonu_ani_znacznikow(self):
+        znalezione, zbadane = [], 0
+        for opis, odpowiedz in self._strony():
+            if odpowiedz.status_code == 302:
+                continue
+            zbadane += 1
+            znalezione += [f"{opis}: {uwaga}" for uwaga in pozostalosci(odpowiedz.content.decode())]
+        self.assertGreater(zbadane, 60)
+        self.assertEqual(znalezione, [])
 
     def test_tytuly_stron_dwoch_ocen_tej_samej_osoby_roznia_sie(self):
         """2.4.2 Tytuł strony: karty kolejnych ocen tej samej osoby mają dać się rozróżnić na liście kart

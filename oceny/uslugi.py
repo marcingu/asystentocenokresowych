@@ -17,7 +17,9 @@ from django.db import transaction
 
 from asystent_ocen import terminy
 from asystent_ocen.bledy import Blad, BladWalidacji
-from asystent_ocen.przebieg import OBSERWACJA, OSIAGNIECIE, BladEtapu, BladUprawnien, Etap, Rola
+from asystent_ocen.przebieg import (
+    OBSERWACJA, OSIAGNIECIE, PRZYPADKI_ZMIANY_TERMINU, BladEtapu, BladUprawnien, Etap, Rola,
+)
 from asystent_ocen.zgodnosc import UstaleniaMonitoringu as UstaleniaRdzenia
 from asystent_ocen.zgodnosc import bledy_uruchomienia_monitoringu
 
@@ -26,6 +28,7 @@ from .formularze import nazwy_kryteriow
 from .models import Nieobecnosc, Ocena, Pracownik, Sprzeciw, UstaleniaMonitoringu, WniosekOTermin, Zdarzenie
 from .radar import GOTOWY as RADAR_GOTOWY
 from .radar import radar_oceny
+from .terminy_oceny import termin_ustawowy
 from .uprawnienia import czy_kadry, pracownik_uzytkownika, role_uzytkownika
 
 UWZGLEDNIENIA_SPRZECIWU = (Sprzeciw.ZMIANA, Sprzeciw.PONOWNE_SPORZADZENIE)
@@ -48,6 +51,8 @@ CZYNNOSCI_AI_WYSOKIEGO_RYZYKA = {
 # --- narzędzia wspólne ---
 
 def _podpis(uzytkownik) -> str:
+    if uzytkownik is None:   # czynność wykonana przez system, np. przedłużenie terminu z mocy ustawy po aktualizacji
+        return "System"
     pracownik = pracownik_uzytkownika(uzytkownik)
     if pracownik is not None:
         return f"{pracownik.imie_i_nazwisko}, {pracownik.stanowisko}"
@@ -165,10 +170,25 @@ def rozpocznij_kolejny_cykl(ocena: Ocena, uzytkownik, *, data: date | None = Non
 
 # --- część I: kryteria ---
 
-def wyznacz_kryteria(ocena: Ocena, uzytkownik, *, kryteria_dodatkowe, termin: date, data: date | None = None) -> None:
+def wyznacz_kryteria(
+    ocena: Ocena, uzytkownik, *, kryteria_dodatkowe, termin: date | None = None, data: date | None = None
+) -> None:
+    """§ 5 ust. 3 rozp.: do części I arkusza trafiają kryteria dodatkowe i termin sporządzenia oceny. Termin wynika
+    z ustawy (art. 81 ust. 4, 7 i 9 u.s.c.), więc wylicza go system; podany inny termin jest odrzucany. Zmienić
+    termin można dopiero później, w przypadkach z art. 81 ust. 8 u.s.c. (`zmien_termin`)."""
     data = data or dzis()
-    with _czynnosc(ocena, uzytkownik, Rola.OCENIAJACY, "wyznaczenie kryteriów", data) as (_, proces):
-        proces.wyznacz_kryteria(Rola.OCENIAJACY, list(kryteria_dodatkowe), termin, data)
+    with _czynnosc(ocena, uzytkownik, Rola.OCENIAJACY, "wyznaczenie kryteriów", data) as (biezaca, proces):
+        ustawowy = termin_ustawowy(biezaca, proces.poczatek_cyklu)
+        # § 9 ust. 1 rozp.: przy ponownym ustalaniu kryteriów po zmianie stanowiska termin oceny zostaje bez zmian.
+        zostaje = proces.termin if proces.ponowne_kryteria_do is not None else None
+        if termin is not None and termin != (zostaje or ustawowy.data):
+            raise BladWalidacji([Blad(
+                "TERMIN_INNY_NIZ_USTAWOWY",
+                f"Termin sporządzenia oceny wynika z przepisów: {zostaje or ustawowy.data:%d.%m.%Y}. Zmienić go można "
+                "dopiero w przypadkach z art. 81 ust. 8 u.s.c.",
+                ustawowy.podstawa,
+            )])
+        proces.wyznacz_kryteria(Rola.OCENIAJACY, list(kryteria_dodatkowe), zostaje or ustawowy.data, data)
 
 
 def potwierdz_kryteria(ocena: Ocena, uzytkownik, *, data: date | None = None) -> None:
@@ -218,11 +238,16 @@ def zapisz_egzamin(
         )
 
 
-def zmien_termin(ocena: Ocena, uzytkownik, *, nowy_termin: date, przyczyna: str, data: date | None = None) -> None:
+def zmien_termin(
+    ocena: Ocena, uzytkownik, *, nowy_termin: date, przyczyna: str, opis: str = "", data: date | None = None
+) -> None:
+    """Art. 81 ust. 8 u.s.c.: `przyczyna` to kod jednego z czterech przypadków z ustawy, `opis` - uwagi oceniającego
+    do pisemnego zawiadomienia ocenianego (§ 8 rozp.)."""
     data = data or dzis()
-    opis = f"nowy termin: {nowy_termin:%d.%m.%Y}"
-    with _czynnosc(ocena, uzytkownik, Rola.OCENIAJACY, "zmiana terminu oceny", data, opis) as (biezaca, proces):
-        proces.zmien_termin(Rola.OCENIAJACY, nowy_termin, data, przyczyna, _data_ostatniej_oceny(biezaca))
+    przypadek = PRZYPADKI_ZMIANY_TERMINU.get(przyczyna)
+    wpis = f"nowy termin: {nowy_termin:%d.%m.%Y}" + (f" - {przypadek.podstawa}" if przypadek else "")
+    with _czynnosc(ocena, uzytkownik, Rola.OCENIAJACY, "zmiana terminu oceny", data, wpis) as (biezaca, proces):
+        proces.zmien_termin(Rola.OCENIAJACY, nowy_termin, data, przyczyna, _data_ostatniej_oceny(biezaca), opis=opis)
 
 
 def zloz_wniosek_o_zmiane_terminu(
@@ -251,8 +276,7 @@ def rozpatrz_wniosek_o_zmiane_terminu(
             if nowy_termin is None:
                 raise BladWalidacji([Blad("BRAK_NOWEGO_TERMINU", "Podaj nowy termin sporządzenia oceny.", "§ 8 rozp.")])
             proces.zmien_termin(
-                Rola.OCENIAJACY, nowy_termin, data, "wniosek ocenianego o zmianę terminu przeprowadzenia oceny",
-                _data_ostatniej_oceny(biezaca),
+                Rola.OCENIAJACY, nowy_termin, data, "WNIOSEK_OCENIANEGO", _data_ostatniej_oceny(biezaca),
             )
         wniosek.status = WniosekOTermin.UWZGLEDNIONY if uwzglednic else WniosekOTermin.ODRZUCONY
         wniosek.data_rozpatrzenia = data
@@ -273,13 +297,112 @@ def zmien_oceniajacego(ocena: Ocena, uzytkownik, *, nowy_oceniajacy: Pracownik, 
 def dodaj_nieobecnosc(
     pracownik: Pracownik, uzytkownik, *, od: date, do: date, usprawiedliwiona: bool = True
 ) -> Nieobecnosc:
-    """Nieobecność wprowadza komórka kadr. Termin oceny przelicza rdzeń przy każdym wyświetleniu (art. 81 ust. 7)."""
+    """Nieobecność wprowadza komórka kadr. Gdy usprawiedliwiona nieobecność trwa dłużej niż miesiąc, termin
+    trwającej oceny przedłuża się z mocy ustawy (art. 81 ust. 7 u.s.c.) - system zapisuje nowy termin od razu."""
     _wymagaj_kadr(uzytkownik, "wprowadzenie nieobecności")
     if do < od:
         raise BladWalidacji([Blad(
             "BLEDNY_OKRES_NIEOBECNOSCI", "Koniec nieobecności nie może być wcześniejszy niż jej początek."
         )])
-    return Nieobecnosc.objects.create(pracownik=pracownik, od=od, do=do, usprawiedliwiona=usprawiedliwiona)
+    with transaction.atomic():
+        nieobecnosc = Nieobecnosc.objects.create(pracownik=pracownik, od=od, do=do, usprawiedliwiona=usprawiedliwiona)
+        przedluz_terminy_o_nieobecnosci(pracownik, uzytkownik)
+    return nieobecnosc
+
+
+def powod_braku_oceny_po_zmianie_stanowiska(ocena: Ocena) -> str:
+    """Art. 81 ust. 6 u.s.c. ma dwa progi: od ostatniej oceny, a u ocenianych po raz pierwszy - okres podlegający ocenie."""
+    if ocena.poprzednia_id is None:
+        return "okres podlegający ocenie nie jest dłuższy niż 6 miesięcy"
+    return "od poprzedniej oceny nie upłynęło więcej niż 6 miesięcy"
+
+
+_ETAPY_PRZED_OCENA = (Etap.KRYTERIA_DO_WYZNACZENIA.name, Etap.KRYTERIA_DO_POTWIERDZENIA.name, Etap.OCENIANIE.name)
+
+
+def zmien_stanowisko(
+    pracownik: Pracownik, uzytkownik, *, stanowisko: str, opis_stanowiska: str, data_zmiany: date,
+    data: date | None = None,
+) -> dict:
+    """Zmiana stanowiska pracy wiążąca się z istotną zmianą zakresu obowiązków - odnotowuje ją komórka kadr.
+
+    Art. 81 ust. 6 u.s.c. i § 9 ust. 2 rozp.: gdy od ostatniej oceny upłynęło więcej niż 6 miesięcy, na
+    dotychczasowym stanowisku sporządza się ocenę (7 dni przed zmianą - 30 dni po niej). § 9 ust. 1 rozp.: w
+    pozostałych przypadkach wraca rozmowa i zapoznanie z kryteriami, a termin oceny zostaje. Skutek wylicza rdzeń.
+    Zwraca słownik `ocena` (trwająca ocena albo None) i `skutek` (`SkutekZmianyStanowiska` albo None)."""
+    _wymagaj_kadr(uzytkownik, "zmiana stanowiska pracy")
+    data = data or dzis()
+    stanowisko, opis_stanowiska = str(stanowisko or "").strip(), str(opis_stanowiska or "").strip()
+    bledy = []
+    if not stanowisko:
+        bledy.append(Blad("BRAK_STANOWISKA", "Podaj nazwę nowego stanowiska."))
+    if not opis_stanowiska:
+        bledy.append(Blad(
+            "BRAK_OPISU_STANOWISKA",
+            "Podaj opis nowego stanowiska pracy - ocena dotyczy obowiązków wynikających z tego opisu.",
+            "art. 81 ust. 3 u.s.c.",
+        ))
+    if pracownik.data_zatrudnienia and data_zmiany < pracownik.data_zatrudnienia:
+        bledy.append(Blad(
+            "ZMIANA_STANOWISKA_PRZED_ZATRUDNIENIEM",
+            "Data zmiany stanowiska nie może być wcześniejsza niż początek zatrudnienia.",
+        ))
+    if bledy:
+        raise BladWalidacji(bledy)
+    wynik = {"ocena": None, "skutek": None}
+    with transaction.atomic():
+        osoba = Pracownik.objects.select_for_update().get(pk=pracownik.pk)
+        for ocena in Ocena.objects.select_for_update().filter(oceniany=osoba, etap__in=_ETAPY_PRZED_OCENA):
+            proces = ocena.proces()
+            skutek = proces.zmien_stanowisko(
+                Rola.ZARZADZAJACY, data_zmiany=data_zmiany, data=data, stanowisko=osoba.stanowisko,
+                data_ostatniej_oceny=_data_ostatniej_oceny(ocena),
+            )
+            ocena.zapisz_proces(proces)
+            if skutek.wymagana_ocena:
+                opis = (
+                    f"zmiana {data_zmiany:%d.%m.%Y}; ocena na dotychczasowym stanowisku od "
+                    f"{skutek.ocena_najwczesniej:%d.%m.%Y} do {skutek.ocena_najpozniej:%d.%m.%Y} "
+                    "(art. 81 ust. 6 u.s.c., § 9 ust. 2 rozp.)"
+                )
+            else:
+                opis = (
+                    f"zmiana {data_zmiany:%d.%m.%Y}; ponowna rozmowa i kryteria do {skutek.ponowne_kryteria_do:%d.%m.%Y}, "
+                    "termin oceny bez zmian (§ 9 ust. 1 rozp.)"
+                )
+            _zapisz_zdarzenie(ocena, uzytkownik, "zmiana stanowiska pracy", data, opis)
+            wynik = {"ocena": ocena, "skutek": skutek}
+        osoba.stanowisko, osoba.opis_stanowiska = stanowisko, opis_stanowiska
+        osoba.save(update_fields=["stanowisko", "opis_stanowiska"])
+    return wynik
+
+
+def przedluz_terminy_o_nieobecnosci(pracownik: Pracownik, uzytkownik, *, data: date | None = None) -> list[Ocena]:
+    """Art. 81 ust. 7 u.s.c.: dopasowuje termin trwającej oceny do nieobecności z ewidencji. Nie rusza terminu
+    zmienionego przez oceniającego (ust. 8) ani terminu ponownej oceny po ocenie negatywnej (ust. 9).
+    `uzytkownik` to osoba z kadr, która wpisała nieobecność, albo None, gdy termin uzgadnia system."""
+    data = data or dzis()
+    etapy = (Etap.KRYTERIA_DO_POTWIERDZENIA.name, Etap.OCENIANIE.name)
+    zmienione = []
+    for ocena in Ocena.objects.select_for_update().filter(oceniany=pracownik, etap__in=etapy):
+        proces = ocena.proces()
+        ustawowy = termin_ustawowy(ocena, proces.poczatek_cyklu)
+        if ustawowy.po_negatywnej or proces.termin is None or proces.termin_zmieniony_przez_oceniajacego:
+            continue
+        if proces.ocena_najwczesniej is not None:   # ocena w związku ze zmianą stanowiska - to nie termin z ust. 4
+            continue
+        if ustawowy.data <= proces.termin:
+            continue
+        poprzedni = proces.termin
+        proces.przedluz_termin_o_nieobecnosc(Rola.ZARZADZAJACY, ustawowy.data, data)
+        ocena.zapisz_proces(proces)
+        _zapisz_zdarzenie(
+            ocena, uzytkownik, "przedłużenie terminu oceny", data,
+            f"z {poprzedni:%d.%m.%Y} na {ustawowy.data:%d.%m.%Y} - usprawiedliwiona nieobecność ocenianego dłuższa niż "
+            "miesiąc (art. 81 ust. 7 u.s.c.)",
+        )
+        zmienione.append(ocena)
+    return zmienione
 
 
 def zapisz_ustalenia_monitoringu(

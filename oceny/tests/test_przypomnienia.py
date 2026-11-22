@@ -29,7 +29,7 @@ from .test_administracja import Podstawa
 from .test_widoki import klient
 
 POCZTA = "/administracja/poczta/"
-TYTUL = "Przeprowadź rozmowę oceniającą i sporządź ocenę"  # zadanie przełożonego z terminem 20.11.2026
+TYTUL = "Przeprowadź rozmowę oceniającą i sporządź ocenę"  # zadanie przełożonego z terminem 23.11.2026
 FIKCYJNE = "fikcyjne-do-testu-123"
 DANE = {
     "akcja": "zapisz", "wlaczona": "on", "host": "poczta.urzad.example", "port": "587", "zabezpieczenie": "starttls",
@@ -39,7 +39,7 @@ DANE = {
 
 
 class Sprawa(Podstawa):
-    """Przełożony ma jedno zadanie z terminem 20.11.2026; oceniana i kadry nie mają zadań z terminem."""
+    """Przełożony ma jedno zadanie z terminem 23.11.2026; oceniana i kadry nie mają zadań z terminem."""
 
     def setUp(self):
         super().setUp()
@@ -57,44 +57,44 @@ class TrescTest(Sprawa):
     def test_wiadomosc_wymienia_termin_z_podstawa_i_adresem_bez_nazwisk_i_ocen(self):
         SkrzynkaNadawcza.objects.create(pk=1, adres_systemu="https://oceny.urzad.example/")
 
-        wiadomosc = przypomnienia.wiadomosc(self.z.szef.uzytkownik, date(2026, 11, 6))
+        wiadomosc = przypomnienia.wiadomosc(self.z.szef.uzytkownik, date(2026, 11, 9))
 
         self.assertEqual(wiadomosc.to, ["szef@urzad.example"])
-        self.assertEqual(wiadomosc.subject, "Asystent ocen: 1 termin wymaga uwagi (najbliższy 20.11.2026)")
-        for fragment in ("20.11.2026 (zostało 14 dni)", TYTUL, "art. 81 ust. 4 u.s.c.",
+        self.assertEqual(wiadomosc.subject, "Asystent ocen: 1 termin wymaga uwagi (najbliższy 23.11.2026)")
+        for fragment in ("23.11.2026 (zostało 14 dni)", TYTUL, "art. 81 ust. 4 u.s.c.",
                          f"https://oceny.urzad.example/oceny/{self.ocena.pk}/", "nie zawiera ocen ani treści arkuszy"):
             self.assertIn(fragment, wiadomosc.body)
         self.assertNotIn("Testowy", wiadomosc.body)  # domyślnie bez nazwisk ocenianych
         nazwa, tresc, typ = wiadomosc.attachments[0]
         self.assertEqual((nazwa, typ), ("terminy.ics", "text/calendar"))
         self.assertIn("BEGIN:VEVENT", tresc)
-        self.assertIn("DTSTART;VALUE=DATE:20261120", tresc)
+        self.assertIn("DTSTART;VALUE=DATE:20261123", tresc)
         self.assertNotIn("Testowy", tresc)
         self.assertNotIn("rozp..", tresc)  # podstawa kończy się skrótem z kropką - opis nie może jej podwajać
 
     def test_nazwisko_ocenianego_pojawia_sie_dopiero_po_decyzji_administratora(self):
         SkrzynkaNadawcza.objects.create(pk=1, nazwiska=True)
 
-        wiadomosc = przypomnienia.wiadomosc(self.z.szef.uzytkownik, date(2026, 11, 6))
+        wiadomosc = przypomnienia.wiadomosc(self.z.szef.uzytkownik, date(2026, 11, 9))
 
         self.assertIn(f"{TYTUL} - Ola Testowy", wiadomosc.body)
         self.assertIn("Ola Testowy", wiadomosc.attachments[0][1].replace("\r\n ", ""))  # RFC 5545: długi wiersz jest łamany
 
     def test_po_terminie_wiadomosc_mowi_o_zaleglosci(self):
-        wiadomosc = przypomnienia.wiadomosc(self.z.szef.uzytkownik, date(2026, 11, 27))
+        wiadomosc = przypomnienia.wiadomosc(self.z.szef.uzytkownik, date(2026, 11, 30))
 
-        self.assertEqual(wiadomosc.subject, "Asystent ocen: 1 termin wymaga uwagi (po terminie od 20.11.2026)")
+        self.assertEqual(wiadomosc.subject, "Asystent ocen: 1 termin wymaga uwagi (po terminie od 23.11.2026)")
         self.assertIn("Po terminie:", wiadomosc.body)
-        self.assertIn("20.11.2026 (7 dni po terminie)", wiadomosc.body)
+        self.assertIn("23.11.2026 (7 dni po terminie)", wiadomosc.body)
 
     def test_osoba_bez_zadan_z_terminem_nie_dostaje_wiadomosci(self):
-        self.assertIsNone(przypomnienia.wiadomosc(self.z.ola.uzytkownik, date(2026, 11, 6)))
+        self.assertIsNone(przypomnienia.wiadomosc(self.z.ola.uzytkownik, date(2026, 11, 9)))
 
 
 class WysylkaTest(Sprawa):
     def test_planowa_wysylka_trafia_w_dni_progowe_i_najwyzej_raz_dziennie(self):
-        przypadki = (("2026-11-05", 0), ("2026-11-06", 1), ("2026-11-06", 0), ("2026-11-07", 0), ("2026-11-17", 1),
-                     ("2026-11-20", 1), ("2026-11-21", 0), ("2026-11-27", 1), ("2026-12-04", 1), ("2026-12-05", 0))
+        przypadki = (("2026-11-08", 0), ("2026-11-09", 1), ("2026-11-09", 0), ("2026-11-10", 0), ("2026-11-20", 1),
+                     ("2026-11-23", 1), ("2026-11-24", 0), ("2026-11-30", 1), ("2026-12-07", 1), ("2026-12-08", 0))
         for dzien, oczekiwane in przypadki:
             with self.subTest(dzien=dzien):
                 mail.outbox.clear()
@@ -105,7 +105,7 @@ class WysylkaTest(Sprawa):
     def test_osoba_bez_adresu_jest_pominieta_i_policzona(self):
         self.adres(self.z.szef, "")
 
-        wynik = przypomnienia.wyslij(date(2026, 11, 6))
+        wynik = przypomnienia.wyslij(date(2026, 11, 9))
 
         self.assertEqual((wynik.wyslane, wynik.bez_adresu, len(mail.outbox)), (0, 1, 0))
 
@@ -113,32 +113,32 @@ class WysylkaTest(Sprawa):
         self.z.szef.uzytkownik.is_active = False
         self.z.szef.uzytkownik.save(update_fields=["is_active"])
 
-        self.assertEqual(przypomnienia.wyslij(date(2026, 11, 6)).wyslane, 0)
+        self.assertEqual(przypomnienia.wyslij(date(2026, 11, 9)).wyslane, 0)
 
     def test_wymuszona_wysylka_nie_czeka_na_dzien_progowy(self):
-        wynik = przypomnienia.wyslij(date(2026, 11, 5), wymus=True)
+        wynik = przypomnienia.wyslij(date(2026, 11, 8), wymus=True)
 
         self.assertEqual((wynik.wyslane, len(mail.outbox)), (1, 1))
         self.assertEqual(mail.outbox[0].to, ["szef@urzad.example"])
 
     def test_blad_serwera_pocztowego_jest_policzony_i_wysylke_mozna_powtorzyc(self):
         with mock.patch("oceny.poczta.polaczenie", side_effect=SMTPException("serwer odrzucił połączenie")):
-            wynik = przypomnienia.wyslij(date(2026, 11, 6))
+            wynik = przypomnienia.wyslij(date(2026, 11, 9))
         self.assertEqual((wynik.wyslane, wynik.bledy), (0, 1))
         self.assertEqual(WyslanePrzypomnienie.objects.count(), 0)
 
-        self.assertEqual(przypomnienia.wyslij(date(2026, 11, 6)).wyslane, 1)
+        self.assertEqual(przypomnienia.wyslij(date(2026, 11, 9)).wyslane, 1)
 
     def test_wylaczona_skrzynka_wstrzymuje_planowa_wysylke(self):
         SkrzynkaNadawcza.objects.create(pk=1, host="poczta.urzad.example", wlaczona=False)
 
-        wynik = przypomnienia.wyslij(date(2026, 11, 6))
+        wynik = przypomnienia.wyslij(date(2026, 11, 9))
 
         self.assertEqual((wynik.wyslane, wynik.wstrzymane, len(mail.outbox)), (0, True, 0))
 
     def test_polecenie_do_harmonogramu_podaje_wynik(self):
         wyjscie = StringIO()
-        with self.settings(ASYSTENT_DZIS="2026-11-06"):
+        with self.settings(ASYSTENT_DZIS="2026-11-09"):
             call_command("wyslij_przypomnienia", stdout=wyjscie)
 
         self.assertIn("Wysłano przypomnień: 1", wyjscie.getvalue())
@@ -231,7 +231,7 @@ class SkrzynkaNadawczaTest(Sprawa):
                 self.assertContains(odpowiedz, "Nie udało się wysłać wiadomości próbnej")
 
     def test_administrator_wysyla_przypomnienia_od_reki_i_widzi_tylko_liczby(self):
-        with self.settings(ASYSTENT_DZIS="2026-11-05"):  # 15 dni przed terminem - planowa wysyłka by czekała
+        with self.settings(ASYSTENT_DZIS="2026-11-08"):  # 15 dni przed terminem - planowa wysyłka by czekała
             odpowiedz = self.przegladarka.post(POCZTA, {"akcja": "przypomnienia"}, follow=True)
 
         self.assertContains(odpowiedz, "Wysłano przypomnień: 1.")
@@ -274,14 +274,14 @@ class KalendarzOsobistyTest(Sprawa):
         self.assertContains(odpowiedz, adres)
         self.assertEqual(bledy_dostepnosci(odpowiedz.content.decode()), [])
 
-        with self.settings(ASYSTENT_DZIS="2026-11-06"):
+        with self.settings(ASYSTENT_DZIS="2026-11-09"):
             plik = Client().get(adres)
 
         self.assertEqual(plik.status_code, 200)
         self.assertEqual(plik["Content-Type"], "text/calendar; charset=utf-8")
         self.assertIn("no-store", plik["Cache-Control"])
         tresc = plik.content.decode()
-        self.assertIn("DTSTART;VALUE=DATE:20261120", tresc)
+        self.assertIn("DTSTART;VALUE=DATE:20261123", tresc)
         self.assertIn("SUMMARY:Przeprowadź rozmowę oceniającą", tresc)
         self.assertNotIn("Testowy", tresc)
 
@@ -315,11 +315,11 @@ class KalendarzOsobistyTest(Sprawa):
         self.assertContains(konto, "szef@urzad.example")
         self.assertEqual(bledy_dostepnosci(konto.content.decode()), [])
 
-        with self.settings(ASYSTENT_DZIS="2026-11-06"):
+        with self.settings(ASYSTENT_DZIS="2026-11-09"):
             podglad = przegladarka.get(reverse("konto_przypomnienie"))
         self.assertContains(podglad, "<h1>Podgląd przypomnienia</h1>")
         self.assertContains(podglad, TYTUL)
-        self.assertContains(podglad, "20.11.2026 (zostało 14 dni)")
+        self.assertContains(podglad, "23.11.2026 (zostało 14 dni)")
         self.assertEqual(bledy_dostepnosci(podglad.content.decode()), [])
-        with self.settings(ASYSTENT_DZIS="2026-11-06"):
+        with self.settings(ASYSTENT_DZIS="2026-11-09"):
             self.assertContains(klient(self.z.ola).get(reverse("konto_przypomnienie")), "Nie masz dziś zadań z terminem")

@@ -1,13 +1,20 @@
-"""Oznaczenie urzędu w zapleczu administratora."""
+"""Oznaczenie urzędu w zapleczu administratora i ikona strony z logo urzędu."""
 import base64
+import binascii
 from io import BytesIO
+from pathlib import Path
 
 from PIL import Image
 from django import forms
 from django.contrib import messages
+from django.contrib.auth.decorators import login_not_required
 from django.db import transaction
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_GET, require_http_methods
+
+GODLO = Path(__file__).resolve().parent / "static" / "oceny" / "godlo.svg"
+BOK_IKONY = 64
 
 from . import dziennik
 from .models import OznaczenieUrzedu
@@ -68,3 +75,34 @@ def ustawienia(request):
         messages.success(request, "Zapisano oznaczenie urzędu.")
         return redirect("administracja_urzad")
     return render(request, "oceny/urzad.html", {"formularz": formularz})
+
+
+def ikona_z_logo(logo_png: str) -> bytes | None:
+    """Kwadratowa ikona PNG z logo urzędu: logo zmniejszone z zachowaniem proporcji, dopełnione przezroczystym
+    tłem. None, gdy zapisanego logo nie da się odczytać - wtedy ikoną zostaje domyślne godło."""
+    try:
+        with Image.open(BytesIO(base64.b64decode(logo_png, validate=True)), formats=("PNG",)) as obraz:
+            logo = obraz.convert("RGBA")
+        logo.thumbnail((BOK_IKONY, BOK_IKONY))
+        kwadrat = Image.new("RGBA", (BOK_IKONY, BOK_IKONY), (0, 0, 0, 0))
+        kwadrat.paste(logo, ((BOK_IKONY - logo.width) // 2, (BOK_IKONY - logo.height) // 2))
+        bufor = BytesIO()
+        kwadrat.save(bufor, format="PNG")
+        return bufor.getvalue()
+    except (OSError, ValueError, SyntaxError, binascii.Error, Image.DecompressionBombError):
+        return None
+
+
+@login_not_required   # ikonę pobiera także strona logowania; logo i tak widać w jej nagłówku
+@require_GET
+def ikona(request):
+    """Ikona strony (favicon) - z logo urzędu ustawionego w zapleczu, a bez niego z domyślnego godła."""
+    logo_png = OznaczenieUrzedu.aktualne().logo_png
+    obraz = ikona_z_logo(logo_png) if logo_png else None
+    if obraz is not None:
+        odpowiedz = HttpResponse(obraz, content_type="image/png")
+    else:
+        odpowiedz = HttpResponse(GODLO.read_bytes(), content_type="image/svg+xml")
+    # Adres ikony zawiera skrót logo, więc po zmianie logo przeglądarka pobiera nową ikonę mimo pamięci podręcznej.
+    odpowiedz["Cache-Control"] = "public, max-age=86400"
+    return odpowiedz

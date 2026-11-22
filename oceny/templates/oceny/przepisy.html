@@ -1,9 +1,6 @@
-{% extends "oceny/baza.html" %}
-{% block tytul %}Przepisy{% endblock %}
-{% block tresc %}
-<h1>Przepisy, na których działa system</h1>
-{% if edycja %}{% include "oceny/_administracja_menu.html" with zakladka="przepisy" %}
-<p>Panel informatyka. Zmiany obowiązują od następnego żądania i są rejestrowane w <a href="{% url 'administracja_dziennik' %}">dzienniku zdarzeń</a>.</p>
+{% extends uklad %}
+{% block zaplecze %}
+{% if edycja %}<p>Panel informatyka. Zmiany obowiązują od następnego żądania i są rejestrowane w <a href="{% url 'administracja_dziennik' %}">dzienniku zdarzeń</a>.</p>
 {% else %}<p>Tylko podgląd. Konfigurację zmienia informatyk.</p>{% endif %}
 <p>Parametry procesu oceny pochodzą z <code>{{ plik }}</code>. Po pierwszej edycji aplikacja korzysta z kopii TOML zapisanej w bazie urzędu. Plik dostarczony z programem pozostaje bez zmian.</p>
 

@@ -88,6 +88,10 @@ def proces_do_slownika(proces: ProcesOceny) -> dict:
         "data_sporzadzenia": _data_do_napisu(proces.data_sporzadzenia),
         "daty_zmiany_oceniajacego": [_data_do_napisu(dzien) for dzien in proces.daty_zmiany_oceniajacego],
         "formularz": _formularz_do_slownika(proces.formularz),
+        "zmiana_stanowiska": _data_do_napisu(proces.zmiana_stanowiska),
+        "ocena_najwczesniej": _data_do_napisu(proces.ocena_najwczesniej),
+        "ponowne_kryteria_do": _data_do_napisu(proces.ponowne_kryteria_do),
+        "stanowisko_przed_zmiana": proces.stanowisko_przed_zmiana,
     }
 
 
@@ -161,4 +165,9 @@ def proces_ze_slownika(dane: dict) -> ProcesOceny:
         data_sporzadzenia=_napis_do_daty(dane["data_sporzadzenia"]),
         daty_zmiany_oceniajacego=[_napis_do_daty(dzien) for dzien in dane["daty_zmiany_oceniajacego"]],
         formularz=_formularz_ze_slownika(dane["formularz"]),
+        # Zapisy sprzed obsługi zmiany stanowiska nie mają tych pól.
+        zmiana_stanowiska=_napis_do_daty(dane.get("zmiana_stanowiska")),
+        ocena_najwczesniej=_napis_do_daty(dane.get("ocena_najwczesniej")),
+        ponowne_kryteria_do=_napis_do_daty(dane.get("ponowne_kryteria_do")),
+        stanowisko_przed_zmiana=dane.get("stanowisko_przed_zmiana", ""),
     )

@@ -126,7 +126,7 @@ class PrzebiegPrzezPrzegladarkeTest(TestCase):
 
         self.assertContains(szef.get(reverse("zadania")), "Ola Testowy")
         odpowiedz = szef.post(czynnosc(self.ocena, "wyznacz-kryteria"), {
-            "kryterium_1": dodatkowe[0], "kryterium_2": dodatkowe[1], "kryterium_3": "", "termin": "2026-11-20",
+            "kryterium_1": dodatkowe[0], "kryterium_2": dodatkowe[1], "kryterium_3": "",
         })
         self.assertRedirects(odpowiedz, self.adres)
         self.assertEqual(Ocena.objects.get(pk=self.ocena.pk).etap, "KRYTERIA_DO_POTWIERDZENIA")
@@ -162,18 +162,21 @@ class PrzebiegPrzezPrzegladarkeTest(TestCase):
         self.assertContains(odpowiedz, "§ 5 ust. 2 rozp.")
         self.assertEqual(Ocena.objects.get(pk=self.ocena.pk).etap, "KRYTERIA_DO_WYZNACZENIA")
 
-    def test_bledna_data_w_formularzu_nie_wywraca_strony(self):
+    def test_data_doslana_do_formularza_kryteriow_jest_pomijana_i_nie_wywraca_strony(self):
+        """Termin wynika z ustawy i wylicza go system - formularz kryteriów nie ma pola daty."""
         odpowiedz = klient(self.z.szef).post(
             czynnosc(self.ocena, "wyznacz-kryteria"), {"termin": "20.11.2026"}, follow=True
         )
 
         self.assertEqual(odpowiedz.status_code, 200)
-        self.assertContains(odpowiedz, "Podaj datę")
-        self.assertEqual(Ocena.objects.get(pk=self.ocena.pk).etap, "KRYTERIA_DO_WYZNACZENIA")
+        zapisana = Ocena.objects.get(pk=self.ocena.pk)
+        self.assertEqual((zapisana.etap, zapisana.termin), ("KRYTERIA_DO_POTWIERDZENIA", date(2026, 11, 23)))
 
-    def test_formularz_kryteriow_podpowiada_termin_ustawowy(self):
+    def test_formularz_kryteriow_podaje_termin_ustawowy(self):
         """Art. 81 ust. 4 u.s.c.: 24 miesiące; 21.11.2026 to sobota, więc termin przypada 23.11.2026."""
-        self.assertContains(klient(self.z.szef).get(self.adres), 'value="2026-11-23"')
+        self.assertContains(
+            klient(self.z.szef).get(self.adres), "Termin sporządzenia oceny: <strong>23.11.2026</strong>", html=True
+        )
 
     def test_niekompletna_ocena_zostaje_w_szkicu_i_pokazuje_braki(self):
         """Architektura v4: wnioski IPRZ zawsze obowiązkowe; wpisane dane nie przepadają po błędzie."""

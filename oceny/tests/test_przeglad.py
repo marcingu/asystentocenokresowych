@@ -149,7 +149,7 @@ class TrescTest(Podstawa):
 
         oceny = self.sekcja(html, "n-oceny")
         self.assertIn(f'<a href="/oceny/{self.ocena.pk}/">Okres od 21.11.2024</a>', oceny)
-        self.assertIn("termin oceny: 20.11.2026", oceny)
+        self.assertIn("termin oceny: 23.11.2026", oceny)
         self.assertIn("01.07.2025 - 10.07.2025", self.sekcja(html, "n-nieobecnosci"))
 
 

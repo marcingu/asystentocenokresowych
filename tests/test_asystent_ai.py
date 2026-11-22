@@ -456,3 +456,46 @@ def test_klient_ollama_odrzuca_odpowiedz_bez_tresci(tresc):
 def test_klient_ollama_przyjmuje_tylko_adres_http(adres):
     with pytest.raises(ValueError):
         KlientOllama(adres, "pllum")
+
+
+# --- odpowiedź modelu bez znaczników ---
+# Strona pokazuje odpowiedź jako zwykły tekst, więc „<br>” albo „**” z modelu byłyby widoczne dosłownie.
+
+def test_odpowiedz_modelu_nie_zawiera_znacznikow_html_ani_markdownu():
+    from asystent_ocen.asystent_ai import oczysc_tekst_modelu
+
+    surowa = "## Projekt\nPierwsze zdanie.<br>Drugie **ważne** zdanie.</br><p>Trzeci akapit.</p><BR/>Koniec."
+
+    assert oczysc_tekst_modelu(surowa) == "Projekt\nPierwsze zdanie.\nDrugie ważne zdanie.\nTrzeci akapit.\n\nKoniec."
+
+
+def test_czyszczenie_nie_rusza_zwyklych_znakow():
+    from asystent_ocen.asystent_ai import oczysc_tekst_modelu
+
+    for tekst in ("Średnia < 4 i wynik > 2.", "Art. 81 ust. 4 u.s.c. - 2 * 12 miesięcy.", "- punkt pierwszy\n- punkt drugi", "plik_o_dlugiej_nazwie i __init__"):
+        assert oczysc_tekst_modelu(tekst) == tekst
+
+
+def test_odpowiedz_tekstowa_i_ustrukturyzowana_sa_czyszczone_przed_uzyciem():
+    from asystent_ocen.asystent_ai import _zapytaj
+
+    class ModelZeSchematem:
+        def __call__(self, wiadomosci, schemat=None):
+            if schemat is None:
+                return "Zdanie pierwsze.<br>Zdanie **drugie**."
+            return json.dumps({"pytania": [{"karta": "URLOP", "pytanie": "Jak zaplanować<br>urlop **w tym roku**?"}], "liczba": 1})
+
+    assert _zapytaj(ModelZeSchematem(), []) == "Zdanie pierwsze.\nZdanie drugie."
+    assert json.loads(_zapytaj(ModelZeSchematem(), [], {"type": "object"})) == {
+        "pytania": [{"karta": "URLOP", "pytanie": "Jak zaplanować urlop w tym roku?"}], "liczba": 1,
+    }
+
+
+def test_odpowiedz_ktora_nie_jest_poprawnym_json_wraca_bez_zmian_do_kontroli_wywolujacego():
+    from asystent_ocen.asystent_ai import _zapytaj
+
+    class Zepsuty:
+        def __call__(self, wiadomosci, schemat=None):
+            return "to nie jest JSON <br>"
+
+    assert _zapytaj(Zepsuty(), [], {"type": "object"}) == "to nie jest JSON <br>"

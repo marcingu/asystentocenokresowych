@@ -12,7 +12,9 @@ from django.conf import settings
 from asystent_ocen import terminy
 from asystent_ocen.konfiguracja import wczytaj_przepisy
 from asystent_ocen.kryteria import kryteria_dodatkowe_do_wyboru, kryteria_obowiazkowe
-from asystent_ocen.przebieg import DOBROSTAN, EGZAMIN, OBSERWACJA, OSIAGNIECIE, Etap, ProcesOceny, Rola
+from asystent_ocen.przebieg import (
+    DOBROSTAN, EGZAMIN, OBSERWACJA, OSIAGNIECIE, PRZYPADKI_ZMIANY_TERMINU, Etap, ProcesOceny, Rola,
+)
 from asystent_ocen.stopnie import kolejny_stopien_slownie, komunikat_dla_stopnia
 from asystent_ocen.po_sprzeciwie import PODSTAWA as PODSTAWA_ODWOLANIA
 from asystent_ocen.walidacja import Formularz, bledy_przed_zatwierdzeniem, pouczenie_o_sprzeciwie
@@ -26,8 +28,11 @@ from .notatki import RODZAJE_NOTATEK
 from .radar import radar_oceny
 from .models import Ocena, WniosekOTermin
 from .uprawnienia import role_uzytkownika
-from .uslugi import CZYNNOSC_NOTATKA, CZYNNOSCI_AI, CZYNNOSCI_AI_WYSOKIEGO_RYZYKA
+from .uslugi import (
+    CZYNNOSC_NOTATKA, CZYNNOSCI_AI, CZYNNOSCI_AI_WYSOKIEGO_RYZYKA, powod_braku_oceny_po_zmianie_stanowiska,
+)
 from .po_sprzeciwie import widok_statusu
+from .terminy_oceny import termin_ustawowy as wylicz_termin_ustawowy
 from .zadania import opis_dni_do_terminu, opisy_skutkow, zadania_oceny
 
 
@@ -62,25 +67,15 @@ def os_etapow(etap: Etap) -> list[dict]:
 
 def termin_ustawowy(ocena: Ocena, proces: ProcesOceny, nieobecnosci: list) -> dict:
     """Termin, w którym ocena ma być sporządzona z mocy ustawy - z przedłużeniem o długie nieobecności."""
-    if ocena.po_negatywnej and ocena.poprzednia.data_zapoznania:
-        zapoznanie = ocena.poprzednia.data_zapoznania
-        termin = terminy.data_ponownej_oceny_po_negatywnej(zapoznanie, nieobecnosci)
-        bez_nieobecnosci = terminy.data_ponownej_oceny_po_negatywnej(zapoznanie)
-        podstawa = "art. 81 ust. 9 u.s.c."
-        nazwa = "Ponowna ocena po ocenie negatywnej - termin ustawowy"
-    else:
-        termin = terminy.termin_oceny(proces.poczatek_cyklu, nieobecnosci)
-        bez_nieobecnosci = terminy.termin_oceny(proces.poczatek_cyklu)
-        podstawa = "art. 81 ust. 4 u.s.c."
-        nazwa = "Sporządzenie oceny - termin ustawowy"
+    ustawowy = wylicz_termin_ustawowy(ocena, proces.poczatek_cyklu, nieobecnosci)
+    nazwa = "Ponowna ocena po ocenie negatywnej - termin ustawowy" if ustawowy.po_negatywnej else "Sporządzenie oceny - termin ustawowy"
     uwaga = ""
-    if termin > bez_nieobecnosci:
-        podstawa += "; art. 81 ust. 7 u.s.c."
+    if ustawowy.przedluzony:
         uwaga = (
-            f"Termin przedłużony z {bez_nieobecnosci:%d.%m.%Y} o usprawiedliwioną nieobecność ocenianego "
+            f"Termin przedłużony z {ustawowy.bez_nieobecnosci:%d.%m.%Y} o usprawiedliwioną nieobecność ocenianego "
             "trwającą dłużej niż miesiąc."
         )
-    return {"nazwa": nazwa, "data": termin, "podstawa": podstawa, "uwaga": uwaga, "stan": "informacja"}
+    return {"nazwa": nazwa, "data": ustawowy.data, "podstawa": ustawowy.podstawa, "uwaga": uwaga, "stan": "informacja"}
 
 
 def wiersze_terminow(ocena: Ocena, proces: ProcesOceny, nieobecnosci: list, dzien: date) -> list[dict]:
@@ -95,6 +90,13 @@ def wiersze_terminow(ocena: Ocena, proces: ProcesOceny, nieobecnosci: list, dzie
     po_negatywnej = ocena.po_negatywnej
     if proces.data_zapoznania_z_kryteriami:
         dodaj("Zapoznanie z kryteriami oceny", proces.data_zapoznania_z_kryteriami, "§ 6 ust. 2 rozp.", stan="wykonane")
+    elif proces.ponowne_kryteria_do:
+        dodaj(
+            "Ponowna rozmowa i zapoznanie z kryteriami - najpóźniej", proces.ponowne_kryteria_do, "§ 9 ust. 1 rozp.",
+            f"Zmiana stanowiska {proces.zmiana_stanowiska:%d.%m.%Y}. Nowej oceny się nie sporządza, bo "
+            f"{powod_braku_oceny_po_zmianie_stanowiska(ocena)} (art. 81 ust. 6 u.s.c.); termin oceny zostaje bez zmian.",
+            stan_terminu(proces.ponowne_kryteria_do, dzien),
+        )
     else:
         termin = terminy.termin_wyznaczenia_kryteriow(proces.poczatek_cyklu, po_negatywnej)
         dodaj(
@@ -103,11 +105,20 @@ def wiersze_terminow(ocena: Ocena, proces: ProcesOceny, nieobecnosci: list, dzie
         )
     if proces.data_sporzadzenia:
         dodaj("Sporządzenie oceny", proces.data_sporzadzenia, "§ 11 rozp.", stan="wykonane")
+    elif proces.ocena_najwczesniej and proces.termin:
+        # Ocena w związku ze zmianą stanowiska ma własne okno - termin 24 miesięcy już jej nie dotyczy.
+        dodaj(
+            "Ocena w związku ze zmianą stanowiska - najpóźniej", proces.termin, "art. 81 ust. 6 u.s.c.; § 9 ust. 2 rozp.",
+            f"Zmiana stanowiska {proces.zmiana_stanowiska:%d.%m.%Y}. Ocenę na dotychczasowym stanowisku"
+            + (f" ({proces.stanowisko_przed_zmiana})" if proces.stanowisko_przed_zmiana else "")
+            + f" sporządza się nie wcześniej niż {proces.ocena_najwczesniej:%d.%m.%Y}.",
+            stan_terminu(proces.termin, dzien),
+        )
     else:
         ustawowy = termin_ustawowy(ocena, proces, nieobecnosci)
         if proces.termin:
             uwaga = ""
-            if ustawowy["data"] > proces.termin and ustawowy["uwaga"]:
+            if ustawowy["data"] > proces.termin and ustawowy["uwaga"] and proces.termin_zmieniony_przez_oceniajacego:
                 uwaga = "Termin ustawowy jest późniejszy - oceniający może zmienić termin (art. 81 ust. 8 u.s.c.)."
             dodaj(
                 "Sporządzenie oceny - termin z części I arkusza", proces.termin, "§ 5 ust. 3 rozp.", uwaga,
@@ -146,7 +157,7 @@ def wiersze_terminow(ocena: Ocena, proces: ProcesOceny, nieobecnosci: list, dzie
     return wiersze
 
 
-def formularz_kryteriow(proces: ProcesOceny, ustawowy: date) -> dict:
+def formularz_kryteriow(proces: ProcesOceny, ustawowy: date, podstawa: str = "art. 81 ust. 4 u.s.c.") -> dict:
     przepisy = wczytaj_przepisy()
     limit = przepisy.max_kryteriow_dodatkowych
     wybrane = (list(proces.kryteria_dodatkowe) + [""] * limit)[:limit]
@@ -154,8 +165,8 @@ def formularz_kryteriow(proces: ProcesOceny, ustawowy: date) -> dict:
     return {
         "pola": [{"numer": numer + 1, "wybrane": nazwa, "opcje": opcje} for numer, nazwa in enumerate(wybrane)],
         "limit": limit,
-        "termin": (proces.termin or ustawowy).isoformat(),
         "termin_ustawowy": ustawowy,
+        "podstawa": podstawa,
     }
 
 
@@ -337,12 +348,24 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
     }
     # Formularze pojawiają się tylko u osoby, która na tym etapie ma coś do zrobienia.
     if oceniajacy and etap in (Etap.KRYTERIA_DO_WYZNACZENIA, Etap.KRYTERIA_DO_POTWIERDZENIA):
-        kontekst["formularz_kryteriow"] = formularz_kryteriow(proces, ustawowy["data"])
+        if proces.ponowne_kryteria_do and proces.termin:   # § 9 ust. 1 rozp.: termin oceny zostaje bez zmian
+            kontekst["formularz_kryteriow"] = formularz_kryteriow(proces, proces.termin, "§ 9 ust. 1 rozp.")
+        else:
+            kontekst["formularz_kryteriow"] = formularz_kryteriow(proces, ustawowy["data"], ustawowy["podstawa"])
     if oceniajacy and etap == Etap.OCENIANIE:
         from . import copilot  # import przy użyciu - moduł AI nie jest potrzebny do pracy reszty systemu
 
         kontekst["formularz_oceny"] = formularz_oceny(ocena, proces, dzien)
-        kontekst["mozna_zmienic_termin"] = True
+        # Art. 81 ust. 8 u.s.c. dotyczy terminu z ust. 4, a nie oceny sporządzanej w związku ze zmianą stanowiska.
+        kontekst["mozna_zmienic_termin"] = proces.ocena_najwczesniej is None
+        # Art. 81 ust. 8 u.s.c.: wniosek ocenianego (pkt 4) ma własną ścieżkę, a zmiana oceniającego (pkt 1)
+        # jest do wyboru dopiero wtedy, gdy ją odnotowano.
+        kontekst["przypadki_zmiany_terminu"] = [
+            {"kod": kod, "opis": przypadek.opis, "punkt": przypadek.podstawa.replace("art. 81 ust. 8 ", "").replace(" u.s.c.", "")}
+            for kod, przypadek in PRZYPADKI_ZMIANY_TERMINU.items()
+            if kod != "WNIOSEK_OCENIANEGO" and (kod != "ZMIANA_OCENIAJACEGO" or proces.daty_zmiany_oceniajacego)
+        ]
+        kontekst["dzis_iso"] = dzien.isoformat()
         kontekst["copilot"] = {
             "dostepny": copilot.redakcja_notatek_dostepna(),
             # funkcja wysokiego ryzyka - widoczna tylko wtedy, gdy włączyła ją decyzja urzędu
@@ -375,7 +398,7 @@ def kontekst_karty(ocena: Ocena, uzytkownik, dzien: date) -> dict:
         kontekst["mozna_zapisac_egzamin"] = not zakonczona and ocena.pierwsza
     if oceniany and etap == Etap.KRYTERIA_DO_POTWIERDZENIA:
         kontekst["mozna_potwierdzic_kryteria"] = True
-    if oceniany and etap == Etap.OCENIANIE and not kontekst["wniosek_oczekuje"]:
+    if oceniany and etap == Etap.OCENIANIE and not kontekst["wniosek_oczekuje"] and proces.ocena_najwczesniej is None:
         kontekst["mozna_zlozyc_wniosek_o_termin"] = True
     if oceniany and etap == Etap.OCENA_DO_ZAPOZNANIA:
         kontekst["mozna_potwierdzic_zapoznanie"] = True

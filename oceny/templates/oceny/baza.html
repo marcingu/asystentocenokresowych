@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block tytul %}Moje zadania{% endblock %} - Asystent ocen okresowych</title>
+<link rel="icon" href="{% url 'ikona_strony' %}?v={{ logo_wersja }}">
 <link rel="stylesheet" href="{% static 'oceny/styl.css' %}">
 </head>
 <body>
@@ -48,8 +49,8 @@
       {% if jestem_kadry %}<a href="{% url 'kadry' %}"{% if strona == 'kadry' %} aria-current="page"{% endif %}>Kadry</a>{% endif %}
       {% if widze_statystyki %}<a href="{% url 'statystyki' %}"{% if strona == 'statystyki' %} aria-current="page"{% endif %}>Statystyki</a>{% endif %}
       <a href="{% url 'asystent' %}"{% if strona == 'asystent' %} aria-current="page"{% endif %}>Asystent AI</a>
-      {% if jestem_administratorem or widze_statystyki %}<a href="{% url 'przepisy' %}"{% if strona == 'przepisy' %} aria-current="page"{% endif %}>Przepisy</a>{% endif %}
-      {% if jestem_administratorem %}<a href="{% url 'administracja' %}"{% if strona|slice:":13" == 'administracja' %} aria-current="page"{% endif %}>Administracja</a>{% endif %}
+      {% if widze_statystyki and not jestem_administratorem %}<a href="{% url 'przepisy' %}"{% if strona == 'przepisy' %} aria-current="page"{% endif %}>Przepisy</a>{% endif %}
+      {% if jestem_administratorem %}<a href="{% url 'administracja' %}"{% if zakladka_zaplecza %} aria-current="page"{% endif %}>Administracja</a>{% endif %}
     </nav>
     {% endwith %}
     {% endif %}

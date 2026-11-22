@@ -1,8 +1,8 @@
-{% extends "oceny/baza.html" %}
-{% block tytul %}{% if nowe %}Nowe konto{% else %}Konto {{ wybrane.get_username }}{% endif %}{% endblock %}
-{% block tresc %}
-<p class="okruszki"><a href="{% url 'administracja' %}">Administracja - konta</a> / {% if nowe %}nowe konto{% else %}{{ wybrane.get_username }}{% endif %}</p>
-<h1>{% if nowe %}Nowe konto{% else %}Konto {{ wybrane.get_username }}{% endif %}</h1>
+{% extends "oceny/administracja_baza.html" %}
+{% block nazwa %}{% if nowe %}nowe konto{% else %}konto {{ wybrane.get_username }}{% endif %}{% endblock %}
+{% block okruszki %}<a href="{% url 'administracja' %}">konta użytkowników</a> / {% if nowe %}nowe konto{% else %}{{ wybrane.get_username }}{% endif %}{% endblock %}
+{% block naglowek %}{% if nowe %}Nowe konto{% else %}Konto {{ wybrane.get_username }}{% endif %}{% endblock %}
+{% block zaplecze %}
 
 {% if link_hasla %}
 <section class="karta" aria-labelledby="n-link">

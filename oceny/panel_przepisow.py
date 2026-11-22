@@ -90,6 +90,8 @@ def przepisy(request):
     dostepne = {f.kod for f in baza.funkcje_ai if f.wlaczona}
     return render(request, "oceny/przepisy.html", {
         "edycja": edycja, "wersja": stan.wersja, "plik": "przepisy.toml", "tresc": tekst,
+        # Informatyk widzi tę stronę w układzie zaplecza, pozostali - jako zwykłą stronę do odczytu.
+        "uklad": "oceny/administracja_baza.html" if edycja else "oceny/przepisy_baza.html",
         "funkcje_ai": [f for f in wymogi.funkcje_ai if f.kod in dostepne],
         "blad_decyzji_ai": blad_decyzji, "warunki_wlaczenia": baza.warunki_wlaczenia,
     }, status=status)

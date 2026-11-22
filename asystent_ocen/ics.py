@@ -184,7 +184,16 @@ def wydarzenia_procesu(
         )
 
     wydarzenia: list[Wydarzenie] = []
-    if proces.data_zapoznania_z_kryteriami is None:
+    if proces.data_zapoznania_z_kryteriami is None and proces.ponowne_kryteria_do is not None:
+        wydarzenia.append(wydarzenie(
+            "kryteria",
+            proces.ponowne_kryteria_do,
+            "Kryteria oceny okresowej po zmianie stanowiska",
+            "Ostatni dzień na ponowną rozmowę z ocenianym i zapoznanie go z kryteriami po zmianie stanowiska pracy "
+            f"({_dzien_slownie(proces.zmiana_stanowiska)}). Termin sporządzenia oceny nie ulega zmianie.",
+            f"§ 9 ust. 1 {_ROZPORZADZENIE}; {_KODEKS}",
+        ))
+    elif proces.data_zapoznania_z_kryteriami is None:
         dni = przepisy.termin_kryteriow_po_negatywnej_dni if po_negatywnej else przepisy.termin_kryteriow_dni
         wydarzenia.append(wydarzenie(
             "kryteria",
@@ -201,7 +210,14 @@ def wydarzenia_procesu(
             f"{_dzien_slownie(proces.poczatek_cyklu)}, z przedłużeniem o usprawiedliwione nieobecności dłuższe niż "
             f"{przepisy.prog_nieobecnosci_miesiace} mies.)."
         )
-        if proces.termin is not None:
+        if proces.ocena_najwczesniej is not None and proces.termin is not None:
+            opis = (
+                "Ostatni dzień na sporządzenie oceny w związku ze zmianą stanowiska pracy "
+                f"({_dzien_slownie(proces.zmiana_stanowiska)}); nie wcześniej niż {_dzien_slownie(proces.ocena_najwczesniej)}. "
+                "Przed sporządzeniem oceny przeprowadza się rozmowę oceniającą."
+            )
+            podstawa = f"art. 81 ust. 6 {_USTAWA}; § 9 ust. 2 i § 10 {_ROZPORZADZENIE}"
+        elif proces.termin is not None:
             opis = (
                 "Termin sporządzenia oceny na piśmie wpisany w części I arkusza. Przed sporządzeniem oceny "
                 f"przeprowadza się rozmowę oceniającą. {opis_ustawowego}"

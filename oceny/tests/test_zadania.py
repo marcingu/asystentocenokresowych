@@ -174,7 +174,7 @@ class SkutkiTest(TestCase):
         pierwsza = z.ocena_zakonczona(punkty=7)
         druga = uslugi.rozpocznij_kolejny_cykl(pierwsza, z.kadry.uzytkownik, data=date(2026, 11, 5))
         uslugi.wyznacz_kryteria(
-            druga, z.szef.uzytkownik, kryteria_dodatkowe=z.dodatkowe(), termin=date(2028, 11, 3), data=date(2026, 11, 6)
+            druga, z.szef.uzytkownik, kryteria_dodatkowe=z.dodatkowe(), data=date(2026, 11, 6)
         )
         uslugi.potwierdz_kryteria(druga, z.ola.uzytkownik, data=date(2026, 11, 6))
         uslugi.sporzadz_ocene(

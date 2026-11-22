@@ -1,5 +1,7 @@
-{# Partner HR: obraz sytuacji i działania do rozmowy. Parametry: radar, ocena, poziom ("h2" w przeglądzie, domyślnie "h3"),
-   mozna_dodac_notatke i praktyki (tylko przełożony), powrot (opcjonalnie - nazwa strony powrotu po notatce). #}
+{% comment %}
+Partner HR: obraz sytuacji i działania do rozmowy. Parametry: radar, ocena, poziom ("h2" w przeglądzie, domyślnie "h3"),
+mozna_dodac_notatke i praktyki (tylko przełożony), powrot (opcjonalnie - nazwa strony powrotu po notatce).
+{% endcomment %}
 {% if radar.partner %}
 {% if poziom == "h2" %}<h2 id="n-partner">Partner HR - obraz sytuacji i możliwe działania</h2>{% else %}<h3 id="n-partner">Partner HR - obraz sytuacji i możliwe działania</h3>{% endif %}
 <p class="podpowiedz">Sygnały liczy zwykły kod z kart obserwacji - to nie jest system AI. Opisują organizację pracy i to, co z niej

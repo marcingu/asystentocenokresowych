@@ -1,8 +1,5 @@
-{% extends "oceny/baza.html" %}
-{% block tytul %}Administracja - konta{% endblock %}
-{% block tresc %}
-<h1>Administracja - konta użytkowników</h1>
-{% include "oceny/_administracja_menu.html" with zakladka="konta" %}
+{% extends "oceny/administracja_baza.html" %}
+{% block zaplecze %}
 <p class="podpowiedz">Konto bez logowania przez {{ miesiace }} mies. system zawiesza automatycznie (zał. nr 4 część I pkt 6 ustawy
   o krajowym systemie cyberbezpieczeństwa). Przegląd odbywa się raz dziennie; zawieszone konto odblokowuje administrator.
   Weryfikacja dwuetapowa jest w tym urzędzie {% if dwuetapowe_wymagane %}wymagana od każdego konta{% else %}dobrowolna{% endif %}.

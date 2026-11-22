@@ -46,7 +46,7 @@ def proces_w_trakcie_oceniania():
     p.dodaj_notatke(Rola.OCENIAJACY, "Terminowo przygotował raport roczny.", data=d(2026, 6, 30))
     p.zloz_wniosek_o_zmiane_terminu(Rola.OCENIANY, data=d(2026, 7, 13))
     p.zmien_oceniajacego(Rola.ZARZADZAJACY, data=d(2027, 2, 1))
-    p.zmien_termin(Rola.OCENIAJACY, nowy_termin=d(2027, 9, 1), data=d(2027, 3, 1), przyczyna="zmiana oceniającego")
+    p.zmien_termin(Rola.OCENIAJACY, nowy_termin=d(2027, 9, 1), data=d(2027, 3, 1), przyczyna="NIEOBECNOSC_OCENIAJACEGO")
     return p
 
 

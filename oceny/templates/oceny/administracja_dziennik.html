@@ -1,8 +1,5 @@
-{% extends "oceny/baza.html" %}
-{% block tytul %}Administracja - dziennik{% endblock %}
-{% block tresc %}
-<h1>Administracja - {% if proces %}czynności w procesie oceny{% else %}dziennik zdarzeń bezpieczeństwa{% endif %}</h1>
-{% if proces %}{% include "oceny/_administracja_menu.html" with zakladka="proces" %}{% else %}{% include "oceny/_administracja_menu.html" with zakladka="bezpieczenstwo" %}{% endif %}
+{% extends "oceny/administracja_baza.html" %}
+{% block zaplecze %}
 
 {% if proces %}
 <p class="podpowiedz">Czynności w procesie oceny: kto, kiedy i co zrobił w której ocenie. Bez opisów i bez treści ocen - wgląd

@@ -1,9 +1,72 @@
-{% extends "oceny/baza.html" %}
-{% block tytul %}Struktura urzędu{% endblock %}
-{% block tresc %}
-<h1>Struktura urzędu</h1>
-{% include "oceny/_administracja_menu.html" with zakladka="wydzialy" %}
+{% extends "oceny/administracja_baza.html" %}
+{% block zaplecze %}
 <p>Kadry wybierają komórkę organizacyjną pracownika z tej listy. Zmiana nazwy komórki nie zmienia przypisania pracowników.</p>
+<section class="karta" aria-labelledby="n-drzewo">
+  <h2 id="n-drzewo">Obecna struktura</h2>
+  <p class="podpowiedz">Rozwiń komórkę, aby zobaczyć stanowiska i osoby oraz zmienić jej nazwę lub obsadę.
+    Osoba kierująca komórką jest bezpośrednim przełożonym jej pracowników.</p>
+  {% if galezie %}
+  <ul class="drzewo">
+    <li><span class="korzen">{{ urzad }}</span>
+      <ul>
+        {% for galaz in galezie %}
+        <li>
+          <details class="galaz" id="wydzial-{{ galaz.wpis.pk }}"{% if galaz.otwarta %} open{% endif %}>
+            <summary><span class="galaz-nazwa">{{ galaz.wpis.nazwa }}</span> <span class="galaz-liczba">{{ galaz.liczba_opis }}</span></summary>
+            <ul class="stanowiska">
+              {% if galaz.kierujacy %}
+              <li class="stanowisko stanowisko-kierujacy"><span class="etykieta-stanowiska">{{ galaz.kierujacy.stanowisko }}</span>
+                <span class="osoba">{{ galaz.kierujacy.nazwisko }} {{ galaz.kierujacy.imie }}</span>
+                <small>kieruje komórką{% if galaz.kierujacy_z_innej_komorki %} - z komórki: {{ galaz.kierujacy_z_innej_komorki }}{% endif %}</small></li>
+              {% else %}
+              <li class="stanowisko stanowisko-wakat">Nie wyznaczono osoby kierującej komórką.</li>
+              {% endif %}
+              {% for osoba in galaz.osoby %}
+              <li class="stanowisko"><span class="etykieta-stanowiska">{{ osoba.stanowisko }}</span>
+                <span class="osoba">{{ osoba.nazwisko }} {{ osoba.imie }}</span></li>
+              {% endfor %}
+            </ul>
+            <details class="zmiany">
+              <summary>Zmień nazwę lub obsadę</summary>
+              <form method="post" class="formularz">{% csrf_token %}
+                <input type="hidden" name="pk" value="{{ galaz.wpis.pk }}">
+                <label for="nazwa-{{ galaz.wpis.pk }}">Nazwa komórki organizacyjnej</label>
+                <input id="nazwa-{{ galaz.wpis.pk }}" name="nazwa" value="{{ galaz.wpis.nazwa }}" maxlength="160" required>
+                <button type="submit" name="akcja" value="zmien" class="przycisk przycisk-drugi">Zapisz nazwę</button>
+              </form>
+              <form method="post" class="formularz">{% csrf_token %}
+                <input type="hidden" name="pk" value="{{ galaz.wpis.pk }}">
+                <label for="szef-{{ galaz.wpis.pk }}">Bezpośredni przełożony pracowników - {{ galaz.wpis.nazwa }}</label>
+                <select id="szef-{{ galaz.wpis.pk }}" name="kierownik"><option value="">Nie wyznaczono</option>
+                  {% for osoba in osoby %}<option value="{{ osoba.pk }}"{% if osoba.pk == galaz.wpis.kierownik_id %} selected{% endif %}>{{ osoba }} - {{ osoba.stanowisko }} (#{{ osoba.pk }})</option>{% endfor %}
+                </select>
+                <label for="nadrzedny-{{ galaz.wpis.pk }}">Przełożony kierownika, jeśli sam pracuje w tej komórce</label>
+                <select id="nadrzedny-{{ galaz.wpis.pk }}" name="zwierzchnik"><option value="">Nie wyznaczono</option>
+                  {% for osoba in osoby %}<option value="{{ osoba.pk }}"{% if osoba.pk == galaz.wpis.zwierzchnik_id %} selected{% endif %}>{{ osoba }} - {{ osoba.stanowisko }} (#{{ osoba.pk }})</option>{% endfor %}
+                </select>
+                <button type="submit" name="akcja" value="obsada" class="przycisk przycisk-drugi">Zapisz obsadę komórki</button>
+              </form>
+              {% if not galaz.liczba %}<form method="post">{% csrf_token %}
+                <input type="hidden" name="pk" value="{{ galaz.wpis.pk }}">
+                <button type="submit" name="akcja" value="usun" class="przycisk przycisk-drugi" data-potwierdz="Usunąć pustą komórkę?">Usuń pustą komórkę</button>
+              </form>{% endif %}
+            </details>
+          </details>
+        </li>
+        {% endfor %}
+      </ul>
+    </li>
+  </ul>
+  {% else %}<p>Lista jest pusta. Dodaj pierwszą komórkę organizacyjną, aby kadry mogły przypisać do niej pracownika.</p>{% endif %}
+</section>
+<section class="karta" aria-labelledby="nowy-wydzial">
+  <h2 id="nowy-wydzial">Dodaj komórkę organizacyjną</h2>
+  <form method="post" class="formularz">{% csrf_token %}
+    <label for="nazwa-nowa">Nazwa nowej komórki, np. departamentu, biura albo wydziału</label>
+    <input id="nazwa-nowa" name="nazwa" maxlength="160" required>
+    <button type="submit" name="akcja" value="dodaj" class="przycisk">Dodaj komórkę</button>
+  </form>
+</section>
 <section class="karta" aria-labelledby="struktura-kprm">
   <h2 id="struktura-kprm">Struktura Kancelarii Prezesa Rady Ministrów</h2>
   <p>System ma listę {{ liczba_kprm }} komórek organizacyjnych KPRM - biur, departamentów i Centrum Informacyjnego Rządu -
@@ -14,41 +77,4 @@
   </form>
   <p class="podpowiedz">Wczytanie dodaje komórki, których jeszcze nie ma. Istniejących nazw, obsady i przypisań pracowników nie zmienia i niczego nie usuwa.</p>
 </section>
-<section class="karta" aria-labelledby="nowy-wydzial">
-  <h2 id="nowy-wydzial">Dodaj komórkę organizacyjną</h2>
-  <form method="post" class="formularz">{% csrf_token %}
-    <label for="nazwa-nowa">Nazwa nowej komórki, np. departamentu, biura albo wydziału</label>
-    <input id="nazwa-nowa" name="nazwa" maxlength="160" required>
-    <button type="submit" name="akcja" value="dodaj" class="przycisk">Dodaj komórkę</button>
-  </form>
-</section>
-<h2>Obecna struktura</h2>
-{% for wpis in wydzialy %}
-<section class="karta" aria-labelledby="wydzial-{{ wpis.pk }}">
-  <h3 id="wydzial-{{ wpis.pk }}">{{ wpis.nazwa }}</h3>
-  <form method="post" class="formularz">{% csrf_token %}
-    <input type="hidden" name="pk" value="{{ wpis.pk }}">
-    <label for="nazwa-{{ wpis.pk }}">Nazwa komórki organizacyjnej</label>
-    <input id="nazwa-{{ wpis.pk }}" name="nazwa" value="{{ wpis.nazwa }}" maxlength="160" required>
-    <button type="submit" name="akcja" value="zmien" class="przycisk przycisk-drugi">Zapisz nazwę</button>
-  </form>
-  <form method="post" class="formularz">{% csrf_token %}
-    <input type="hidden" name="pk" value="{{ wpis.pk }}">
-    <label for="szef-{{ wpis.pk }}">Bezpośredni przełożony pracowników - {{ wpis.nazwa }}</label>
-    <select id="szef-{{ wpis.pk }}" name="kierownik"><option value="">Nie wyznaczono</option>
-      {% for osoba in osoby %}<option value="{{ osoba.pk }}"{% if osoba.pk == wpis.kierownik_id %} selected{% endif %}>{{ osoba }} - {{ osoba.stanowisko }} (#{{ osoba.pk }})</option>{% endfor %}
-    </select>
-    <label for="nadrzedny-{{ wpis.pk }}">Przełożony kierownika, jeśli sam pracuje w tej komórce</label>
-    <select id="nadrzedny-{{ wpis.pk }}" name="zwierzchnik"><option value="">Nie wyznaczono</option>
-      {% for osoba in osoby %}<option value="{{ osoba.pk }}"{% if osoba.pk == wpis.zwierzchnik_id %} selected{% endif %}>{{ osoba }} - {{ osoba.stanowisko }} (#{{ osoba.pk }})</option>{% endfor %}
-    </select>
-    <button type="submit" name="akcja" value="obsada" class="przycisk przycisk-drugi">Zapisz obsadę komórki</button>
-  </form>
-  <p>Liczba przypisanych pracowników: {{ wpis.liczba }}.</p>
-  {% if not wpis.liczba %}<form method="post">{% csrf_token %}
-    <input type="hidden" name="pk" value="{{ wpis.pk }}">
-    <button type="submit" name="akcja" value="usun" class="przycisk przycisk-drugi" data-potwierdz="Usunąć pustą komórkę?">Usuń pustą komórkę</button>
-  </form>{% endif %}
-</section>
-{% empty %}<p>Lista jest pusta. Dodaj pierwszą komórkę organizacyjną, aby kadry mogły przypisać do niej pracownika.</p>{% endfor %}
 {% endblock %}

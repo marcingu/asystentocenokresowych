@@ -11,7 +11,7 @@ from oceny.models import Pracownik, Wydzial
 POCZATEK = date(2024, 11, 21)
 DZIEN_KRYTERIOW = date(2024, 12, 2)
 DZIEN_POTWIERDZENIA = date(2024, 12, 3)
-TERMIN = date(2026, 11, 20)
+TERMIN = date(2026, 11, 23)  # ustawowy: 21.11.2024 + 24 mies. = sobota 21.11.2026, więc poniedziałek (art. 115 KC)
 DZIEN_ROZMOWY = date(2026, 11, 3)
 DZIEN_OCENY = date(2026, 11, 4)
 

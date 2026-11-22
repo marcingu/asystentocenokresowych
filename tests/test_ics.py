@@ -229,7 +229,7 @@ def test_termin_kryteriow_zostaje_w_kalendarzu_do_potwierdzenia_przez_ocenianego
 def test_termin_oceny_to_termin_wpisany_w_czesci_I_arkusza_gdy_oceniajacy_go_ustalil():
     """§ 5 ust. 3 i § 8 rozp.: termin sporządzenia oceny wpisuje i zmienia oceniający."""
     proces = proces_C("potwierdzone")
-    proces.zmien_termin(Rola.OCENIAJACY, nowy_termin=d(2027, 9, 1), data=d(2027, 3, 1), przyczyna="zmiana oceniającego")
+    proces.zmien_termin(Rola.OCENIAJACY, nowy_termin=d(2027, 9, 1), data=d(2027, 3, 1), przyczyna="NIEOBECNOSC_OCENIAJACEGO")
     assert terminy(proces) == {"termin-oceny": d(2027, 9, 1)}
 
 

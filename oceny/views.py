@@ -85,10 +85,8 @@ def ocena(request, pk: int):
 
 
 def _wyznacz_kryteria(request, wybrana: Ocena):
-    termin = formularze.wymagana_data(request.POST, "termin", "termin sporządzenia oceny")
-    uslugi.wyznacz_kryteria(
-        wybrana, request.user, kryteria_dodatkowe=formularze.kryteria_dodatkowe(request.POST), termin=termin
-    )
+    # Termin sporządzenia oceny wynika z ustawy - wylicza go usługa, formularz go nie przesyła.
+    uslugi.wyznacz_kryteria(wybrana, request.user, kryteria_dodatkowe=formularze.kryteria_dodatkowe(request.POST))
     messages.success(request, "Kryteria i termin oceny zostały przekazane ocenianemu do potwierdzenia.")
 
 
@@ -128,7 +126,10 @@ def _egzamin(request, wybrana: Ocena):
 
 def _zmien_termin(request, wybrana: Ocena):
     nowy = formularze.wymagana_data(request.POST, "nowy_termin", "nowy termin sporządzenia oceny")
-    uslugi.zmien_termin(wybrana, request.user, nowy_termin=nowy, przyczyna=formularze.tekst(request.POST, "przyczyna"))
+    uslugi.zmien_termin(
+        wybrana, request.user, nowy_termin=nowy, przyczyna=formularze.tekst(request.POST, "przyczyna"),
+        opis=formularze.tekst(request.POST, "opis"),
+    )
     messages.success(request, "Termin oceny został zmieniony. Zawiadomienie dla ocenianego jest w dokumentach sprawy.")
 
 
@@ -392,6 +393,43 @@ def kadry_nieobecnosc(request, pk: int):
         _zglos_bledy(request, wyjatek)
     else:
         messages.success(request, f"Dodano nieobecność: {osoba.imie_i_nazwisko}. Terminy ocen zostały przeliczone.")
+    return redirect("kadry")
+
+
+@require_POST
+def kadry_stanowisko(request, pk: int):
+    """Zmiana stanowiska z istotną zmianą zakresu obowiązków (art. 81 ust. 6 u.s.c., § 9 ust. 1-2 rozp.)."""
+    _wymagaj_kadr(request)
+    osoba = get_object_or_404(Pracownik, pk=pk)
+    try:
+        wynik = uslugi.zmien_stanowisko(
+            osoba, request.user,
+            stanowisko=formularze.tekst(request.POST, "stanowisko"),
+            opis_stanowiska=formularze.tekst(request.POST, "opis_stanowiska"),
+            data_zmiany=formularze.wymagana_data(request.POST, "data_zmiany", "dzień zmiany stanowiska"),
+        )
+    except BladWalidacji as wyjatek:
+        _zglos_bledy(request, wyjatek)
+        return redirect("kadry_pracownik", pk=osoba.pk)
+    skutek = wynik["skutek"]
+    if skutek is None:
+        messages.success(
+            request, f"Zapisano nowe stanowisko: {osoba.imie_i_nazwisko}. Pracownik nie ma trwającej oceny okresowej, "
+            "więc zmiana nie wpływa na terminy.",
+        )
+    elif skutek.wymagana_ocena:
+        messages.success(
+            request, f"Zapisano nowe stanowisko: {osoba.imie_i_nazwisko}. Ocenę na dotychczasowym stanowisku sporządza się "
+            f"od {skutek.ocena_najwczesniej:%d.%m.%Y} do {skutek.ocena_najpozniej:%d.%m.%Y} "
+            "(art. 81 ust. 6 u.s.c., § 9 ust. 2 rozp.). Oceniający ma to zadanie na swojej liście.",
+        )
+    else:
+        messages.success(
+            request, f"Zapisano nowe stanowisko: {osoba.imie_i_nazwisko}. Nowej oceny się nie sporządza, bo "
+            f"{uslugi.powod_braku_oceny_po_zmianie_stanowiska(wynik['ocena'])} (art. 81 ust. 6 u.s.c.). Oceniający ponownie "
+            f"przeprowadza rozmowę i ustala kryteria do {skutek.ponowne_kryteria_do:%d.%m.%Y}; termin oceny zostaje bez zmian "
+            "(§ 9 ust. 1 rozp.).",
+        )
     return redirect("kadry")
 
 

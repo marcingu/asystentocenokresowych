@@ -68,9 +68,10 @@
       </select>
       {% endfor %}
     </fieldset>
-    <label for="termin">Termin sporządzenia oceny</label>
-    <input type="date" name="termin" id="termin" value="{{ formularz_kryteriow.termin }}" required>
-    <p class="podpowiedz">Termin ustawowy: {{ formularz_kryteriow.termin_ustawowy|date:"d.m.Y" }}. Możesz wyznaczyć termin wcześniejszy.</p>
+    <p>Termin sporządzenia oceny: <strong>{{ formularz_kryteriow.termin_ustawowy|date:"d.m.Y" }}</strong></p>
+    <p class="podpowiedz">Termin wynika z ustawy i system wpisuje go do części I sam ({{ formularz_kryteriow.podstawa }}).
+      Zmienić go można dopiero po upływie ponad 6 miesięcy, w przypadkach z art. 81 ust. 8 u.s.c.; dłuższa niż miesiąc
+      usprawiedliwiona nieobecność ocenianego przedłuża go automatycznie (art. 81 ust. 7 u.s.c.).</p>
     <button type="submit" class="przycisk">{% if kryteria_wyznaczone %}Popraw i przekaż ponownie{% else %}Przekaż ocenianemu do potwierdzenia{% endif %}</button>
   </form>
   {% else %}
@@ -649,10 +650,18 @@
     {% else %}
     <form method="post" action="{% url 'czynnosc' ocena.pk 'zmien-termin' %}" class="formularz">
       {% csrf_token %}
+      <p class="podpowiedz">Termin można zmienić tylko w przypadkach wymienionych w ustawie i dopiero wtedy, gdy od
+        poprzedniej oceny upłynęło ponad 6 miesięcy (przy pierwszej ocenie - od początku okresu). Oceniany dostaje
+        pisemne zawiadomienie o nowym terminie (§ 8 rozp.).</p>
+      <label for="przyczyna">Przypadek z art. 81 ust. 8 u.s.c.</label>
+      <select name="przyczyna" id="przyczyna" required>
+        <option value="">- wybierz -</option>
+        {% for przypadek in przypadki_zmiany_terminu %}<option value="{{ przypadek.kod }}">{{ przypadek.opis }} ({{ przypadek.punkt }})</option>{% endfor %}
+      </select>
       <label for="nowy_termin">Nowy termin</label>
-      <input type="date" name="nowy_termin" id="nowy_termin" required>
-      <label for="przyczyna">Przyczyna (przypadek z art. 81 ust. 8 u.s.c.)</label>
-      <input type="text" name="przyczyna" id="przyczyna" required>
+      <input type="date" name="nowy_termin" id="nowy_termin" min="{{ dzis_iso }}" required>
+      <label for="opis_zmiany">Uwagi do zawiadomienia (nieobowiązkowe)</label>
+      <textarea name="opis" id="opis_zmiany" rows="2"></textarea>
       <button type="submit" class="przycisk przycisk-drugi">Zmień termin i zawiadom ocenianego</button>
     </form>
     {% endif %}

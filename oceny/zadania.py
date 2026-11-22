@@ -72,7 +72,13 @@ def zadania_oceny(ocena: Ocena, role: set[Rola], dzien: date) -> list[Zadanie]:
 
     etap = ocena.etap_rdzenia
     po_negatywnej = ocena.po_negatywnej
-    if etap == Etap.KRYTERIA_DO_WYZNACZENIA:
+    ponownie_do = ocena.ponowne_kryteria_do   # § 9 ust. 1 rozp.: kryteria ustalane ponownie po zmianie stanowiska
+    if etap == Etap.KRYTERIA_DO_WYZNACZENIA and ponownie_do:
+        dodaj(
+            Rola.OCENIAJACY, "WYZNACZ_KRYTERIA", "Po zmianie stanowiska przeprowadź rozmowę i ustal kryteria oceny ponownie",
+            ponownie_do, "§ 9 ust. 1 rozp.",
+        )
+    elif etap == Etap.KRYTERIA_DO_WYZNACZENIA:
         dodaj(
             Rola.OCENIAJACY, "WYZNACZ_KRYTERIA", "Przeprowadź rozmowę i wyznacz kryteria oceny",
             terminy.termin_wyznaczenia_kryteriow(ocena.poczatek_cyklu, po_negatywnej),
@@ -81,8 +87,14 @@ def zadania_oceny(ocena: Ocena, role: set[Rola], dzien: date) -> list[Zadanie]:
     elif etap == Etap.KRYTERIA_DO_POTWIERDZENIA:
         dodaj(
             Rola.OCENIANY, "POTWIERDZ_KRYTERIA", "Potwierdź rozmowę i zapoznanie z kryteriami oceny",
-            terminy.termin_wyznaczenia_kryteriow(ocena.poczatek_cyklu, po_negatywnej),
-            f"§ 6 ust. 2 i § 7 pkt {2 if po_negatywnej else 1} rozp.",
+            ponownie_do or terminy.termin_wyznaczenia_kryteriow(ocena.poczatek_cyklu, po_negatywnej),
+            "§ 9 ust. 1 rozp." if ponownie_do else f"§ 6 ust. 2 i § 7 pkt {2 if po_negatywnej else 1} rozp.",
+        )
+    elif etap == Etap.OCENIANIE and ocena.ocena_najwczesniej:
+        dodaj(
+            Rola.OCENIAJACY, "SPORZADZ_OCENE",
+            f"Sporządź ocenę w związku ze zmianą stanowiska (nie wcześniej niż {ocena.ocena_najwczesniej:%d.%m.%Y})",
+            ocena.termin, "art. 81 ust. 6 u.s.c.; § 9 ust. 2, § 10 i § 11 rozp.",
         )
     elif etap == Etap.OCENIANIE:
         dodaj(

@@ -10,6 +10,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
@@ -50,9 +51,13 @@ def poprzednia_ocena(ocena: Ocena) -> PoprzedniaOcena | None:
 def dane_arkusza(ocena: Ocena) -> DaneArkusza:
     proces = ocena.proces()
     oceniany = ocena.oceniany
+    dane_ocenianego = _osoba(oceniany)
+    if proces.stanowisko_przed_zmiana:
+        # Art. 81 ust. 6 u.s.c.: ocena w związku ze zmianą stanowiska dotyczy stanowiska dotychczasowego.
+        dane_ocenianego = replace(dane_ocenianego, stanowisko=proces.stanowisko_przed_zmiana)
     return DaneArkusza(
         nazwa_urzedu=OznaczenieUrzedu.aktualne().nazwa,
-        oceniany=_osoba(oceniany),
+        oceniany=dane_ocenianego,
         oceniajacy=_osoba(ocena.oceniajacy),
         proces=proces,
         miejscowosc_oceniajacego=settings.ASYSTENT_MIEJSCOWOSC,

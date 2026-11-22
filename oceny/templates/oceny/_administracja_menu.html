@@ -1,9 +1,18 @@
-<nav class="podmenu" aria-label="Zaplecze administratora">
-  <a href="{% url 'administracja' %}"{% if zakladka == 'konta' %} aria-current="page"{% endif %}>Konta użytkowników</a>
-  <a href="{% url 'administracja_dziennik' %}"{% if zakladka == 'bezpieczenstwo' %} aria-current="page"{% endif %}>Dziennik zdarzeń bezpieczeństwa</a>
-  <a href="{% url 'administracja_dziennik' %}?dziennik=proces"{% if zakladka == 'proces' %} aria-current="page"{% endif %}>Czynności w procesie oceny</a>
-  <a href="{% url 'administracja_urzad' %}"{% if zakladka == 'urzad' %} aria-current="page"{% endif %}>Oznaczenie urzędu</a>
-  <a href="{% url 'administracja_poczta' %}"{% if zakladka == 'poczta' %} aria-current="page"{% endif %}>Poczta i przypomnienia</a>
-  <a href="{% url 'przepisy' %}"{% if zakladka == 'przepisy' %} aria-current="page"{% endif %}>Konfiguracja procesu</a>
-  <a href="{% url 'wydzialy' %}"{% if zakladka == 'wydzialy' %} aria-current="page"{% endif %}>Struktura urzędu</a>
+<nav class="zaplecze-menu" aria-label="Zaplecze administratora">
+  <p class="grupa" id="zm-ludzie">Ludzie i struktura</p>
+  <ul aria-labelledby="zm-ludzie">
+    <li><a href="{% url 'administracja' %}"{% if zakladka_zaplecza == 'konta' %} aria-current="page"{% endif %}>Konta użytkowników</a></li>
+    <li><a href="{% url 'wydzialy' %}"{% if zakladka_zaplecza == 'wydzialy' %} aria-current="page"{% endif %}>Struktura urzędu</a></li>
+  </ul>
+  <p class="grupa" id="zm-urzad">Urząd i konfiguracja</p>
+  <ul aria-labelledby="zm-urzad">
+    <li><a href="{% url 'administracja_urzad' %}"{% if zakladka_zaplecza == 'urzad' %} aria-current="page"{% endif %}>Oznaczenie urzędu</a></li>
+    <li><a href="{% url 'administracja_poczta' %}"{% if zakladka_zaplecza == 'poczta' %} aria-current="page"{% endif %}>Poczta i przypomnienia</a></li>
+    <li><a href="{% url 'przepisy' %}"{% if zakladka_zaplecza == 'przepisy' %} aria-current="page"{% endif %}>Konfiguracja procesu</a></li>
+  </ul>
+  <p class="grupa" id="zm-dzienniki">Dzienniki</p>
+  <ul aria-labelledby="zm-dzienniki">
+    <li><a href="{% url 'administracja_dziennik' %}"{% if zakladka_zaplecza == 'bezpieczenstwo' %} aria-current="page"{% endif %}>Dziennik zdarzeń bezpieczeństwa</a></li>
+    <li><a href="{% url 'administracja_dziennik' %}?dziennik=proces"{% if zakladka_zaplecza == 'proces' %} aria-current="page"{% endif %}>Czynności w procesie oceny</a></li>
+  </ul>
 </nav>

@@ -1,8 +1,5 @@
-{% extends "oceny/baza.html" %}
-{% block tytul %}Poczta i przypomnienia{% endblock %}
-{% block tresc %}
-<h1>Poczta i przypomnienia</h1>
-{% include "oceny/_administracja_menu.html" with zakladka="poczta" %}
+{% extends "oceny/administracja_baza.html" %}
+{% block zaplecze %}
 <p>System wysyła na adresy e-mail z kont użytkowników przypomnienia o terminach z listy „Moje zadania”. Wiadomość zawiera terminy,
   podstawę prawną i załącznik do kalendarza. Nie zawiera ocen ani treści arkuszy.</p>
 

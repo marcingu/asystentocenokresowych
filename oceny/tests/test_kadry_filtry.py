@@ -53,7 +53,7 @@ class FiltryKadrTest(TestCase):
 
     def test_filtr_po_terminie_liczy_termin_wzgledem_dzisiejszej_daty(self):
         self.assertEqual(self.loginy(status="po_terminie"), [])
-        with override_settings(ASYSTENT_DZIS="2026-11-21"):
+        with override_settings(ASYSTENT_DZIS="2026-11-24"):   # dzień po terminie ustawowym 23.11.2026
             self.assertEqual(self.loginy(status="po_terminie"), ["ola"])
 
     def test_filtry_lacza_sie(self):

@@ -32,4 +32,27 @@
     </div>
   </form>
 </section>
+{% if osoba %}
+<section class="karta" aria-labelledby="n-stanowisko">
+  <h2 id="n-stanowisko">Zmiana stanowiska z istotną zmianą zakresu obowiązków</h2>
+  <p class="podpowiedz">Użyj tego formularza, gdy pracownik przechodzi na stanowisko o istotnie innym zakresie obowiązków.
+    System sam ustali skutek dla trwającej oceny: jeżeli od poprzedniej oceny upłynęło więcej niż 6 miesięcy (przy pierwszej
+    ocenie - gdy okres podlegający ocenie jest dłuższy niż 6 miesięcy), ocenę na dotychczasowym stanowisku sporządza się nie
+    wcześniej niż 7 dni przed zmianą i nie później niż 30 dni po niej (art. 81 ust. 6 u.s.c., § 9 ust. 2 rozp.). W pozostałych
+    przypadkach nowej oceny się nie sporządza - oceniający w 30 dni ponownie ustala kryteria, a termin oceny zostaje
+    (§ 9 ust. 1 rozp.). Poprawkę nazwy stanowiska bez zmiany obowiązków wpisz w formularzu powyżej.</p>
+  <form method="post" action="{% url 'kadry_stanowisko' osoba.pk %}" class="formularz">
+    {% csrf_token %}
+    <label for="nowe_stanowisko">Nowe stanowisko</label>
+    <input type="text" name="stanowisko" id="nowe_stanowisko" maxlength="160" required>
+    <label for="nowy_opis_stanowiska">Opis nowego stanowiska pracy</label>
+    <textarea name="opis_stanowiska" id="nowy_opis_stanowiska" rows="3" required></textarea>
+    <label for="data_zmiany">Dzień zmiany stanowiska</label>
+    <input type="date" name="data_zmiany" id="data_zmiany" required>
+    <div class="przyciski">
+      <button type="submit" class="przycisk przycisk-drugi">Zapisz zmianę stanowiska</button>
+    </div>
+  </form>
+</section>
+{% endif %}
 {% endblock %}

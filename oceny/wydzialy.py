@@ -2,9 +2,9 @@
 from django import forms
 from django.contrib import messages
 from django.db import IntegrityError, transaction
-from django.db.models import Count
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from . import dziennik, struktura_kprm
@@ -22,14 +22,23 @@ class FormularzObsady(forms.Form):
     zwierzchnik = forms.ModelChoiceField(queryset=Pracownik.objects.all(), required=False)
 
 
+def _powrot(pk=None, *, blad: bool = False):
+    """Powrót na stronę struktury. Po zapisie w komórce jej gałąź zostaje rozwinięta i przewinięta na ekran -
+    widać skutek. Po błędzie strona wraca na początek treści, bo kotwica gałęzi schowałaby komunikat."""
+    adres = reverse("wydzialy") + (f"?otwarta={pk}" if pk else "")
+    return redirect(adres + (f"#wydzial-{pk}" if pk and not blad else "#tresc"))
+
+
 @require_http_methods(["GET", "POST"])
 def struktura(request):
     _wymagaj_administratora(request)
     if request.method == "POST":
         akcja = request.POST.get("akcja")
+        numer = request.POST.get("pk", "")
+        pk = int(numer) if akcja in {"zmien", "obsada"} and numer.isascii() and numer.isdigit() else None
         if akcja not in {"dodaj", "zmien", "usun", "obsada", "wczytaj"}:
             messages.error(request, "Nieznana czynność.")
-            return redirect("wydzialy")
+            return _powrot(blad=True)
         if akcja == "wczytaj":
             with transaction.atomic():
                 dodane = struktura_kprm.wczytaj()
@@ -38,11 +47,11 @@ def struktura(request):
                 dziennik.zapisz(dziennik.PANEL_ADMINISTRATORA, request=request, dotyczy="struktura urzędu",
                                opis=f"{opis} Źródło: {struktura_kprm.ZRODLO}, odczyt {struktura_kprm.ODCZYT:%d.%m.%Y}.")
             messages.success(request, opis)
-            return redirect("wydzialy")
+            return _powrot()
         formularz = FormularzWydzialu(request.POST)
         if akcja in {"dodaj", "zmien"} and not formularz.is_valid():
             messages.error(request, "Podaj nazwę komórki organizacyjnej (od 1 do 160 znaków).")
-            return redirect("wydzialy")
+            return _powrot(pk, blad=True)
         try:
             with transaction.atomic():
                 wpis = Wydzial()
@@ -74,12 +83,50 @@ def struktura(request):
             messages.error(request, "Nie zapisano komórki. Odśwież listę i sprawdź nazwę.")
         else:
             messages.success(request, opis)
-        return redirect("wydzialy")
+            return _powrot(pk)
+        return _powrot(pk, blad=True)
+    osoby = list(Pracownik.objects.select_related("wydzial").order_by("nazwisko", "imie", "pk"))
     return render(request, "oceny/wydzialy.html", {
-        "wydzialy": Wydzial.objects.annotate(liczba=Count("pracownicy")),
-        "osoby": list(Pracownik.objects.order_by("nazwisko", "imie", "pk")),
+        "galezie": drzewo(osoby, otwarta=request.GET.get("otwarta", "")),
+        "osoby": osoby,
         "zrodlo_kprm": struktura_kprm.ZRODLO, "odczyt_kprm": struktura_kprm.ODCZYT, "liczba_kprm": len(struktura_kprm.KOMORKI),
     })
+
+
+def drzewo(osoby: list[Pracownik], otwarta: str = "") -> list[dict]:
+    """Gałęzie drzewa struktury (urząd - komórki - stanowiska z osobami), w układzie znanym z EZD.
+
+    Osoba kierująca stoi w gałęzi pierwsza i nie jest wypisana drugi raz wśród pozostałych. `otwarta` to numer
+    komórki, której gałąź ma być rozwinięta; pozostałe są zwinięte."""
+    w_komorce: dict[int, list[Pracownik]] = {}
+    for osoba in osoby:
+        if osoba.wydzial_id:
+            w_komorce.setdefault(osoba.wydzial_id, []).append(osoba)
+    galezie = []
+    for wpis in Wydzial.objects.select_related("kierownik__wydzial", "zwierzchnik"):
+        przypisani = w_komorce.get(wpis.pk, [])
+        kierujacy = wpis.kierownik
+        galezie.append({
+            "wpis": wpis,
+            "kierujacy": kierujacy,
+            "kierujacy_z_innej_komorki": kierujacy.komorka if kierujacy and kierujacy.wydzial_id != wpis.pk else "",
+            "osoby": [osoba for osoba in przypisani if osoba.pk != wpis.kierownik_id],
+            "liczba": len(przypisani),
+            "liczba_opis": _osoby(len(przypisani)),
+            "otwarta": otwarta == str(wpis.pk),
+        })
+    return galezie
+
+
+def _osoby(liczba: int) -> str:
+    """Odmiana po liczebniku: brak osób, 1 osoba, 2-4 osoby, 5-21 osób, 22-24 osoby."""
+    if liczba == 0:
+        return "brak osób"
+    if liczba == 1:
+        return "1 osoba"
+    if liczba % 10 in (2, 3, 4) and liczba % 100 not in (12, 13, 14):
+        return f"{liczba} osoby"
+    return f"{liczba} osób"
 
 
 def _komorki(liczba: int) -> str:
