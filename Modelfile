@@ -1,0 +1,22 @@
+# Lokalny model językowy asystenta: PLLuM-12B-chat-2512 (CYFRAGOVPL, Apache-2.0), kwantyzacja Q4_K_M.
+#
+# 1. Pobierz plik modelu (ok. 7,5 GB) do tego katalogu:
+#    https://huggingface.co/mradermacher/PLLuM-12B-chat-2512-GGUF/resolve/main/PLLuM-12B-chat-2512.Q4_K_M.gguf
+# 2. Zbuduj model w Ollamie pod nazwą, której domyślnie używa aplikacja:
+#    ollama create pllum-12b-chat-2512:q4_k_m -f Modelfile
+#
+# Szablon rozmowy, długość kontekstu i temperatura są takie same jak na komputerze zespołu.
+FROM ./PLLuM-12B-chat-2512.Q4_K_M.gguf
+TEMPLATE """{{- $sys := .System }}{{- $first := true }}
+{{- range .Messages }}
+{{- if eq .Role "user" }}[INST]{{ if and $first $sys }}{{ $sys }}
+
+{{ end }}{{ $first = false }}{{ .Content }}[/INST]
+{{- else if eq .Role "assistant" }}{{ .Content }}</s>
+{{- end }}
+{{- end }}"""
+PARAMETER num_ctx 8192
+PARAMETER stop [INST]
+PARAMETER stop [/INST]
+PARAMETER temperature 0.2
+LICENSE Apache-2.0 - model CYFRAGOVPL/PLLuM-12B-chat-2512; kwantyzacja Q4_K_M: mradermacher/PLLuM-12B-chat-2512-GGUF

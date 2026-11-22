@@ -2,21 +2,115 @@
 
 Prototyp na HackNation 2026 (wyzwanie KPRM). System prowadzi ocenę okresową w służbie cywilnej od wyznaczenia kryteriów do skutków oceny: pilnuje terminów, sprawdza arkusz i przy każdym komunikacie podaje podstawę prawną.
 
-## Pokaz w jednym poleceniu
+## Dla jury: instalacja i test w 10 minut
+
+### 1. Uruchomienie
+
+Potrzebne: Python 3.11 lub nowszy, git i internet przy pierwszym uruchomieniu (pobranie Django, python-docx i Pillow).
 
 ```
+git clone https://github.com/marcingu/asystentocenokresowych.git
+cd asystentocenokresowych
 ./uruchom-demo.sh
 ```
 
-Skrypt tworzy środowisko Pythona, instaluje zależności, zakłada bazę z fikcyjnym urzędem i uruchamia serwer pod adresem `http://127.0.0.1:8000/`. Na pasku u góry strony wybiera się osobę (oceniany, przełożony, kadry, dyrektor) - konta pokazowe nie mają haseł i działają tylko w trybie demonstracyjnym.
+Skrypt sam tworzy środowisko Pythona (`.venv`), instaluje zależności, zakłada bazę z fikcyjnym urzędem i uruchamia serwer. Gdy wypisze „Pokaz działa pod adresem http://127.0.0.1:8000/”, otwórz ten adres w przeglądarce.
 
-Wymagany Python 3.11 lub nowszy. Wydruk PDF wymaga LibreOffice na serwerze; bez niego arkusz pobiera się jako DOCX. Asystent AI wymaga lokalnego modelu w Ollamie; bez niego reszta systemu działa bez zmian.
+**Logowanie bez haseł:** na pasku u góry strony („Wejdź jako:”) kliknij osobę. Konta pokazowe działają tylko w trybie demonstracyjnym, a wszystkie osoby i dane są fikcyjne.
 
-Opcje: `./uruchom-demo.sh --od-nowa` buduje bazę pokazową od początku, `./uruchom-demo.sh 8080` zmienia port.
+Sprawdzone 22.11.2026 na czystej kopii repozytorium z GitHuba, na macOS (Apple Silicon, Python 3.12): instalacja z uruchomieniem trwała u nas poniżej minuty. Skrypt to zwykły `sh`, więc na Linuksie i w WSL polecenia są te same - tych systemów nie testowaliśmy.
 
-Pokaz włącza - wyłącznie na danych fikcyjnych - trzy funkcje modelu językowego: sugestię ocen cząstkowych, propozycję kierunków do IPRZ i pytania do kart obserwacji radaru. To funkcje wysokiego ryzyka według AI Act, po instalacji wyłączone (patrz „Założenia”). Wpisy pokazowe nie zawierają analiz, które urząd wykonuje przed włączeniem, i poza trybem demonstracyjnym niczego nie włączają. Pokaz bez tych funkcji: `ASYSTENT_DECYZJE_AI= ./uruchom-demo.sh`.
+<details>
+<summary>Windows bez WSL albo uruchomienie ręczne, krok po kroku</summary>
 
-## Co działa (stan na 21.11.2026)
+Te same kroki, które wykonuje skrypt. W tej postaci (PowerShell) nie testowaliśmy ich na Windows; ich odpowiedniki działają na macOS. Testy automatyczne (punkt 4) uruchamiaj potem w nowym oknie terminala - zmienne `ASYSTENT_` ustawione dla pokazu zmieniają zachowanie aplikacji i część testów by nie przeszła.
+
+```
+git clone https://github.com/marcingu/asystentocenokresowych.git
+cd asystentocenokresowych
+py -3 -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt
+$env:ASYSTENT_TRYB_DEMO = "1"
+$env:ASYSTENT_BAZA = "$PWD\demo.sqlite3"
+$env:ASYSTENT_DECYZJE_AI = "$PWD\decyzje-ai-pokaz.toml"
+$env:ASYSTENT_URZAD = "Kancelaria Prezesa Rady Ministrów"
+$env:ASYSTENT_MIEJSCOWOSC = "Warszawa"
+.venv\Scripts\python manage.py migrate --noinput
+.venv\Scripts\python manage.py demo
+.venv\Scripts\python manage.py uzgodnij_cykle
+.venv\Scripts\python manage.py runserver 127.0.0.1:8000 --noreload
+```
+
+</details>
+
+### 2. Funkcje AI wymagają karty graficznej z modelem PLLuM
+
+> [!IMPORTANT]
+> **Do działania funkcji AI wymagana jest karta graficzna (GPU) z lokalnym modelem PLLuM.** Model językowy pracuje w całości na komputerze urzędu - żadne pytanie ani notatka nie wychodzi do internetu.
+>
+> **Mamy to uruchomione na naszym laptopie i chętnie pokażemy jury na żywo, jak to działa u nas.**
+
+- **Model:** PLLuM-12B-chat-2512 (CYFRAGOVPL, licencja Apache-2.0), kwantyzacja Q4_K_M, uruchamiany lokalnie przez [Ollamę](https://ollama.com/download). Plik modelu ma 7,5 GB, a po załadowaniu model zajmuje ok. 8 GB pamięci karty graficznej.
+- **U nas:** MacBook Pro z układem Apple M4 Pro (GPU zintegrowane, 24 GB pamięci). Model pracuje w całości na GPU (`ollama ps`: 100% GPU). Odpowiedź asystenta na pytanie „Ile mam czasu na sprzeciw od oceny okresowej?” przyszła po 7 sekundach (pomiar z 22.11.2026).
+- **Bez karty graficznej** modelu nie testowaliśmy. Aplikacja czeka na odpowiedź modelu najwyżej 120 sekund.
+- **Bez modelu reszta systemu działa bez zmian:** przebieg oceny, terminy, arkusze, role, Radar, partner HR, kadry i zaplecze administratora nie korzystają z modelu. Strona „Asystent AI” pokazuje wtedy komunikat: „Lokalny model językowy jest teraz niedostępny. Proces oceny działa bez niego - asystent jest dodatkiem.”
+
+Funkcje, które korzystają z modelu: „Asystent AI” (pytania o procedurę), projekt uzasadnienia z notatek, pytania do rozmowy oceniającej, propozycja kierunków do IPRZ, sugestia ocen cząstkowych i pytania do kart obserwacji Radaru.
+
+Instalacja modelu na własnym komputerze z kartą graficzną (po zainstalowaniu Ollamy, w katalogu repozytorium):
+
+```
+curl -L -O https://huggingface.co/mradermacher/PLLuM-12B-chat-2512-GGUF/resolve/main/PLLuM-12B-chat-2512.Q4_K_M.gguf
+ollama create pllum-12b-chat-2512:q4_k_m -f Modelfile
+```
+
+Plik `Modelfile` z repozytorium odtwarza dokładnie ten model, którego używamy (ten sam plik wag, szablon rozmowy, długość kontekstu i temperatura). Aplikacja łączy się z Ollamą pod adresem `http://localhost:11434`; inny adres albo nazwę modelu podaje się zmiennymi `ASYSTENT_OLLAMA_ADRES` i `ASYSTENT_MODEL`.
+
+Pokaz włącza - wyłącznie na danych fikcyjnych - trzy funkcje modelu, które według AI Act są funkcjami wysokiego ryzyka: sugestię ocen cząstkowych, propozycję kierunków do IPRZ i pytania do kart obserwacji Radaru. Po zwykłej instalacji są wyłączone i włącza je dopiero decyzja urzędu (patrz „Założenia”). Wpisy pokazowe nie zawierają analiz, które urząd wykonuje przed włączeniem, i poza trybem demonstracyjnym niczego nie włączają. Pokaz bez tych funkcji: `ASYSTENT_DECYZJE_AI= ./uruchom-demo.sh`.
+
+### 3. Co sprawdzić - scenariusz na 10 minut
+
+Daty w pokazie liczą się od dnia instalacji, więc każde konto ma od razu sprawy w toku, pilne i po terminie.
+
+| Krok | Wejdź jako | Co zrobić | Co widać |
+|---|---|---|---|
+| 1 | Tomasz Wiśniewski (przełożony) | Otwórz „Moje zadania”. | Każde zadanie ma stan (ile dni zostało albo ile dni minęło od terminu), termin i podstawę prawną. |
+| 2 | Tomasz Wiśniewski | Kliknij zadanie przy Annie Nowak. W części II wpisz oceny i wybierz „Zapisz szkic i przelicz wynik”, potem „Zatwierdź ocenę”. | Karta oceny: kryteria, fakty z EZD RP, Radar dobrostanu i doceniania, partner HR, notatki. System liczy średnią i poziom, a przy brakach mówi, czego brakuje. |
+| 3 | Tomasz Wiśniewski | Na tej samej karcie: „Arkusz C - PDF do podpisu” albo „DOCX”, „Dodaj terminy do kalendarza (.ics)”. | Arkusz zgodny ze wzorem z rozporządzenia i terminy do kalendarza. PDF wymaga LibreOffice; bez niego jest DOCX. |
+| 4 | Tomasz Wiśniewski | Z modelem PLLuM: „Ułóż projekt uzasadnienia z moich notatek”, „Przygotuj pytania do rozmowy z moich notatek”. | Tekst oznaczony jako wygenerowany przez model, z klasyfikacją funkcji; do formularza przenosi go człowiek. |
+| 5 | Anna Nowak (pracownik) | Otwórz swoją ocenę z listy „Moje oceny”. | Ta sama ocena oczami ocenianej: bez notatek i szkicu przełożonego. |
+| 6 | Robert Kaczmarek (pracownik) | Otwórz „Moje zadania”. | Sprzeciw od oceny negatywnej w toku, z terminem rozpatrzenia (art. 83 ust. 3 u.s.c.). |
+| 7 | Helena Dąbrowska (dyrektor) | Otwórz zadanie „Rozpatrz sprzeciw od oceny” i rozstrzygnij sprzeciw. Potem jako Robert Kaczmarek potwierdź odbiór rozstrzygnięcia. | Sprzeciw rozstrzyga dyrektor generalny. Po odmowie i doręczeniu pojawia się status „przysługuje odwołanie do sądu pracy - do …” (art. 83 ust. 5 u.s.c.). |
+| 8 | Barbara Kowalczyk (kadry) | „Kadry”: dodaj nieobecność dłuższą niż miesiąc osobie, której ocena trwa, np. Tomaszowi Wiśniewskiemu. Na karcie pracownika jest też „Zmiana stanowiska z istotną zmianą zakresu obowiązków”. | Termin trwającej oceny przedłuża się sam (art. 81 ust. 7 u.s.c.), z wpisem w historii oceny. |
+| 9 | Jan Wójcik (pracownik) | Otwórz arkusz pierwszej oceny. | Odrębny proces pierwszej oceny w służbie cywilnej (art. 37-38 u.s.c.). |
+| 10 | administrator | „Administracja”: konta, „Struktura urzędu”, „Konfiguracja procesu”, dzienniki. | Struktura urzędu jako drzewo, parametry przepisów w pliku TOML zmieniane bez programisty, dziennik zdarzeń. Konto administratora nie widzi ocen. |
+| 11 | dowolne konto | Z modelem PLLuM: „Asystent AI”, pytanie „Ile mam czasu na sprzeciw od oceny?”. | Odpowiedź z podstawą prawną i informacją, że to treść modelu. |
+
+Powrót do stanu początkowego: zatrzymaj serwer (Ctrl+C) i uruchom `./uruchom-demo.sh --od-nowa`.
+
+### 4. Testy automatyczne
+
+W katalogu repozytorium, po pierwszym uruchomieniu skryptu:
+
+```
+.venv/bin/pip install pytest python-dateutil
+.venv/bin/python -m pytest -q
+.venv/bin/python manage.py test oceny
+```
+
+Polecenie `pytest` sprawdza rdzeń reguł (każdy test cytuje przepis albo wymaganie), a `manage.py test oceny` - aplikację: role, dostęp i przebieg oceny. Oba zestawy przechodzą na czystej kopii repozytorium; liczby testów są na końcu sekcji „Co działa”. Testy nie potrzebują modelu ani karty graficznej. Uruchamiaj je w terminalu, w którym nie ustawiono zmiennych `ASYSTENT_` (skrypt `uruchom-demo.sh` ich po sobie nie zostawia).
+
+### 5. Gdy coś nie działa
+
+| Objaw | Co zrobić |
+|---|---|
+| Port 8000 jest zajęty | `./uruchom-demo.sh 8080` |
+| Brak polecenia `python3` albo Python starszy niż 3.11 | `PYTHON=python3.12 ./uruchom-demo.sh` (nazwa zainstalowanego interpretera) |
+| „Nie udało się przygotować pliku PDF” | Brakuje LibreOffice - pobierz arkusz jako DOCX. |
+| „Lokalny model językowy jest teraz niedostępny” | Nie działa Ollama albo nie ma modelu (punkt 2). Reszta systemu działa. |
+| Chcesz zacząć od nowa | `./uruchom-demo.sh --od-nowa` |
+
+## Co działa (stan na 22.11.2026)
 
 - **Przebieg oceny** dla arkuszy A, B i C: kryteria i termin (część I), rozmowa i ocena (część II), wniosek o stopień służbowy (część III), zapoznanie z oceną, sprzeciw i jego rozstrzygnięcie, kolejny cykl.
 - **Moje zadania**: każda osoba widzi, co ma zrobić, do kiedy i na jakiej podstawie prawnej. Terminy liczone według Kodeksu cywilnego, z dniami wolnymi i przedłużeniem o długie nieobecności.
